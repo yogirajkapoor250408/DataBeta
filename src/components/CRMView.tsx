@@ -246,7 +246,7 @@ export const CRMView: React.FC<CRMViewProps> = ({
               <div className="space-y-3">
                 {stageDeals.length > 0 ? (
                   stageDeals.map((c) => {
-                    const isDarkCard = c.company === 'AutoPilot Systems';
+                    const isDarkCard = c.tags.includes('Priority') || c.tags.includes('High Value');
 
                     return (
                       <div

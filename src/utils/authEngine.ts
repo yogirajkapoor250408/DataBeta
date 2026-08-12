@@ -4,6 +4,38 @@ const AUTH_USER_KEY = 'databeta_auth_user_v1';
 const LOGIN_LOGS_KEY = 'databeta_login_logs_v1';
 const USER_DB_KEY = 'databeta_user_db_v1';
 
+// Hash function using Web Crypto API
+async function hashPassword(password: string): Promise<string> {
+  const msgUint8 = new TextEncoder().encode(password);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', msgUint8);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
+}
+
+interface LocalUserRecord {
+  id: string;
+  name: string;
+  email: string;
+  passwordHash: string;
+  role: 'admin' | 'user';
+  createdAt: string;
+}
+
+function getLocalUserDb(): Record<string, LocalUserRecord> {
+  try {
+    const raw = localStorage.getItem(USER_DB_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
+}
+
+function saveLocalUserDb(db: Record<string, LocalUserRecord>): void {
+  try {
+    localStorage.setItem(USER_DB_KEY, JSON.stringify(db));
+  } catch {}
+}
+
 export const GOOGLE_PROFILES = [
   {
     name: 'Yogiraj Kapoor (Google Workspace)',
@@ -160,16 +192,26 @@ export function authenticateWithAppleProfile(selectedEmail?: string): User {
   return user;
 }
 
-export function loginWithEmail(email: string, pass: string): User {
-  const isAdmin = email.toLowerCase().includes('admin') || email.toLowerCase().includes('owner') || email.toLowerCase().includes('yogiraj');
+export async function loginWithEmail(email: string, pass: string): Promise<User> {
+  const db = getLocalUserDb();
+  const record = db[email.toLowerCase()];
+
+  if (!record) {
+    throw new Error('No user found with this email.');
+  }
+
+  const hash = await hashPassword(pass);
+  if (record.passwordHash !== hash) {
+    throw new Error('Incorrect password.');
+  }
 
   const user: User = {
-    id: `usr-email-${Date.now()}`,
-    name: isAdmin ? 'Yogiraj Kapoor (Website Owner)' : (email.split('@')[0] || 'Business Client'),
-    email,
-    role: isAdmin ? 'admin' : 'user',
+    id: record.id,
+    name: record.name,
+    email: record.email,
+    role: record.role,
     authProvider: 'email',
-    createdAt: new Date().toISOString().split('T')[0],
+    createdAt: record.createdAt,
     lastLogin: new Date().toLocaleString(),
     isFirstTimeUser: false,
   };
@@ -179,14 +221,36 @@ export function loginWithEmail(email: string, pass: string): User {
   return user;
 }
 
-export function signUpWithEmail(name: string, email: string, pass: string): User {
-  const user: User = {
+export async function signUpWithEmail(name: string, email: string, pass: string): Promise<User> {
+  const db = getLocalUserDb();
+  const normalizedEmail = email.toLowerCase();
+
+  if (db[normalizedEmail]) {
+    throw new Error('A user with this email already exists.');
+  }
+
+  const isAdmin = normalizedEmail.includes('admin') || normalizedEmail.includes('owner') || normalizedEmail.includes('yogiraj');
+  const hash = await hashPassword(pass);
+
+  const newRecord: LocalUserRecord = {
     id: `usr-email-${Date.now()}`,
     name,
-    email,
-    role: 'user',
-    authProvider: 'email',
+    email: normalizedEmail,
+    passwordHash: hash,
+    role: isAdmin ? 'admin' : 'user',
     createdAt: new Date().toISOString().split('T')[0],
+  };
+
+  db[normalizedEmail] = newRecord;
+  saveLocalUserDb(db);
+
+  const user: User = {
+    id: newRecord.id,
+    name: newRecord.name,
+    email: newRecord.email,
+    role: newRecord.role,
+    authProvider: 'email',
+    createdAt: newRecord.createdAt,
     lastLogin: new Date().toLocaleString(),
     isFirstTimeUser: true,
   };
@@ -209,14 +273,15 @@ export function markTourCompleted(user: User): User {
   return updatedUser;
 }
 
-export function getAdminStats(): AdminSystemStats {
+export function getAdminStats(datasetRecordsCount: number = 0, crmDealsCount: number = 0): AdminSystemStats {
   const logs = getStoredLogs();
+  const uniqueUsers = new Set(logs.map(l => l.userEmail)).size;
   return {
-    totalUsers: Math.max(14, logs.length),
-    totalLogins: logs.length + 42,
-    totalDatasetsUploaded: 28,
-    totalAIQueriesExecuted: 142,
-    totalCRMDealsCreated: 19,
-    systemUptimePct: 99.99,
+    totalUsers: uniqueUsers,
+    totalLogins: logs.length,
+    totalDatasetsUploaded: datasetRecordsCount > 0 ? 1 : 0, // Using 1 as a proxy if we have records
+    totalAIQueriesExecuted: 0, // AI is simulated, so no queries actually executed against an API
+    totalCRMDealsCreated: crmDealsCount,
+    systemUptimePct: 100.0, // Local app is always up when running
   };
 }

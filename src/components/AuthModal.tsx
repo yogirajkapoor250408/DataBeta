@@ -33,7 +33,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
   if (!isOpen) return null;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg(null);
 
@@ -45,9 +45,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     try {
       let user: User;
       if (mode === 'signup') {
-        user = signUpWithEmail(name || email.split('@')[0], email, password);
+        user = await signUpWithEmail(name || email.split('@')[0], email, password);
       } else {
-        user = loginWithEmail(email, password);
+        user = await loginWithEmail(email, password);
       }
       onAuthSuccess(user);
       onClose();
@@ -68,10 +68,20 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     onClose();
   };
 
-  const handleAdminDemoLogin = () => {
-    const user = loginWithEmail('admin@databeta.io', 'admin123');
-    onAuthSuccess(user);
-    onClose();
+  const handleAdminDemoLogin = async () => {
+    try {
+      const user = await loginWithEmail('admin@databeta.io', 'admin123');
+      onAuthSuccess(user);
+      onClose();
+    } catch {
+      try {
+        const user = await signUpWithEmail('Admin User', 'admin@databeta.io', 'admin123');
+        onAuthSuccess(user);
+        onClose();
+      } catch (err: any) {
+        setErrorMsg(err.message || 'Admin login failed.');
+      }
+    }
   };
 
   return (
@@ -127,6 +137,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
             {/* Interactive OAuth Buttons */}
             <div className="space-y-2.5">
+              <div className="text-[10px] text-amber-600 dark:text-amber-500 bg-amber-50 dark:bg-amber-950/40 p-2 rounded-lg mb-2 text-center border border-amber-200 dark:border-amber-900/50">
+                Note: OAuth requires a backend. The buttons below will log you in using local mock data. For a true test, use Email sign up below.
+              </div>
               <button
                 type="button"
                 onClick={() => setSubView('google_picker')}

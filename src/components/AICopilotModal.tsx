@@ -30,7 +30,7 @@ export const AICopilotModal: React.FC<AICopilotModalProps> = ({
     {
       id: 'msg-init',
       sender: 'ai',
-      text: 'Hello! I am your DataBeta AI Financial Advisor. I run 100% locally in your browser memory using high-level algorithms to analyze your transactions, profit margins, tax deductions, and customer pipeline.',
+      text: 'Hello! I am the DataBeta Insight Engine. I run 100% locally in your browser memory using rule-based algorithms to analyze your transactions, profit margins, tax deductions, and customer pipeline.',
       timestamp: 'Just now',
       cards: [
         {
@@ -90,7 +90,7 @@ export const AICopilotModal: React.FC<AICopilotModalProps> = ({
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="font-extrabold text-sm text-white">DataBeta AI Advisor</h3>
+                <h3 className="font-extrabold text-sm text-white">Rule-Based Insight Engine</h3>
                 <span className="flex h-2 w-2 relative">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                   <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
@@ -175,7 +175,7 @@ export const AICopilotModal: React.FC<AICopilotModalProps> = ({
           {isTyping && (
             <div className="flex gap-2 items-center text-xs text-slate-400 dark:text-zinc-500 italic">
               <Bot className="w-4 h-4 text-rose-600 animate-pulse" />
-              <span>DataBeta AI is evaluating algorithms...</span>
+              <span>Insight Engine is evaluating rules...</span>
             </div>
           )}
         </div>
@@ -191,7 +191,7 @@ export const AICopilotModal: React.FC<AICopilotModalProps> = ({
           >
             <input
               type="text"
-              placeholder="Ask DataBeta AI anything about your business..."
+              placeholder="Ask the Insight Engine anything about your business..."
               value={inputQuery}
               onChange={(e) => setInputQuery(e.target.value)}
               className="w-full bg-slate-100 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-full pl-4 pr-10 py-2.5 text-xs text-slate-900 dark:text-white font-medium focus:outline-none focus:ring-2 focus:ring-rose-500"

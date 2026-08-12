@@ -13,6 +13,8 @@ import { calculateMetrics } from '../utils/metricsCalculator';
 import { formatCurrency } from '../utils/currencyFormatter';
 import { generateBusinessSummary } from '../utils/summaryEngine';
 import { calculateFinancialHealthScore } from '../utils/healthCalculator';
+import { calculateCustomerAnalytics } from '../utils/customerProductAnalytics';
+import { calculatePipelineSummary } from '../utils/crmEngine';
 import { NaturalQueryBar } from './NaturalQueryBar';
 import { GoalTrackerCard } from './GoalTrackerCard';
 import {
@@ -117,6 +119,42 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     return calculateFinancialHealthScore(filteredRecords);
   }, [filteredRecords]);
 
+  const customerStats = useMemo(() => {
+    return calculateCustomerAnalytics(filteredRecords);
+  }, [filteredRecords]);
+
+  const pipelineSummary = useMemo(() => {
+    return calculatePipelineSummary(crmContacts);
+  }, [crmContacts]);
+
+  const chartData = useMemo(() => {
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const monthlyRev: Record<string, number> = {};
+    let maxRev = 0;
+    
+    filteredRecords.forEach(r => {
+      if (r.date && r.revenue) {
+        const m = monthNames[r.date.getMonth()];
+        monthlyRev[m] = (monthlyRev[m] || 0) + r.revenue;
+        if (monthlyRev[m] > maxRev) maxRev = monthlyRev[m];
+      }
+    });
+
+    // Default to last 6 months for chart display
+    const currentMonthIdx = new Date().getMonth();
+    const recentMonths: string[] = [];
+    for (let i = 5; i >= 0; i--) {
+        const idx = (currentMonthIdx - i + 12) % 12;
+        recentMonths.push(monthNames[idx]);
+    }
+    
+    return recentMonths.map((m, idx) => {
+      const rev = monthlyRev[m] || 0;
+      const height = maxRev > 0 ? `${Math.max(5, Math.round((rev / maxRev) * 100))}%` : '5%';
+      return { month: m, height, active: idx === recentMonths.length - 1 };
+    });
+  }, [filteredRecords]);
+
   // CRM Categorized Lists
   const inTouchContacts = useMemo(() => crmContacts.filter((c) => c.stage === 'in_touch'), [crmContacts]);
   const offerSentContacts = useMemo(() => crmContacts.filter((c) => c.stage === 'offer_sent'), [crmContacts]);
@@ -164,7 +202,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="font-extrabold text-white text-sm">DataBeta AI Copilot</h3>
+                <h3 className="font-extrabold text-white text-sm">Rule-Based Insight Engine</h3>
                 <span className="text-[10px] bg-rose-600 text-white font-bold px-2.5 py-0.5 rounded-full uppercase">
                   100% Local Engine
                 </span>
@@ -180,7 +218,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             className="flex items-center gap-2 px-5 py-2.5 bg-white text-black hover:bg-zinc-100 rounded-full font-extrabold text-xs shadow-md transition-all shrink-0"
           >
             <Sparkles className="w-4 h-4 text-rose-600" />
-            <span>Launch AI Advisor</span>
+            <span>Launch Insight Engine</span>
           </button>
         </div>
       )}
@@ -391,22 +429,15 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         {/* Card 1: New Customer / Bar Chart (5 Cols) */}
         <div className="lg:col-span-5 bg-white dark:bg-zinc-950 p-6 rounded-3xl border border-slate-200/80 dark:border-zinc-800 shadow-sm flex flex-col justify-between">
           <div className="space-y-1 mb-4">
-            <div className="text-xs font-semibold text-slate-400 dark:text-zinc-500">New customer</div>
+            <div className="text-xs font-semibold text-slate-400 dark:text-zinc-500">Total Unique Customers</div>
             <div className="flex items-baseline gap-2">
-              <span className="text-4xl font-extrabold text-slate-900 dark:text-white">52</span>
-              <span className="text-xs text-slate-400 dark:text-zinc-500 font-medium">/ 6-months average</span>
+              <span className="text-4xl font-extrabold text-slate-900 dark:text-white">{customerStats.totalUniqueCustomers}</span>
+              <span className="text-xs text-slate-400 dark:text-zinc-500 font-medium">/ actively generating revenue</span>
             </div>
           </div>
 
           <div className="h-44 flex items-end justify-between gap-3 pt-4">
-            {[
-              { month: 'Jan', height: '65%', active: false },
-              { month: 'Feb', height: '40%', active: false },
-              { month: 'Mar', height: '55%', active: false },
-              { month: 'Apr', height: '48%', active: false },
-              { month: 'May', height: '100%', active: true },
-              { month: 'Jun', height: '60%', active: false },
-            ].map((item) => (
+            {chartData.map((item) => (
               <div key={item.month} className="flex-1 flex flex-col items-center gap-2 h-full justify-end">
                 <div
                   className={`w-full rounded-lg transition-all duration-300 ${
@@ -437,12 +468,12 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           <div className="my-auto py-2">
             <div className="grid grid-cols-6 gap-2.5 max-w-[220px] mx-auto">
               {Array.from({ length: 30 }).map((_, idx) => {
-                const isRed = idx >= 24;
+                const isRed = idx >= Math.round((pipelineSummary.winRatePct / 100) * 30);
                 return (
                   <div
                     key={idx}
                     className={`w-6 h-6 rounded-full transition-all ${
-                      isRed ? 'bg-rose-600 shadow-sm shadow-rose-600/40' : 'bg-zinc-900 dark:bg-zinc-800'
+                      isRed ? 'bg-zinc-900 dark:bg-zinc-800' : 'bg-rose-600 shadow-sm shadow-rose-600/40'
                     }`}
                   />
                 );
@@ -451,8 +482,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </div>
 
           <div className="pt-3 border-t border-slate-100 dark:border-zinc-900 flex items-baseline gap-2">
-            <span className="text-3xl font-black text-slate-900 dark:text-white">73%</span>
-            <span className="text-xs text-slate-400 dark:text-zinc-500 font-medium">/ +6 % in this month</span>
+            <span className="text-3xl font-black text-slate-900 dark:text-white">{pipelineSummary.winRatePct.toFixed(1)}%</span>
+            <span className="text-xs text-slate-400 dark:text-zinc-500 font-medium">/ win rate</span>
           </div>
         </div>
 
@@ -460,9 +491,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         <div className="lg:col-span-3 flex flex-col gap-4 justify-between">
           <div className="bg-zinc-950 text-white p-5 rounded-3xl shadow-xl flex items-center justify-between border border-zinc-800">
             <div>
-              <div className="text-xs font-semibold text-zinc-400">Task in progress</div>
-              <div className="text-3xl font-black mt-1">16</div>
-              <div className="text-[11px] text-zinc-500 font-medium mt-0.5">/ +3 % in this month</div>
+              <div className="text-xs font-semibold text-zinc-400">Total Active Deals</div>
+              <div className="text-3xl font-black mt-1">{pipelineSummary.totalDeals}</div>
+              <div className="text-[11px] text-zinc-500 font-medium mt-0.5">/ pipeline records</div>
             </div>
             <button
               onClick={() => onNavigateTab?.('crm')}
@@ -474,11 +505,11 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
           <div className="bg-white dark:bg-zinc-950 p-5 rounded-3xl border border-slate-200/80 dark:border-zinc-800 shadow-sm flex items-center justify-between">
             <div>
-              <div className="text-xs font-semibold text-slate-400 dark:text-zinc-500">Prepayments</div>
+              <div className="text-xs font-semibold text-slate-400 dark:text-zinc-500">Gross Revenue</div>
               <div className="text-2xl font-extrabold text-slate-900 dark:text-white mt-1">
-                {formatCurrency(metrics.totalRevenue || 22091, currency)}
+                {formatCurrency(metrics.totalRevenue || 0, currency)}
               </div>
-              <div className="text-[11px] text-slate-400 dark:text-zinc-500 font-medium mt-0.5">/ +6 % in this month</div>
+              <div className="text-[11px] text-slate-400 dark:text-zinc-500 font-medium mt-0.5">/ current timeframe</div>
             </div>
             <button
               onClick={() => onNavigateTab?.('analytics')}
@@ -551,7 +582,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                     <span>{c.lastContactDate}</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="flex items-center gap-0.5"><MessageSquare className="w-3 h-3" /> {c.commentsCount || 1}</span>
+                    <span className="flex items-center gap-0.5"><MessageSquare className="w-3 h-3" /> {c.commentsCount || 0}</span>
                     <span className="flex items-center gap-0.5"><Paperclip className="w-3 h-3" /> {c.attachmentsCount || 0}</span>
                   </div>
                 </div>
@@ -600,8 +631,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                     <span>{c.lastContactDate}</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="flex items-center gap-0.5"><MessageSquare className="w-3 h-3" /> {c.commentsCount || 12}</span>
-                    <span className="flex items-center gap-0.5"><Paperclip className="w-3 h-3" /> {c.attachmentsCount || 5}</span>
+                    <span className="flex items-center gap-0.5"><MessageSquare className="w-3 h-3" /> {c.commentsCount || 0}</span>
+                    <span className="flex items-center gap-0.5"><Paperclip className="w-3 h-3" /> {c.attachmentsCount || 0}</span>
                   </div>
                 </div>
               </div>
@@ -636,7 +667,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                     <Calendar className="w-3 h-3" />
                     <span>{c.lastContactDate}</span>
                   </div>
-                  <span className="flex items-center gap-0.5"><MessageSquare className="w-3 h-3" /> {c.commentsCount || 3}</span>
+                  <span className="flex items-center gap-0.5"><MessageSquare className="w-3 h-3" /> {c.commentsCount || 0}</span>
                 </div>
               </div>
             ))}

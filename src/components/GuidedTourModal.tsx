@@ -33,9 +33,9 @@ const STEPS = [
   },
   {
     step: 4,
-    title: 'Private Local AI Advisor',
+    title: 'Private Local Insight Engine',
     icon: Bot,
-    description: 'Consult your private AI Copilot for executive briefings, cost risk analysis, and margin growth advice — 100% algorithm driven with zero cloud API keys.',
+    description: 'Consult your private Rule-Based Insight Engine for executive briefings, cost risk analysis, and margin growth advice — 100% algorithm driven with zero cloud API keys.',
     badge: 'Step 4 of 4',
   },
 ];
