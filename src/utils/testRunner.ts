@@ -21,7 +21,7 @@ import {
 } from './authEngine';
 import { calculateFinancialHealthScore } from './healthCalculator';
 
-export function runAllTests(): { passed: number; failed: number; log: string[] } {
+export async function runAllTests(): Promise<{ passed: number; failed: number; log: string[] }> {
   const log: string[] = [];
   let passed = 0;
   let failed = 0;
@@ -58,6 +58,18 @@ export function runAllTests(): { passed: number; failed: number; log: string[] }
   assert(metrics.totalRevenue === 500, 'Metrics Calculation: Total Revenue is 500');
   assert(metrics.totalExpenses === 145, 'Metrics Calculation: Total Expenses is 145');
   assert(metrics.estimatedProfit === 355, 'Metrics Calculation: Net Profit is 355');
+
+  // CANONICAL E2E TEST DATASET
+  const canonicalRecords = [
+    { id: 'c1', date: new Date('2026-01-01'), dateString: '2026-01-01', revenue: 1000, expense: 400, profit: 600, category: 'Software', product: 'Product A', customer: 'Customer A', quantity: 2 },
+    { id: 'c2', date: new Date('2026-01-05'), dateString: '2026-01-05', revenue: 1500, expense: 500, profit: 1000, category: 'Software', product: 'Product B', customer: 'Customer B', quantity: 3 },
+    { id: 'c3', date: new Date('2026-02-02'), dateString: '2026-02-02', revenue: 2000, expense: 700, profit: 1300, category: 'Software', product: 'Product A', customer: 'Customer A', quantity: 4 },
+  ];
+  const canonicalMetrics = calculateMetrics(canonicalRecords);
+  assert(canonicalMetrics.totalRevenue === 4500, 'Canonical E2E: Revenue is 4500');
+  assert(canonicalMetrics.totalExpenses === 1600, 'Canonical E2E: Expenses is 1600');
+  assert(canonicalMetrics.estimatedProfit === 2900, 'Canonical E2E: Net Profit is 2900');
+  assert(canonicalMetrics.profitMargin !== null && Math.abs(canonicalMetrics.profitMargin - 64.44) < 0.1, 'Canonical E2E: Margin is approx 64.44%');
 
   assert(cleanNumericString('$1,250.50') === 1250.5, 'Clean Number: Currency $ string');
   assert(cleanNumericString('€3.450,75') === 3450.75, 'Clean Number: Currency € string');
@@ -131,7 +143,7 @@ export function runAllTests(): { passed: number; failed: number; log: string[] }
   const appleUser = authenticateWithAppleProfile('h.mcneil@privaterelay.appleid.com');
   assert(appleUser.authProvider === 'apple', 'Auth Engine: Apple ID private relay session created');
 
-  const adminUser = loginWithEmail('admin@databeta.io', 'pass');
+  const adminUser = await loginWithEmail('admin@databeta.io', 'pass');
   assert(adminUser.role === 'admin', 'Auth Engine: Admin/Owner login creates admin role');
 
   const adminStats = getAdminStats();
@@ -148,12 +160,13 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   console.log('========================================');
   console.log('DATABETA FULL INTEGRATION TEST SUITE');
   console.log('========================================\n');
-  const res = runAllTests();
-  res.log.forEach((l) => console.log(l));
-  console.log('\n========================================');
-  console.log(`TEST RESULTS: ${res.passed} Passed, ${res.failed} Failed.`);
-  console.log('========================================');
-  if (res.failed > 0) {
-    process.exit(1);
-  }
+  runAllTests().then((res) => {
+    res.log.forEach((l) => console.log(l));
+    console.log('\n========================================');
+    console.log(`TEST RESULTS: ${res.passed} Passed, ${res.failed} Failed.`);
+    console.log('========================================');
+    if (res.failed > 0) {
+      process.exit(1);
+    }
+  });
 }

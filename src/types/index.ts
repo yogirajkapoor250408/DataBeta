@@ -271,7 +271,7 @@ export interface AICopilotMessage {
 }
 
 // AUTH & ADMIN CONSOLE TYPES
-export type UserRole = 'admin' | 'user';
+export type UserRole = 'owner' | 'admin' | 'user';
 export type AuthProvider = 'google' | 'apple' | 'email';
 
 export interface User {

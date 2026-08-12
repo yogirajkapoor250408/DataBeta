@@ -14,22 +14,32 @@ import { FileUploadModal } from './components/FileUploadModal';
 import { AICopilotModal } from './components/AICopilotModal';
 import { AuthModal } from './components/AuthModal';
 import { GuidedTourModal } from './components/GuidedTourModal';
+import { OnboardingModal } from './components/OnboardingModal';
 import { Dataset, CurrencyCode, CRMContact, User, NormalizedRecord } from './types';
-import { getStoredCRMContacts, syncContactsFromTransactions, saveCRMContacts } from './utils/crmEngine';
-import { getStoredUser, logoutUser } from './utils/authEngine';
+import { authService } from './services/authService';
+import { businessService, Business, BusinessMembership } from './services/businessService';
+import { transactionService } from './services/transactionService';
+import { crmService } from './services/crmService';
+import { goalService } from './services/goalService';
+import { auditService } from './services/auditService';
 
-const LOCAL_STORAGE_KEY = 'databeta_active_dataset_v3';
-const CURRENCY_KEY = 'databeta_active_currency_v3';
 const THEME_KEY = 'databeta_theme';
+const ACTIVE_BIZ_KEY = 'databeta_active_biz_id';
 
 export const App: React.FC = () => {
-  const [currentUser, setCurrentUser] = useState<User | null>(getStoredUser());
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [activeTab, setActiveTab] = useState<
     'landing' | 'dashboard' | 'analytics' | 'crm' | 'tax' | 'data' | 'reports' | 'settings' | 'admin'
-  >(getStoredUser() ? 'dashboard' : 'landing');
+  >('landing');
 
+  // Business & Multi-Tenant State
+  const [memberships, setMemberships] = useState<BusinessMembership[]>([]);
+  const [activeBusiness, setActiveBusiness] = useState<Business | null>(null);
+  const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
+
+  // Data State for Active Business
   const [dataset, setDataset] = useState<Dataset | null>(null);
-  const [crmContacts, setCrmContacts] = useState<CRMContact[]>(getStoredCRMContacts());
+  const [crmContacts, setCrmContacts] = useState<CRMContact[]>([]);
   const [currency, setCurrency] = useState<CurrencyCode>('USD');
   const [theme, setTheme] = useState<'dark' | 'light'>('light');
 
@@ -40,79 +50,143 @@ export const App: React.FC = () => {
   const [authMode, setAuthMode] = useState<'signin' | 'signup'>('signin');
   const [isTourOpen, setIsTourOpen] = useState(false);
 
+  // 1. Theme & Initial Session Restoration
   useEffect(() => {
     try {
       const storedTheme = localStorage.getItem(THEME_KEY) as 'dark' | 'light' | null;
       if (storedTheme) {
         setTheme(storedTheme);
-        if (storedTheme === 'dark') {
-          document.documentElement.classList.add('dark');
-        } else {
-          document.documentElement.classList.remove('dark');
-        }
+        if (storedTheme === 'dark') document.documentElement.classList.add('dark');
+        else document.documentElement.classList.remove('dark');
       } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
         setTheme('dark');
         document.documentElement.classList.add('dark');
       }
+    } catch {}
 
-      const storedCurr = localStorage.getItem(CURRENCY_KEY);
-      if (storedCurr) {
-        setCurrency(storedCurr as CurrencyCode);
+    // Subscribe to Auth State
+    const sub = authService.onAuthStateChange(async (user) => {
+      setCurrentUser(user);
+      if (user) {
+        if (activeTab === 'landing') setActiveTab('dashboard');
+        await loadUserBusinesses(user.id);
+      } else {
+        setMemberships([]);
+        setActiveBusiness(null);
+        setDataset(null);
+        setCrmContacts([]);
       }
+    });
 
-      const stored = localStorage.getItem(LOCAL_STORAGE_KEY);
-      if (stored) {
-        const parsed: Dataset = JSON.parse(stored);
-        parsed.meta.uploadedAt = new Date(parsed.meta.uploadedAt);
-        parsed.records = parsed.records.map((r) => ({
-          ...r,
-          date: r.date ? new Date(r.date) : null,
-        }));
-        setDataset(parsed);
-
-        const synced = syncContactsFromTransactions(parsed.records, crmContacts);
-        setCrmContacts(synced);
-      }
-    } catch {
-      localStorage.removeItem(LOCAL_STORAGE_KEY);
-    }
+    return () => {
+      if (sub && typeof sub.unsubscribe === 'function') sub.unsubscribe();
+    };
   }, []);
+
+  // 2. Load User Businesses
+  const loadUserBusinesses = async (userId: string) => {
+    const userBizs = await businessService.getUserBusinesses(userId);
+    setMemberships(userBizs);
+
+    if (userBizs.length > 0) {
+      const lastActiveId = localStorage.getItem(ACTIVE_BIZ_KEY);
+      const matched = userBizs.find((m) => m.business.id === lastActiveId) || userBizs[0];
+      handleSwitchBusiness(matched.business);
+    } else {
+      // Trigger onboarding for new user
+      setIsOnboardingOpen(true);
+    }
+  };
+
+  // 3. Switch Business Tenant Context
+  const handleSwitchBusiness = async (business: Business) => {
+    setActiveBusiness(business);
+    setCurrency(business.currency);
+    localStorage.setItem(ACTIVE_BIZ_KEY, business.id);
+
+    // Fetch transactions & CRM for this business
+    const txs = await transactionService.getBusinessTransactions(business.id);
+    const deals = await crmService.getDeals(business.id);
+
+    if (txs.length > 0) {
+      setDataset({
+        meta: {
+          fileName: `${business.name} Dataset`,
+          fileSize: 1024,
+          rowCount: txs.length,
+          headers: ['Date', 'Revenue', 'Expense', 'Category', 'Product', 'Customer'],
+          uploadedAt: new Date(),
+          mapping: { date: 'Date', revenue: 'Revenue', expense: 'Expense', profit: 'Profit', category: 'Category', product: 'Product', customer: 'Customer', quantity: null },
+        },
+        records: txs,
+      });
+    } else {
+      setDataset(null);
+    }
+
+    setCrmContacts(deals);
+    auditService.logEvent(business.id, currentUser?.id, 'business_switched', { businessName: business.name });
+  };
+
+  // 4. Handle Onboarding Completion
+  const handleOnboardingComplete = async (newBiz: Business) => {
+    setIsOnboardingOpen(false);
+    if (currentUser) {
+      const updatedBizs = await businessService.getUserBusinesses(currentUser.id);
+      setMemberships(updatedBizs);
+      await handleSwitchBusiness(newBiz);
+      if (currentUser.isFirstTimeUser) {
+        setIsTourOpen(true);
+      }
+    }
+  };
 
   const handleToggleTheme = () => {
     const nextTheme = theme === 'dark' ? 'light' : 'dark';
     setTheme(nextTheme);
     localStorage.setItem(THEME_KEY, nextTheme);
-    if (nextTheme === 'dark') {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
+    if (nextTheme === 'dark') document.documentElement.classList.add('dark');
+    else document.documentElement.classList.remove('dark');
   };
 
   const handleCurrencyChange = (code: CurrencyCode) => {
     setCurrency(code);
-    localStorage.setItem(CURRENCY_KEY, code);
+    if (activeBusiness) {
+      businessService.updateBusinessSettings(activeBusiness.id, { currency: code });
+      setActiveBusiness({ ...activeBusiness, currency: code });
+    }
   };
 
-  const handleDatasetLoaded = (newDataset: Dataset) => {
-    setDataset(newDataset);
-    try {
-      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(newDataset));
-    } catch {
-      // LocalStorage fallback
+  const handleDatasetLoaded = async (newDataset: Dataset) => {
+    if (!activeBusiness) {
+      setIsOnboardingOpen(true);
+      return;
     }
 
-    const synced = syncContactsFromTransactions(newDataset.records, crmContacts);
-    setCrmContacts(synced);
+    setDataset(newDataset);
+    await transactionService.importDataset(activeBusiness.id, newDataset.meta, newDataset.records);
+    const refreshedTxs = await transactionService.getBusinessTransactions(activeBusiness.id);
+
+    setDataset({
+      meta: newDataset.meta,
+      records: refreshedTxs,
+    });
+
+    auditService.logEvent(activeBusiness.id, currentUser?.id, 'dataset_imported', {
+      rowCount: newDataset.records.length,
+      fileName: newDataset.meta.fileName,
+    });
   };
 
-  const handleAddManualRecord = (newRec: NormalizedRecord) => {
-    const existingRecords = dataset?.records || [];
-    const updatedRecords = [newRec, ...existingRecords];
+  const handleAddManualRecord = async (newRec: NormalizedRecord) => {
+    if (!activeBusiness) return;
 
-    const updatedDataset: Dataset = {
+    await transactionService.addSingleTransaction(activeBusiness.id, newRec);
+    const updatedRecords = [newRec, ...(dataset?.records || [])];
+
+    setDataset({
       meta: dataset?.meta || {
-        fileName: 'Manual Transactions Log',
+        fileName: 'Manual Log',
         fileSize: 1024,
         rowCount: updatedRecords.length,
         headers: ['Date', 'Revenue', 'Expense', 'Category', 'Product', 'Customer'],
@@ -120,20 +194,21 @@ export const App: React.FC = () => {
         mapping: { date: 'Date', revenue: 'Revenue', expense: 'Expense', profit: 'Profit', category: 'Category', product: 'Product', customer: 'Customer', quantity: null },
       },
       records: updatedRecords,
-    };
+    });
 
-    handleDatasetLoaded(updatedDataset);
+    auditService.logEvent(activeBusiness.id, currentUser?.id, 'manual_transaction_added', { product: newRec.product });
   };
 
-  const handleClearData = () => {
+  const handleClearData = async () => {
+    if (activeBusiness) {
+      await transactionService.clearBusinessTransactions(activeBusiness.id);
+    }
     setDataset(null);
-    localStorage.removeItem(LOCAL_STORAGE_KEY);
     setActiveTab('dashboard');
   };
 
   const handleContactsChange = (updated: CRMContact[]) => {
     setCrmContacts(updated);
-    saveCRMContacts(updated);
   };
 
   const handleOpenAuth = (mode: 'signin' | 'signup') => {
@@ -141,19 +216,20 @@ export const App: React.FC = () => {
     setIsAuthOpen(true);
   };
 
-  const handleAuthSuccess = (user: User) => {
+  const handleAuthSuccess = async (user: User) => {
     setCurrentUser(user);
     setIsAuthOpen(false);
     setActiveTab('dashboard');
-
-    if (user.isFirstTimeUser) {
-      setIsTourOpen(true);
-    }
+    await loadUserBusinesses(user.id);
   };
 
-  const handleLogout = () => {
-    logoutUser();
+  const handleLogout = async () => {
+    await authService.signOut();
     setCurrentUser(null);
+    setMemberships([]);
+    setActiveBusiness(null);
+    setDataset(null);
+    setCrmContacts([]);
     setActiveTab('landing');
   };
 
@@ -175,6 +251,10 @@ export const App: React.FC = () => {
         currentUser={currentUser}
         onOpenAuth={handleOpenAuth}
         onLogout={handleLogout}
+        businessMemberships={memberships}
+        activeBusiness={activeBusiness}
+        onSelectBusiness={handleSwitchBusiness}
+        onOpenCreateBusiness={() => setIsOnboardingOpen(true)}
       />
 
       {activeTab === 'landing' ? (
@@ -245,7 +325,7 @@ export const App: React.FC = () => {
 
       {activeTab !== 'landing' && (
         <footer className="pl-16 bg-white dark:bg-zinc-950 border-t border-slate-200 dark:border-zinc-800 py-4 text-center text-xs text-slate-500 dark:text-zinc-400 no-print transition-colors">
-          <p>DataBeta — Financial Intelligence Platform & Client-Side CRM for Online Businesses</p>
+          <p>DataBeta — Multi-Tenant Business Intelligence & Client-Side CRM Platform</p>
         </footer>
       )}
 
@@ -269,6 +349,15 @@ export const App: React.FC = () => {
         onClose={() => setIsAuthOpen(false)}
         onAuthSuccess={handleAuthSuccess}
       />
+
+      {currentUser && (
+        <OnboardingModal
+          isOpen={isOnboardingOpen}
+          userId={currentUser.id}
+          onComplete={handleOnboardingComplete}
+          onClose={() => setIsOnboardingOpen(false)}
+        />
+      )}
 
       {currentUser && (
         <GuidedTourModal

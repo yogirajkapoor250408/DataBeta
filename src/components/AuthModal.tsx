@@ -1,10 +1,9 @@
 import React, { useState } from 'react';
 import { X, Lock, Mail, ArrowRight, ShieldCheck, UserCheck, CheckCircle2, ChevronRight } from 'lucide-react';
+import { authService } from '../services/authService';
 import {
   authenticateWithGoogleProfile,
   authenticateWithAppleProfile,
-  loginWithEmail,
-  signUpWithEmail,
   GOOGLE_PROFILES,
   APPLE_PROFILES,
 } from '../utils/authEngine';
@@ -43,16 +42,18 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     }
 
     try {
-      let user: User;
       if (mode === 'signup') {
-        user = await signUpWithEmail(name || email.split('@')[0], email, password);
+        const { user, error } = await authService.signUp(email, password, name || email.split('@')[0]);
+        if (error || !user) throw error || new Error('Registration failed.');
+        onAuthSuccess(user);
       } else {
-        user = await loginWithEmail(email, password);
+        const { user, error } = await authService.signIn(email, password);
+        if (error || !user) throw error || new Error('Authentication failed.');
+        onAuthSuccess(user);
       }
-      onAuthSuccess(user);
       onClose();
     } catch (err: any) {
-      setErrorMsg(err.message || 'Authentication failed. Please check credentials.');
+      setErrorMsg(err?.message || 'Authentication failed. Please check your credentials.');
     }
   };
 
@@ -70,17 +71,21 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
   const handleAdminDemoLogin = async () => {
     try {
-      const user = await loginWithEmail('admin@databeta.io', 'admin123');
-      onAuthSuccess(user);
-      onClose();
-    } catch {
-      try {
-        const user = await signUpWithEmail('Admin User', 'admin@databeta.io', 'admin123');
+      const { user, error } = await authService.signIn('admin@databeta.io', 'admin123');
+      if (user && !error) {
         onAuthSuccess(user);
         onClose();
-      } catch (err: any) {
-        setErrorMsg(err.message || 'Admin login failed.');
+        return;
       }
+      const { user: newUser, error: signUpErr } = await authService.signUp('admin@databeta.io', 'admin123', 'Admin Owner');
+      if (newUser && !signUpErr) {
+        onAuthSuccess(newUser);
+        onClose();
+      } else {
+        setErrorMsg(signUpErr?.message || 'Admin login failed.');
+      }
+    } catch (err: any) {
+      setErrorMsg(err.message || 'Admin login failed.');
     }
   };
 

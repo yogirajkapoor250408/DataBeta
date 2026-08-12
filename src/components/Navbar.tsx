@@ -22,6 +22,8 @@ import {
   ChevronDown,
 } from 'lucide-react';
 import { DatasetMeta, CurrencyCode, CURRENCIES, User } from '../types';
+import { BusinessSelector } from './BusinessSelector';
+import { BusinessMembership, Business } from '../services/businessService';
 
 interface NavbarProps {
   activeTab: 'landing' | 'dashboard' | 'analytics' | 'crm' | 'tax' | 'data' | 'reports' | 'settings' | 'admin';
@@ -39,6 +41,10 @@ interface NavbarProps {
   currentUser: User | null;
   onOpenAuth: (mode: 'signin' | 'signup') => void;
   onLogout: () => void;
+  businessMemberships?: BusinessMembership[];
+  activeBusiness?: Business | null;
+  onSelectBusiness?: (business: Business) => void;
+  onOpenCreateBusiness?: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -57,6 +63,10 @@ export const Navbar: React.FC<NavbarProps> = ({
   currentUser,
   onOpenAuth,
   onLogout,
+  businessMemberships = [],
+  activeBusiness = null,
+  onSelectBusiness,
+  onOpenCreateBusiness,
 }) => {
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
 
@@ -220,11 +230,19 @@ export const Navbar: React.FC<NavbarProps> = ({
 
 
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-          {/* Left Title */}
-          <div>
+          {/* Left Title & Business Selector */}
+          <div className="flex items-center gap-4">
             <h1 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
               {tabTitles[activeTab]}
             </h1>
+            {currentUser && onSelectBusiness && onOpenCreateBusiness && (
+              <BusinessSelector
+                memberships={businessMemberships || []}
+                activeBusiness={activeBusiness || null}
+                onSelectBusiness={onSelectBusiness}
+                onOpenCreateNew={onOpenCreateBusiness}
+              />
+            )}
           </div>
 
           {/* Right Action Items */}
