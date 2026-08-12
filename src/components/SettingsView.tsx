@@ -1,7 +1,7 @@
 import React from 'react';
 import { DatasetMeta, NormalizedRecord, CurrencyCode, CURRENCIES } from '../types';
-import { Download, Trash2, ShieldCheck, HardDrive, Globe } from 'lucide-react';
-import Papa from 'papaparse';
+import { FileText, Database, Layers, CheckCircle2, ShieldCheck, Globe, Trash2 } from 'lucide-react';
+import { calculateMetrics } from '../utils/metricsCalculator';
 
 interface SettingsViewProps {
   meta: DatasetMeta | null;
@@ -18,142 +18,100 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   onCurrencyChange,
   onClearData,
 }) => {
-  const handleExportCSV = () => {
-    if (!records || records.length === 0) return;
-
-    const exportRows = records.map((r) => ({
-      Date: r.dateString,
-      Category: r.category || '',
-      Product_Service: r.product || '',
-      Customer: r.customer || '',
-      Revenue: r.revenue !== null ? r.revenue : '',
-      Expense: r.expense !== null ? r.expense : '',
-      Profit: r.profit !== null ? r.profit : '',
-      Quantity: r.quantity !== undefined ? r.quantity : '',
-    }));
-
-    const csv = Papa.unparse(exportRows);
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.setAttribute('download', `databeta_processed_${meta?.fileName || 'dataset'}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
+  const metrics = calculateMetrics(records);
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
-      {/* Active Dataset Status Card */}
-      <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold">
-            <HardDrive className="w-5 h-5" />
-          </div>
-          <div>
-            <h2 className="text-lg font-bold text-slate-900">Active Dataset Status</h2>
-            <p className="text-xs text-slate-500">Overview of currently loaded transaction data</p>
-          </div>
-        </div>
-
-        {meta ? (
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
-            <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200">
-              <div className="text-xs text-slate-500 font-medium">Source File</div>
-              <div className="text-sm font-bold text-slate-900 truncate mt-0.5">{meta.fileName}</div>
-            </div>
-            <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200">
-              <div className="text-xs text-slate-500 font-medium">Record Count</div>
-              <div className="text-sm font-bold text-slate-900 mt-0.5">{records.length} transactions</div>
-            </div>
-            <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200">
-              <div className="text-xs text-slate-500 font-medium">Data Origin</div>
-              <div className="text-sm font-bold text-slate-900 mt-0.5">
-                {meta.isDemo ? (
-                  <span className="text-amber-600 font-semibold">Demo Sample Mode</span>
-                ) : (
-                  <span className="text-indigo-600 font-semibold">User Uploaded</span>
-                )}
-              </div>
-            </div>
-          </div>
-        ) : (
-          <p className="text-xs text-slate-500">No active dataset is currently loaded.</p>
-        )}
-
-        {meta && (
-          <div className="pt-4 border-t border-slate-100 flex flex-wrap items-center gap-3">
-            <button
-              onClick={handleExportCSV}
-              className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-semibold transition-all shadow-sm"
-            >
-              <Download className="w-4 h-4" />
-              <span>Export Processed Dataset (CSV)</span>
-            </button>
-
-            <button
-              onClick={onClearData}
-              className="flex items-center gap-2 px-4 py-2 bg-rose-50 text-rose-700 hover:bg-rose-100 border border-rose-200 rounded-lg text-xs font-semibold transition-all"
-            >
-              <Trash2 className="w-4 h-4" />
-              <span>Clear Data & Reset State</span>
-            </button>
-          </div>
-        )}
+    <div className="space-y-6 max-w-4xl mx-auto">
+      <div>
+        <h2 className="text-xl font-bold text-slate-900 dark:text-white">Application Settings & Data Control</h2>
+        <p className="text-xs text-slate-600 dark:text-zinc-400 mt-1">
+          Configure currency defaults, inspect active dataset metadata, and manage local storage.
+        </p>
       </div>
 
-      {/* Currency Preference Card */}
-      <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold">
-            <Globe className="w-5 h-5" />
-          </div>
-          <div>
-            <h2 className="text-lg font-bold text-slate-900">Regional Currency Preferences</h2>
-            <p className="text-xs text-slate-500">Select reporting currency for formatting and charts</p>
-          </div>
+      {/* Currency Preferences */}
+      <div className="bg-white dark:bg-zinc-950 p-6 rounded-3xl border border-slate-200/80 dark:border-zinc-800 shadow-sm space-y-4">
+        <div className="flex items-center gap-2">
+          <Globe className="w-5 h-5 text-rose-600" />
+          <h3 className="font-bold text-slate-900 dark:text-white text-base">Default Currency Display</h3>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 pt-2">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           {Object.values(CURRENCIES).map((c) => (
             <button
               key={c.code}
               onClick={() => onCurrencyChange(c.code)}
-              className={`p-3 rounded-xl border text-xs font-bold text-left transition-all ${
+              className={`p-4 rounded-2xl border text-left transition-all flex items-center justify-between ${
                 currency === c.code
-                  ? 'bg-indigo-600 text-white border-indigo-600 shadow-md'
-                  : 'bg-slate-50 text-slate-800 border-slate-200 hover:bg-slate-100'
+                  ? 'border-rose-600 bg-rose-50/40 dark:bg-rose-950/20 text-slate-900 dark:text-white font-extrabold'
+                  : 'border-slate-200/80 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-900 text-slate-600 dark:text-zinc-400 hover:border-slate-300'
               }`}
             >
-              <div className="text-sm font-extrabold">{c.symbol} {c.code}</div>
-              <div className="text-[11px] opacity-80 font-normal mt-0.5">{c.label}</div>
+              <div>
+                <div className="text-xs">{c.label}</div>
+                <div className="text-lg font-black text-rose-600 mt-0.5">{c.symbol}</div>
+              </div>
+              {currency === c.code && <CheckCircle2 className="w-5 h-5 text-rose-600" />}
             </button>
           ))}
         </div>
       </div>
 
-      {/* Privacy Guarantee Card */}
-      <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold">
-            <ShieldCheck className="w-5 h-5" />
-          </div>
-          <div>
-            <h2 className="text-lg font-bold text-slate-900">Privacy & Data Governance</h2>
-            <p className="text-xs text-slate-500">Guarantees for small business financial security</p>
-          </div>
+      {/* Active Dataset Meta */}
+      <div className="bg-white dark:bg-zinc-950 p-6 rounded-3xl border border-slate-200/80 dark:border-zinc-800 shadow-sm space-y-4">
+        <div className="flex items-center gap-2">
+          <Database className="w-5 h-5 text-rose-600" />
+          <h3 className="font-bold text-slate-900 dark:text-white text-base">Active Dataset Metadata</h3>
         </div>
 
-        <div className="space-y-3 text-xs text-slate-600 leading-relaxed pt-2">
-          <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200 flex items-start gap-3">
-            <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-            <div>
-              <span className="font-bold text-slate-900">100% In-Browser Execution:</span> DataBeta processes
-              all CSV and Excel files entirely inside your browser memory using local JavaScript. Your financial
-              data is never uploaded to external cloud servers or third-party databases.
+        {meta ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+            <div className="p-3.5 bg-slate-50 dark:bg-zinc-900 rounded-2xl border border-slate-200/80 dark:border-zinc-800">
+              <span className="text-slate-400 font-medium block">File Name</span>
+              <span className="font-bold text-slate-900 dark:text-white truncate block mt-0.5">{meta.fileName}</span>
+            </div>
+
+            <div className="p-3.5 bg-slate-50 dark:bg-zinc-900 rounded-2xl border border-slate-200/80 dark:border-zinc-800">
+              <span className="text-slate-400 font-medium block">Total Ingested Rows</span>
+              <span className="font-bold text-slate-900 dark:text-white block mt-0.5">{records.length} records</span>
+            </div>
+
+            <div className="p-3.5 bg-slate-50 dark:bg-zinc-900 rounded-2xl border border-slate-200/80 dark:border-zinc-800">
+              <span className="text-slate-400 font-medium block">Data Origin</span>
+              <span className="font-bold text-slate-900 dark:text-white block mt-0.5">User Spreadsheet Ingestion</span>
+            </div>
+
+            <div className="p-3.5 bg-slate-50 dark:bg-zinc-900 rounded-2xl border border-slate-200/80 dark:border-zinc-800">
+              <span className="text-slate-400 font-medium block">Parsed Date</span>
+              <span className="font-bold text-slate-900 dark:text-white block mt-0.5">
+                {new Date(meta.uploadedAt).toLocaleString()}
+              </span>
             </div>
           </div>
+        ) : (
+          <div className="text-xs text-slate-500 dark:text-zinc-400 italic">No active dataset currently loaded.</div>
+        )}
+      </div>
+
+      {/* Security & Storage */}
+      <div className="bg-white dark:bg-zinc-950 p-6 rounded-3xl border border-slate-200/80 dark:border-zinc-800 shadow-sm space-y-4">
+        <div className="flex items-center gap-2">
+          <ShieldCheck className="w-5 h-5 text-rose-600" />
+          <h3 className="font-bold text-slate-900 dark:text-white text-base">Privacy & Local Storage Control</h3>
+        </div>
+
+        <p className="text-xs text-slate-600 dark:text-zinc-400 leading-relaxed">
+          DataBeta operates 100% locally in your browser memory using HTML5 LocalStorage. Your financial figures are never transmitted to external cloud servers.
+        </p>
+
+        <div className="pt-2">
+          <button
+            onClick={onClearData}
+            className="flex items-center gap-2 px-5 py-2.5 bg-rose-50 dark:bg-rose-950/60 hover:bg-rose-100 text-rose-700 dark:text-rose-300 font-extrabold text-xs rounded-full border border-rose-200 dark:border-rose-900 transition-colors"
+          >
+            <Trash2 className="w-4 h-4 text-rose-600" />
+            <span>Purge Active Dataset from Local Storage</span>
+          </button>
         </div>
       </div>
     </div>

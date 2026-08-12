@@ -20,7 +20,6 @@ export const DataTableView: React.FC<DataTableViewProps> = ({ records, currency 
   const [currentPage, setCurrentPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
 
-  // Extract unique categories
   const categories = useMemo(() => {
     const set = new Set<string>();
     for (const r of records) {
@@ -29,7 +28,6 @@ export const DataTableView: React.FC<DataTableViewProps> = ({ records, currency 
     return Array.from(set).sort();
   }, [records]);
 
-  // Identify duplicate rows (same date, category, and revenue/expense amount)
   const processedRecords = useMemo(() => {
     const rowCounts: Record<string, number> = {};
     for (const r of records) {
@@ -51,7 +49,6 @@ export const DataTableView: React.FC<DataTableViewProps> = ({ records, currency 
     return processedRecords.filter((r) => r.isDuplicate).length;
   }, [processedRecords]);
 
-  // Filter records
   const filteredRecords = useMemo(() => {
     return processedRecords.filter((r) => {
       if (showOnlyDuplicates && !r.isDuplicate) {
@@ -77,7 +74,6 @@ export const DataTableView: React.FC<DataTableViewProps> = ({ records, currency 
     });
   }, [processedRecords, searchTerm, categoryFilter, showOnlyDuplicates]);
 
-  // Sort
   const sortedRecords = useMemo(() => {
     return [...filteredRecords].sort((a, b) => {
       let aVal: any = a[sortField];
@@ -99,7 +95,6 @@ export const DataTableView: React.FC<DataTableViewProps> = ({ records, currency 
     });
   }, [filteredRecords, sortField, sortDirection]);
 
-  // Pagination
   const totalPages = Math.ceil(sortedRecords.length / rowsPerPage) || 1;
   const paginatedRecords = useMemo(() => {
     const startIdx = (currentPage - 1) * rowsPerPage;
@@ -116,18 +111,18 @@ export const DataTableView: React.FC<DataTableViewProps> = ({ records, currency 
   };
 
   return (
-    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm space-y-4 p-5">
+    <div className="bg-white dark:bg-zinc-950 rounded-3xl border border-slate-200/80 dark:border-zinc-800 shadow-sm space-y-4 p-6">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
-            <h2 className="text-lg font-bold text-slate-900">Processed Dataset & Cleaning Studio</h2>
+            <h2 className="text-lg font-bold text-slate-900 dark:text-white">Processed Dataset & Cleaning Studio</h2>
             {duplicateCount > 0 && (
-              <span className="text-[10px] bg-amber-100 text-amber-800 font-bold px-2 py-0.5 rounded-full">
-                {duplicateCount} Duplicate Rows Flagged
+              <span className="text-[10px] bg-rose-600 text-white font-extrabold px-2.5 py-0.5 rounded-full">
+                {duplicateCount} Duplicates
               </span>
             )}
           </div>
-          <p className="text-xs text-slate-500 mt-0.5">
+          <p className="text-xs text-slate-500 dark:text-zinc-400 mt-0.5">
             Search, sort, filter categories, and inspect flagged duplicate entries.
           </p>
         </div>
@@ -136,10 +131,10 @@ export const DataTableView: React.FC<DataTableViewProps> = ({ records, currency 
           {duplicateCount > 0 && (
             <button
               onClick={() => setShowOnlyDuplicates(!showOnlyDuplicates)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
+              className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-bold border transition-all ${
                 showOnlyDuplicates
-                  ? 'bg-amber-500 text-white border-amber-500 shadow-xs'
-                  : 'bg-amber-50 text-amber-800 border-amber-200 hover:bg-amber-100'
+                  ? 'bg-rose-600 text-white border-rose-600 shadow-xs'
+                  : 'bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-900 hover:bg-rose-100'
               }`}
             >
               <Copy className="w-3.5 h-3.5" />
@@ -149,7 +144,7 @@ export const DataTableView: React.FC<DataTableViewProps> = ({ records, currency 
 
           {/* Search Input */}
           <div className="relative flex-1 sm:w-64">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+            <Search className="w-4 h-4 text-slate-400 dark:text-zinc-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
             <input
               type="text"
               placeholder="Search transactions..."
@@ -158,25 +153,25 @@ export const DataTableView: React.FC<DataTableViewProps> = ({ records, currency 
                 setSearchTerm(e.target.value);
                 setCurrentPage(1);
               }}
-              className="w-full bg-slate-50 border border-slate-300 rounded-lg pl-9 pr-3 py-1.5 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium"
+              className="w-full bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-full pl-9 pr-4 py-1.5 text-xs text-slate-800 dark:text-zinc-200 focus:outline-none focus:ring-2 focus:ring-rose-500 font-medium"
             />
           </div>
 
           {/* Category Filter */}
           {categories.length > 0 && (
-            <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-1.5">
-              <Filter className="w-3.5 h-3.5 text-slate-500" />
+            <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-full px-3 py-1.5">
+              <Filter className="w-3.5 h-3.5 text-slate-500 dark:text-zinc-400" />
               <select
                 value={categoryFilter}
                 onChange={(e) => {
                   setCategoryFilter(e.target.value);
                   setCurrentPage(1);
                 }}
-                className="bg-transparent text-xs font-semibold text-slate-700 focus:outline-none"
+                className="bg-transparent text-xs font-bold text-slate-700 dark:text-zinc-200 focus:outline-none cursor-pointer"
               >
                 <option value="all">All Categories</option>
                 {categories.map((c) => (
-                  <option key={c} value={c}>
+                  <option key={c} value={c} className="bg-white dark:bg-black text-slate-800 dark:text-white">
                     {c}
                   </option>
                 ))}
@@ -187,47 +182,47 @@ export const DataTableView: React.FC<DataTableViewProps> = ({ records, currency 
       </div>
 
       {/* Table */}
-      <div className="overflow-x-auto border border-slate-200 rounded-xl">
+      <div className="overflow-x-auto border border-slate-200/80 dark:border-zinc-800 rounded-2xl">
         <table className="w-full text-left text-xs border-collapse">
           <thead>
-            <tr className="bg-slate-100/80 text-slate-700 font-semibold border-b border-slate-200 uppercase tracking-wider">
-              <th className="p-3 cursor-pointer hover:bg-slate-200/50" onClick={() => handleSort('date')}>
+            <tr className="bg-slate-100/80 dark:bg-zinc-900/80 text-slate-700 dark:text-zinc-200 font-semibold border-b border-slate-200 dark:border-zinc-800 uppercase tracking-wider">
+              <th className="p-3 cursor-pointer hover:bg-slate-200/50 dark:hover:bg-zinc-800/50" onClick={() => handleSort('date')}>
                 <div className="flex items-center gap-1">
                   <span>Date</span>
                   <ArrowUpDown className="w-3 h-3 text-slate-400" />
                 </div>
               </th>
-              <th className="p-3 cursor-pointer hover:bg-slate-200/50" onClick={() => handleSort('category')}>
+              <th className="p-3 cursor-pointer hover:bg-slate-200/50 dark:hover:bg-zinc-800/50" onClick={() => handleSort('category')}>
                 <div className="flex items-center gap-1">
                   <span>Category</span>
                   <ArrowUpDown className="w-3 h-3 text-slate-400" />
                 </div>
               </th>
-              <th className="p-3 cursor-pointer hover:bg-slate-200/50" onClick={() => handleSort('product')}>
+              <th className="p-3 cursor-pointer hover:bg-slate-200/50 dark:hover:bg-zinc-800/50" onClick={() => handleSort('product')}>
                 <div className="flex items-center gap-1">
                   <span>Product / Item</span>
                   <ArrowUpDown className="w-3 h-3 text-slate-400" />
                 </div>
               </th>
-              <th className="p-3 cursor-pointer hover:bg-slate-200/50" onClick={() => handleSort('customer')}>
+              <th className="p-3 cursor-pointer hover:bg-slate-200/50 dark:hover:bg-zinc-800/50" onClick={() => handleSort('customer')}>
                 <div className="flex items-center gap-1">
                   <span>Customer</span>
                   <ArrowUpDown className="w-3 h-3 text-slate-400" />
                 </div>
               </th>
-              <th className="p-3 text-right cursor-pointer hover:bg-slate-200/50" onClick={() => handleSort('revenue')}>
+              <th className="p-3 text-right cursor-pointer hover:bg-slate-200/50 dark:hover:bg-zinc-800/50" onClick={() => handleSort('revenue')}>
                 <div className="flex items-center justify-end gap-1">
                   <span>Revenue</span>
                   <ArrowUpDown className="w-3 h-3 text-slate-400" />
                 </div>
               </th>
-              <th className="p-3 text-right cursor-pointer hover:bg-slate-200/50" onClick={() => handleSort('expense')}>
+              <th className="p-3 text-right cursor-pointer hover:bg-slate-200/50 dark:hover:bg-zinc-800/50" onClick={() => handleSort('expense')}>
                 <div className="flex items-center justify-end gap-1">
                   <span>Expense</span>
                   <ArrowUpDown className="w-3 h-3 text-slate-400" />
                 </div>
               </th>
-              <th className="p-3 text-right cursor-pointer hover:bg-slate-200/50" onClick={() => handleSort('profit')}>
+              <th className="p-3 text-right cursor-pointer hover:bg-slate-200/50 dark:hover:bg-zinc-800/50" onClick={() => handleSort('profit')}>
                 <div className="flex items-center justify-end gap-1">
                   <span>Net Profit</span>
                   <ArrowUpDown className="w-3 h-3 text-slate-400" />
@@ -235,56 +230,56 @@ export const DataTableView: React.FC<DataTableViewProps> = ({ records, currency 
               </th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100">
+          <tbody className="divide-y divide-slate-100 dark:divide-zinc-800">
             {paginatedRecords.length > 0 ? (
               paginatedRecords.map((r) => (
                 <tr
                   key={r.id}
-                  className={`hover:bg-slate-50/80 transition-colors ${
-                    r.isDuplicate ? 'bg-amber-50/40' : ''
+                  className={`hover:bg-slate-50/80 dark:hover:bg-zinc-900/50 transition-colors ${
+                    r.isDuplicate ? 'bg-rose-50/40 dark:bg-rose-950/20' : ''
                   }`}
                 >
-                  <td className="p-3 font-mono text-slate-600 whitespace-nowrap">
+                  <td className="p-3 font-mono text-slate-600 dark:text-zinc-400 whitespace-nowrap">
                     <div className="flex items-center gap-1.5">
-                      {r.isDuplicate && <Copy className="w-3 h-3 text-amber-600 shrink-0" />}
+                      {r.isDuplicate && <Copy className="w-3 h-3 text-rose-600 shrink-0" />}
                       <span>{r.date ? format(r.date, 'yyyy-MM-dd') : r.dateString}</span>
                     </div>
                   </td>
                   <td className="p-3">
                     {r.category ? (
-                      <span className="bg-slate-100 text-slate-800 font-medium px-2 py-0.5 rounded text-[11px]">
+                      <span className="bg-slate-100 dark:bg-zinc-900 text-slate-800 dark:text-zinc-200 font-bold px-2.5 py-0.5 rounded-full text-[11px] border border-slate-200/80 dark:border-zinc-800">
                         {r.category}
                       </span>
                     ) : (
-                      <span className="text-slate-400 italic">--</span>
+                      <span className="text-slate-400 dark:text-zinc-600 italic">--</span>
                     )}
                   </td>
-                  <td className="p-3 font-medium text-slate-800 max-w-xs truncate">
-                    {r.product || <span className="text-slate-400 italic">--</span>}
+                  <td className="p-3 font-semibold text-slate-800 dark:text-zinc-200 max-w-xs truncate">
+                    {r.product || <span className="text-slate-400 dark:text-zinc-600 italic">--</span>}
                   </td>
-                  <td className="p-3 text-slate-600 truncate">
-                    {r.customer || <span className="text-slate-400 italic">--</span>}
+                  <td className="p-3 text-slate-600 dark:text-zinc-400 truncate">
+                    {r.customer || <span className="text-slate-400 dark:text-zinc-600 italic">--</span>}
                   </td>
-                  <td className="p-3 text-right font-medium text-indigo-600 whitespace-nowrap">
-                    {r.revenue !== null ? formatCurrency(r.revenue, currency) : <span className="text-slate-300">--</span>}
+                  <td className="p-3 text-right font-extrabold text-slate-900 dark:text-white whitespace-nowrap">
+                    {r.revenue !== null ? formatCurrency(r.revenue, currency) : <span className="text-slate-300 dark:text-zinc-600">--</span>}
                   </td>
-                  <td className="p-3 text-right font-medium text-rose-600 whitespace-nowrap">
-                    {r.expense !== null ? formatCurrency(r.expense, currency) : <span className="text-slate-300">--</span>}
+                  <td className="p-3 text-right font-bold text-rose-600 dark:text-rose-400 whitespace-nowrap">
+                    {r.expense !== null ? formatCurrency(r.expense, currency) : <span className="text-slate-300 dark:text-zinc-600">--</span>}
                   </td>
-                  <td className="p-3 text-right font-semibold whitespace-nowrap">
+                  <td className="p-3 text-right font-black whitespace-nowrap">
                     {r.profit !== null ? (
-                      <span className={r.profit >= 0 ? 'text-emerald-600' : 'text-rose-600'}>
+                      <span className={r.profit >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}>
                         {formatCurrency(r.profit, currency)}
                       </span>
                     ) : (
-                      <span className="text-slate-300">--</span>
+                      <span className="text-slate-300 dark:text-zinc-600">--</span>
                     )}
                   </td>
                 </tr>
               ))
             ) : (
               <tr>
-                <td colSpan={7} className="p-8 text-center text-slate-400 text-sm">
+                <td colSpan={7} className="p-8 text-center text-slate-400 dark:text-zinc-500 text-sm">
                   No matching transaction records found.
                 </td>
               </tr>
@@ -294,7 +289,7 @@ export const DataTableView: React.FC<DataTableViewProps> = ({ records, currency 
       </div>
 
       {/* Pagination Footer */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-2 text-xs text-slate-600">
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-2 text-xs text-slate-600 dark:text-zinc-400">
         <div className="flex items-center gap-2">
           <span>Rows per page:</span>
           <select
@@ -303,14 +298,14 @@ export const DataTableView: React.FC<DataTableViewProps> = ({ records, currency 
               setRowsPerPage(Number(e.target.value));
               setCurrentPage(1);
             }}
-            className="bg-slate-50 border border-slate-300 rounded px-2 py-1 font-semibold focus:outline-none"
+            className="bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-full px-3 py-1 font-bold focus:outline-none text-slate-800 dark:text-zinc-200"
           >
             <option value={10}>10</option>
             <option value={25}>25</option>
             <option value={50}>50</option>
             <option value={100}>100</option>
           </select>
-          <span className="text-slate-400 ml-2">
+          <span className="text-slate-400 dark:text-zinc-500 ml-2">
             Showing {sortedRecords.length === 0 ? 0 : (currentPage - 1) * rowsPerPage + 1} to{' '}
             {Math.min(currentPage * rowsPerPage, sortedRecords.length)} of {sortedRecords.length} records
           </span>
@@ -320,17 +315,17 @@ export const DataTableView: React.FC<DataTableViewProps> = ({ records, currency 
           <button
             disabled={currentPage === 1}
             onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-            className="p-1.5 rounded border border-slate-300 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-100"
+            className="w-8 h-8 rounded-full border border-slate-200 dark:border-zinc-800 flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-100 dark:hover:bg-zinc-900"
           >
             <ChevronLeft className="w-4 h-4" />
           </button>
-          <span className="font-semibold">
+          <span className="font-extrabold text-slate-800 dark:text-zinc-200">
             Page {currentPage} of {totalPages}
           </span>
           <button
             disabled={currentPage === totalPages}
             onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-            className="p-1.5 rounded border border-slate-300 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-100"
+            className="w-8 h-8 rounded-full border border-slate-200 dark:border-zinc-800 flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-100 dark:hover:bg-zinc-900"
           >
             <ChevronRight className="w-4 h-4" />
           </button>

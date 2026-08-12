@@ -10,14 +10,10 @@ import {
   Package,
   Sliders,
   AlertTriangle,
-  TrendingUp,
   Award,
-  DollarSign,
-  PieChart,
-  Percent,
   CheckCircle2,
-  HelpCircle,
   RefreshCw,
+  ArrowUpRight,
 } from 'lucide-react';
 
 interface AnalyticsViewProps {
@@ -45,21 +41,21 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({ records, currency 
 
   return (
     <div className="space-y-6">
-      {/* Page Header */}
-      <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 p-6 rounded-2xl border border-indigo-900/50 shadow-xl text-white">
-        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+      {/* Page Header Banner */}
+      <div className="bg-gradient-to-br from-rose-600 to-rose-700 p-7 rounded-3xl shadow-xl text-white relative overflow-hidden">
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 relative z-10">
           <div>
-            <div className="flex items-center gap-2 text-xs font-semibold text-indigo-400 uppercase tracking-widest mb-1">
+            <div className="flex items-center gap-2 text-xs font-bold text-rose-100 uppercase tracking-widest mb-1">
               DataBeta Intelligence Suite
             </div>
-            <h2 className="text-2xl font-bold tracking-tight">Customer, Product & Strategic Analytics</h2>
-            <p className="text-xs text-slate-300 mt-1 max-w-2xl leading-relaxed">
+            <h2 className="text-2xl font-black tracking-tight text-white">Customer, Product & Strategic Analytics</h2>
+            <p className="text-xs text-rose-100 mt-1 max-w-2xl leading-relaxed">
               Explore customer concentration ratios, product unit margins, operational cost anomalies, and model future business growth with the real-time scenario simulator.
             </p>
           </div>
 
-          <div className="flex items-center gap-2 bg-indigo-900/40 border border-indigo-700/50 px-3 py-2 rounded-xl text-xs text-indigo-200">
-            <Award className="w-4 h-4 text-indigo-400" />
+          <div className="flex items-center gap-2 bg-white/15 backdrop-blur-sm border border-white/20 px-4 py-2 rounded-full text-xs font-bold text-white">
+            <Award className="w-4 h-4 text-white" />
             <span>100% Client-Side Analytics</span>
           </div>
         </div>
@@ -68,38 +64,38 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({ records, currency 
       {/* Grid: Customer Intelligence & Product Economics */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Customer Intelligence Card */}
-        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+        <div className="bg-white dark:bg-zinc-950 p-6 rounded-3xl border border-slate-200/80 dark:border-zinc-800 shadow-sm space-y-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold shadow-sm">
-                <Users className="w-5 h-5" />
+              <div className="w-10 h-10 rounded-2xl bg-slate-100 dark:bg-zinc-900 text-slate-900 dark:text-white border border-slate-200 dark:border-zinc-800 flex items-center justify-center font-bold shadow-sm">
+                <Users className="w-5 h-5 text-slate-900 dark:text-white" />
               </div>
               <div>
-                <h3 className="font-bold text-slate-900 text-base">Customer Concentration & LTV</h3>
-                <p className="text-xs text-slate-500">Pareto 80/20 distribution & top client spend</p>
+                <h3 className="font-bold text-slate-900 dark:text-white text-base">Customer Concentration & LTV</h3>
+                <p className="text-xs text-slate-500 dark:text-zinc-400">Pareto 80/20 distribution & top client spend</p>
               </div>
             </div>
-            <span className="text-xs bg-indigo-50 text-indigo-700 border border-indigo-200 font-semibold px-2.5 py-1 rounded-full">
+            <span className="text-xs bg-zinc-950 text-white dark:bg-white dark:text-black font-extrabold px-3 py-1 rounded-full">
               {customerStats.totalUniqueCustomers} Clients
             </span>
           </div>
 
           {/* Pareto 80/20 Stat Callout */}
-          <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 grid grid-cols-2 gap-4">
+          <div className="p-4 rounded-2xl bg-slate-50 dark:bg-zinc-900/60 border border-slate-200/80 dark:border-zinc-800 grid grid-cols-2 gap-4">
             <div>
-              <div className="text-xs text-slate-500 font-medium">Pareto 80/20 Concentration</div>
-              <div className="text-xl font-bold text-indigo-600 mt-0.5">
+              <div className="text-xs text-slate-500 dark:text-zinc-400 font-medium">Pareto 80/20 Concentration</div>
+              <div className="text-xl font-bold text-slate-900 dark:text-white mt-0.5">
                 {customerStats.paretoRatioPct.toFixed(1)}%
               </div>
-              <p className="text-[11px] text-slate-400 mt-0.5">Generated by top 20% of buyers</p>
+              <p className="text-[11px] text-slate-400 dark:text-zinc-500 mt-0.5">Generated by top 20% of buyers</p>
             </div>
 
             <div>
-              <div className="text-xs text-slate-500 font-medium">Top Client Share</div>
-              <div className="text-xl font-bold text-slate-900 mt-0.5">
+              <div className="text-xs text-slate-500 dark:text-zinc-400 font-medium">Top Client Share</div>
+              <div className="text-xl font-bold text-rose-600 dark:text-rose-400 mt-0.5">
                 {customerStats.topCustomerSharePct.toFixed(1)}%
               </div>
-              <p className="text-[11px] text-slate-400 mt-0.5 truncate">
+              <p className="text-[11px] text-slate-400 dark:text-zinc-500 mt-0.5 truncate">
                 {customerStats.topCustomerName || 'N/A'}
               </p>
             </div>
@@ -107,65 +103,65 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({ records, currency 
 
           {/* Top Customer Leaderboard Table */}
           <div className="space-y-2">
-            <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Top Accounts</h4>
+            <h4 className="text-xs font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-wider">Top Accounts</h4>
             <div className="max-h-48 overflow-y-auto space-y-1.5 pr-1">
               {customerStats.topCustomersList.length > 0 ? (
                 customerStats.topCustomersList.map((c, idx) => (
-                  <div key={c.name} className="p-2.5 rounded-lg bg-slate-50/60 border border-slate-100 flex items-center justify-between text-xs">
+                  <div key={c.name} className="p-3 rounded-xl bg-slate-50/60 dark:bg-zinc-900/40 border border-slate-100 dark:border-zinc-800 flex items-center justify-between text-xs">
                     <div className="flex items-center gap-2 truncate">
-                      <span className="w-5 h-5 rounded-full bg-indigo-100 text-indigo-700 font-bold text-[10px] flex items-center justify-center shrink-0">
+                      <span className="w-5 h-5 rounded-full bg-zinc-900 text-white dark:bg-white dark:text-black font-bold text-[10px] flex items-center justify-center shrink-0">
                         #{idx + 1}
                       </span>
-                      <span className="font-semibold text-slate-800 truncate">{c.name}</span>
+                      <span className="font-bold text-slate-800 dark:text-zinc-200 truncate">{c.name}</span>
                     </div>
                     <div className="text-right shrink-0">
-                      <span className="font-bold text-slate-900">{formatCurrency(c.totalRevenue, currency)}</span>
-                      <span className="text-[10px] text-slate-400 ml-1.5">({c.orderCount} orders)</span>
+                      <span className="font-extrabold text-slate-900 dark:text-white">{formatCurrency(c.totalRevenue, currency)}</span>
+                      <span className="text-[10px] text-slate-400 dark:text-zinc-500 ml-1.5">({c.orderCount} orders)</span>
                     </div>
                   </div>
                 ))
               ) : (
-                <p className="text-xs text-slate-400 p-3 text-center">No customer identity columns mapped.</p>
+                <p className="text-xs text-slate-400 dark:text-zinc-500 p-3 text-center">No customer identity columns mapped.</p>
               )}
             </div>
           </div>
         </div>
 
         {/* Product Margins & Unit Economics */}
-        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+        <div className="bg-white dark:bg-zinc-950 p-6 rounded-3xl border border-slate-200/80 dark:border-zinc-800 shadow-sm space-y-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold shadow-sm">
-                <Package className="w-5 h-5" />
+              <div className="w-10 h-10 rounded-2xl bg-slate-100 dark:bg-zinc-900 text-slate-900 dark:text-white border border-slate-200 dark:border-zinc-800 flex items-center justify-center font-bold shadow-sm">
+                <Package className="w-5 h-5 text-slate-900 dark:text-white" />
               </div>
               <div>
-                <h3 className="font-bold text-slate-900 text-base">Product Economics & Leaderboard</h3>
-                <p className="text-xs text-slate-500">Unit prices & top product revenue drivers</p>
+                <h3 className="font-bold text-slate-900 dark:text-white text-base">Product Economics & Leaderboard</h3>
+                <p className="text-xs text-slate-500 dark:text-zinc-400">Unit prices & top product revenue drivers</p>
               </div>
             </div>
-            <span className="text-xs bg-emerald-50 text-emerald-700 border border-emerald-200 font-semibold px-2.5 py-1 rounded-full">
+            <span className="text-xs bg-zinc-950 text-white dark:bg-white dark:text-black font-extrabold px-3 py-1 rounded-full">
               {productStats.totalProducts} Products
             </span>
           </div>
 
           {/* Top Product Callouts */}
-          <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 grid grid-cols-2 gap-4">
+          <div className="p-4 rounded-2xl bg-slate-50 dark:bg-zinc-900/60 border border-slate-200/80 dark:border-zinc-800 grid grid-cols-2 gap-4">
             <div>
-              <div className="text-xs text-slate-500 font-medium">Top Product by Sales</div>
-              <div className="text-sm font-bold text-slate-900 truncate mt-1">
+              <div className="text-xs text-slate-500 dark:text-zinc-400 font-medium">Top Product by Sales</div>
+              <div className="text-sm font-bold text-slate-900 dark:text-white truncate mt-1">
                 {productStats.topProductByRevenue?.name || 'N/A'}
               </div>
-              <p className="text-[11px] text-emerald-600 font-semibold mt-0.5">
+              <p className="text-[11px] text-emerald-600 dark:text-emerald-400 font-bold mt-0.5">
                 {formatCurrency(productStats.topProductByRevenue?.revenue || 0, currency)}
               </p>
             </div>
 
             <div>
-              <div className="text-xs text-slate-500 font-medium">Highest Average Price</div>
-              <div className="text-sm font-bold text-slate-900 truncate mt-1">
+              <div className="text-xs text-slate-500 dark:text-zinc-400 font-medium">Highest Average Price</div>
+              <div className="text-sm font-bold text-slate-900 dark:text-white truncate mt-1">
                 {productStats.topProductByMargin?.name || 'N/A'}
               </div>
-              <p className="text-[11px] text-indigo-600 font-semibold mt-0.5">
+              <p className="text-[11px] text-slate-700 dark:text-zinc-300 font-bold mt-0.5">
                 {formatCurrency(productStats.topProductByMargin?.avgPrice || 0, currency)} / unit
               </p>
             </div>
@@ -173,25 +169,25 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({ records, currency 
 
           {/* Product Leaderboard Table */}
           <div className="space-y-2">
-            <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Product Performance</h4>
+            <h4 className="text-xs font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-wider">Product Performance</h4>
             <div className="max-h-48 overflow-y-auto space-y-1.5 pr-1">
               {productStats.productLeaderboard.length > 0 ? (
                 productStats.productLeaderboard.map((p, idx) => (
-                  <div key={p.name} className="p-2.5 rounded-lg bg-slate-50/60 border border-slate-100 flex items-center justify-between text-xs">
+                  <div key={p.name} className="p-3 rounded-xl bg-slate-50/60 dark:bg-zinc-900/40 border border-slate-100 dark:border-zinc-800 flex items-center justify-between text-xs">
                     <div className="flex items-center gap-2 truncate">
-                      <span className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-700 font-bold text-[10px] flex items-center justify-center shrink-0">
+                      <span className="w-5 h-5 rounded-full bg-rose-600 text-white font-bold text-[10px] flex items-center justify-center shrink-0">
                         #{idx + 1}
                       </span>
-                      <span className="font-semibold text-slate-800 truncate">{p.name}</span>
+                      <span className="font-bold text-slate-800 dark:text-zinc-200 truncate">{p.name}</span>
                     </div>
                     <div className="text-right shrink-0">
-                      <span className="font-bold text-slate-900">{formatCurrency(p.revenue, currency)}</span>
-                      <span className="text-[10px] text-slate-400 ml-1.5">({p.quantity} units)</span>
+                      <span className="font-extrabold text-slate-900 dark:text-white">{formatCurrency(p.revenue, currency)}</span>
+                      <span className="text-[10px] text-slate-400 dark:text-zinc-500 ml-1.5">({p.quantity} units)</span>
                     </div>
                   </div>
                 ))
               ) : (
-                <p className="text-xs text-slate-400 p-3 text-center">No product columns mapped in dataset.</p>
+                <p className="text-xs text-slate-400 dark:text-zinc-500 p-3 text-center">No product columns mapped in dataset.</p>
               )}
             </div>
           </div>
@@ -199,15 +195,15 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({ records, currency 
       </div>
 
       {/* Interactive What-If Growth Scenario Simulator */}
-      <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-6">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
+      <div className="bg-white dark:bg-zinc-950 p-6 rounded-3xl border border-slate-200/80 dark:border-zinc-800 shadow-sm space-y-6">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-4 border-b border-slate-100 dark:border-zinc-900">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-bold shadow-md shadow-indigo-600/30">
-              <Sliders className="w-5 h-5" />
+            <div className="w-10 h-10 rounded-2xl bg-zinc-950 text-white border border-zinc-800 flex items-center justify-center font-bold shadow-md">
+              <Sliders className="w-5 h-5 text-white" />
             </div>
             <div>
-              <h3 className="font-bold text-slate-900 text-lg">Interactive "What-If" Growth Simulator</h3>
-              <p className="text-xs text-slate-500">
+              <h3 className="font-bold text-slate-900 dark:text-white text-lg">Interactive "What-If" Growth Simulator</h3>
+              <p className="text-xs text-slate-500 dark:text-zinc-400">
                 Adjust sliders to model how price increases, sales volume shifts, or cost cuts impact future profit margins.
               </p>
             </div>
@@ -215,7 +211,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({ records, currency 
 
           <button
             onClick={handleResetScenario}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-lg transition-colors"
+            className="flex items-center gap-1.5 px-4 py-1.5 bg-slate-100 dark:bg-zinc-900 hover:bg-slate-200 dark:hover:bg-zinc-800 text-slate-700 dark:text-zinc-200 text-xs font-extrabold rounded-full border border-slate-200 dark:border-zinc-800 transition-colors"
           >
             <RefreshCw className="w-3.5 h-3.5" />
             <span>Reset Sliders</span>
@@ -224,12 +220,12 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({ records, currency 
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Sliders Input Section */}
-          <div className="lg:col-span-2 space-y-5 bg-slate-50/70 p-5 rounded-xl border border-slate-200">
+          <div className="lg:col-span-2 space-y-5 bg-slate-50/70 dark:bg-zinc-900/60 p-5 rounded-2xl border border-slate-200/80 dark:border-zinc-800">
             {/* Slider 1: Sales Volume */}
             <div>
-              <div className="flex justify-between items-center text-xs font-semibold text-slate-800 mb-1.5">
+              <div className="flex justify-between items-center text-xs font-bold text-slate-800 dark:text-zinc-200 mb-1.5">
                 <span>Order Volume Adjustment:</span>
-                <span className="text-indigo-600 font-mono font-bold text-sm">
+                <span className="text-rose-600 dark:text-rose-400 font-mono font-extrabold text-sm">
                   {scenarioInputs.volumeChangePct > 0 ? '+' : ''}
                   {scenarioInputs.volumeChangePct}%
                 </span>
@@ -243,9 +239,9 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({ records, currency 
                 onChange={(e) =>
                   setScenarioInputs((prev) => ({ ...prev, volumeChangePct: Number(e.target.value) }))
                 }
-                className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"
+                className="w-full h-2 bg-slate-200 dark:bg-zinc-800 rounded-lg appearance-none cursor-pointer accent-rose-600"
               />
-              <div className="flex justify-between text-[10px] text-slate-400 mt-1">
+              <div className="flex justify-between text-[10px] text-slate-400 dark:text-zinc-500 mt-1">
                 <span>-50% (Downturn)</span>
                 <span>0% (Baseline)</span>
                 <span>+100% (Doubled Sales)</span>
@@ -254,9 +250,9 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({ records, currency 
 
             {/* Slider 2: Product Price */}
             <div>
-              <div className="flex justify-between items-center text-xs font-semibold text-slate-800 mb-1.5">
+              <div className="flex justify-between items-center text-xs font-bold text-slate-800 dark:text-zinc-200 mb-1.5">
                 <span>Pricing Adjustment:</span>
-                <span className="text-emerald-600 font-mono font-bold text-sm">
+                <span className="text-emerald-600 dark:text-emerald-400 font-mono font-extrabold text-sm">
                   {scenarioInputs.priceChangePct > 0 ? '+' : ''}
                   {scenarioInputs.priceChangePct}%
                 </span>
@@ -270,9 +266,9 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({ records, currency 
                 onChange={(e) =>
                   setScenarioInputs((prev) => ({ ...prev, priceChangePct: Number(e.target.value) }))
                 }
-                className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-emerald-600"
+                className="w-full h-2 bg-slate-200 dark:bg-zinc-800 rounded-lg appearance-none cursor-pointer accent-emerald-500"
               />
-              <div className="flex justify-between text-[10px] text-slate-400 mt-1">
+              <div className="flex justify-between text-[10px] text-slate-400 dark:text-zinc-500 mt-1">
                 <span>-30% Discount</span>
                 <span>0% (Current Price)</span>
                 <span>+50% Premium</span>
@@ -281,9 +277,9 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({ records, currency 
 
             {/* Slider 3: Operational Expense */}
             <div>
-              <div className="flex justify-between items-center text-xs font-semibold text-slate-800 mb-1.5">
+              <div className="flex justify-between items-center text-xs font-bold text-slate-800 dark:text-zinc-200 mb-1.5">
                 <span>Operational Expense Adjustment:</span>
-                <span className="text-rose-600 font-mono font-bold text-sm">
+                <span className="text-slate-900 dark:text-white font-mono font-extrabold text-sm">
                   {scenarioInputs.expenseChangePct > 0 ? '+' : ''}
                   {scenarioInputs.expenseChangePct}%
                 </span>
@@ -297,9 +293,9 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({ records, currency 
                 onChange={(e) =>
                   setScenarioInputs((prev) => ({ ...prev, expenseChangePct: Number(e.target.value) }))
                 }
-                className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-rose-600"
+                className="w-full h-2 bg-slate-200 dark:bg-zinc-800 rounded-lg appearance-none cursor-pointer accent-zinc-900 dark:accent-white"
               />
-              <div className="flex justify-between text-[10px] text-slate-400 mt-1">
+              <div className="flex justify-between text-[10px] text-slate-400 dark:text-zinc-500 mt-1">
                 <span>-50% Cost Cut</span>
                 <span>0% (Current Expenses)</span>
                 <span>+50% Inflation</span>
@@ -308,24 +304,24 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({ records, currency 
           </div>
 
           {/* Live Scenario Projection Output Card */}
-          <div className="bg-gradient-to-br from-slate-900 to-indigo-950 text-white p-5 rounded-xl shadow-lg border border-indigo-900 flex flex-col justify-between space-y-4">
+          <div className="bg-zinc-950 text-white p-6 rounded-3xl shadow-xl border border-zinc-800 flex flex-col justify-between space-y-4">
             <div>
-              <div className="text-xs font-semibold uppercase tracking-wider text-indigo-400 mb-1">
+              <div className="text-xs font-bold uppercase tracking-wider text-zinc-400 mb-1">
                 Simulated Outcome
               </div>
-              <h4 className="text-lg font-bold">Projected Net Impact</h4>
+              <h4 className="text-lg font-black">Projected Net Impact</h4>
             </div>
 
-            <div className="space-y-3 py-2 border-y border-indigo-900/80">
+            <div className="space-y-3 py-2 border-y border-zinc-800">
               <div>
-                <div className="text-xs text-slate-300">Projected Revenue</div>
-                <div className="text-xl font-bold text-white mt-0.5">
+                <div className="text-xs text-zinc-400">Projected Revenue</div>
+                <div className="text-xl font-extrabold text-white mt-0.5">
                   {formatCurrency(scenarioResult.projectedRevenue, currency)}
                 </div>
               </div>
 
               <div>
-                <div className="text-xs text-slate-300">Projected Profit</div>
+                <div className="text-xs text-zinc-400">Projected Profit</div>
                 <div
                   className={`text-2xl font-black mt-0.5 ${
                     (scenarioResult.projectedProfit || 0) >= 0 ? 'text-emerald-400' : 'text-rose-400'
@@ -335,16 +331,16 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({ records, currency 
                 </div>
               </div>
 
-              <div className="flex items-center justify-between text-xs text-indigo-200 pt-1">
-                <span>Projected Profit Margin:</span>
+              <div className="flex items-center justify-between text-xs text-zinc-300 pt-1">
+                <span>Projected Margin:</span>
                 <span className="font-bold text-white">
                   {scenarioResult.projectedMargin !== null ? `${scenarioResult.projectedMargin.toFixed(1)}%` : 'N/A'}
                 </span>
               </div>
             </div>
 
-            <div className="text-xs text-slate-300 bg-indigo-900/40 p-2.5 rounded-lg border border-indigo-700/40">
-              <span className="font-semibold text-indigo-200">Net Delta: </span>
+            <div className="text-xs text-zinc-300 bg-zinc-900 p-3 rounded-2xl border border-zinc-800">
+              <span className="font-semibold text-zinc-400">Net Delta: </span>
               <span className={scenarioResult.profitDelta >= 0 ? 'text-emerald-400 font-bold' : 'text-rose-400 font-bold'}>
                 {scenarioResult.profitDelta >= 0 ? '+' : ''}
                 {formatCurrency(scenarioResult.profitDelta, currency)}
@@ -356,14 +352,14 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({ records, currency 
       </div>
 
       {/* Operational Risk & Anomaly Detection Panel */}
-      <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+      <div className="bg-white dark:bg-zinc-950 p-6 rounded-3xl border border-slate-200/80 dark:border-zinc-800 shadow-sm space-y-4">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center font-bold shadow-sm">
+          <div className="w-10 h-10 rounded-2xl bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-900 flex items-center justify-center font-bold shadow-sm">
             <AlertTriangle className="w-5 h-5" />
           </div>
           <div>
-            <h3 className="font-bold text-slate-900 text-lg">Operational Risk & Anomaly Alerts</h3>
-            <p className="text-xs text-slate-500">Automated evaluation of cost surges and financial risks</p>
+            <h3 className="font-bold text-slate-900 dark:text-white text-lg">Operational Risk & Anomaly Alerts</h3>
+            <p className="text-xs text-slate-500 dark:text-zinc-400">Automated evaluation of cost surges and financial risks</p>
           </div>
         </div>
 
@@ -372,15 +368,15 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({ records, currency 
             anomalies.map((alert) => (
               <div
                 key={alert.id}
-                className={`p-4 rounded-xl border text-xs space-y-1 transition-all ${
+                className={`p-4 rounded-2xl border text-xs space-y-1 transition-all ${
                   alert.severity === 'high'
-                    ? 'bg-rose-50/70 border-rose-200 text-rose-900'
-                    : 'bg-amber-50/70 border-amber-200 text-amber-900'
+                    ? 'bg-rose-50/70 dark:bg-rose-950/40 border-rose-200 dark:border-rose-900 text-rose-900 dark:text-rose-200'
+                    : 'bg-amber-50/70 dark:bg-amber-950/40 border-amber-200 dark:border-amber-900 text-amber-900 dark:text-amber-200'
                 }`}
               >
                 <div className="flex items-center justify-between font-bold text-sm">
                   <span>{alert.title}</span>
-                  <span className="text-[10px] uppercase font-mono px-2 py-0.5 rounded bg-white/80 border border-slate-200">
+                  <span className="text-[10px] uppercase font-mono px-2.5 py-0.5 rounded-full bg-white/80 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800">
                     {alert.metric}
                   </span>
                 </div>
@@ -388,10 +384,10 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({ records, currency 
               </div>
             ))
           ) : (
-            <div className="col-span-2 p-6 rounded-xl bg-emerald-50/50 border border-emerald-200 text-emerald-900 flex items-center gap-3 text-xs">
+            <div className="col-span-2 p-6 rounded-2xl bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-900 text-emerald-900 dark:text-emerald-200 flex items-center gap-3 text-xs">
               <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
               <div>
-                <span className="font-bold text-slate-900">Zero Critical Anomalies Detected: </span>
+                <span className="font-bold text-slate-900 dark:text-white">Zero Critical Anomalies Detected: </span>
                 Your expenses, margins, and customer concentration ratios are operating within normal baseline parameters.
               </div>
             </div>

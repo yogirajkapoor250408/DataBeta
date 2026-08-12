@@ -4,6 +4,21 @@ import { ColumnMapping, NormalizedRecord, Dataset } from '../types';
 import { autoDetectColumns } from './columnMatcher';
 import { parseISO, isValid, parse as parseDateWithFormat } from 'date-fns';
 
+export function parseCSV(csvString: string): { headers: string[]; rawRows: Record<string, any>[] } {
+  const results = Papa.parse(csvString, {
+    header: true,
+    skipEmptyLines: 'greedy',
+    dynamicTyping: false,
+  });
+
+  const rawRows = (results.data as Record<string, any>[]).filter(
+    (row) => row && Object.values(row).some((v) => v !== null && v !== undefined && String(v).trim() !== '')
+  );
+
+  const headers = results.meta.fields || Object.keys(rawRows[0] || {});
+  return { headers, rawRows };
+}
+
 export function cleanNumber(val: any): number | null {
   if (val === null || val === undefined || val === '') return null;
   if (typeof val === 'number') return isNaN(val) ? null : val;
@@ -25,7 +40,6 @@ export function parseDate(val: any): Date | null {
 
   // Handle Excel serial date numbers
   if (typeof val === 'number') {
-    // Excel epoch starts 1900-01-01
     const dateObj = XLSX.SSF.parse_date_code(val);
     if (dateObj) {
       const d = new Date(Date.UTC(dateObj.y, dateObj.m - 1, dateObj.d, dateObj.H || 0, dateObj.M || 0, dateObj.S || 0));
@@ -81,7 +95,6 @@ export function normalizeRows(
     const exp = mapping.expense ? cleanNumber(row[mapping.expense]) : null;
 
     let prof = mapping.profit ? cleanNumber(row[mapping.profit]) : null;
-    // Fallback: estimate profit if revenue & expense are available but explicit profit is null
     if (prof === null && rev !== null && exp !== null) {
       prof = rev - exp;
     }
@@ -121,7 +134,7 @@ export async function parseFile(file: File): Promise<{
       Papa.parse(file, {
         header: true,
         skipEmptyLines: 'greedy',
-        dynamicTyping: false, // Keep strings so we clean numbers/dates explicitly
+        dynamicTyping: false,
         complete: (results) => {
           if (results.errors.length > 0 && results.data.length === 0) {
             return reject(new Error(results.errors[0].message || 'Failed to parse CSV file.'));

@@ -1,61 +1,44 @@
-export type CurrencyCode = 'USD' | 'EUR' | 'GBP' | 'INR' | 'CAD' | 'AUD';
-
-export interface CurrencyConfig {
-  code: CurrencyCode;
-  symbol: string;
-  label: string;
-  locale: string;
-}
-
-export const CURRENCIES: Record<CurrencyCode, CurrencyConfig> = {
-  USD: { code: 'USD', symbol: '$', label: 'USD ($)', locale: 'en-US' },
-  EUR: { code: 'EUR', symbol: '€', label: 'EUR (€)', locale: 'de-DE' },
-  GBP: { code: 'GBP', symbol: '£', label: 'GBP (£)', locale: 'en-GB' },
-  INR: { code: 'INR', symbol: '₹', label: 'INR (₹)', locale: 'en-IN' },
-  CAD: { code: 'CAD', symbol: '$', label: 'CAD (CA$)', locale: 'en-CA' },
-  AUD: { code: 'AUD', symbol: '$', label: 'AUD (A$)', locale: 'en-AU' },
-};
-
-export type PlatformPreset = 'generic' | 'shopify' | 'stripe' | 'woocommerce' | 'square' | 'quickbooks' | 'paypal';
-
-export interface PlatformPresetConfig {
-  id: PlatformPreset;
-  name: string;
-  description: string;
-  iconName: string;
-  mapping: ColumnMapping;
-}
-
-export type StandardField = 
-  | 'date'
-  | 'revenue'
-  | 'expense'
-  | 'profit'
-  | 'product'
-  | 'category'
-  | 'customer'
-  | 'quantity';
+// Core Dataset & Column Mapping Types
+export type StandardField = 'date' | 'revenue' | 'expense' | 'profit' | 'category' | 'product' | 'customer' | 'quantity';
 
 export interface FieldDefinition {
   key: StandardField;
   label: string;
   required: boolean;
-  type: 'date' | 'number' | 'string';
   description: string;
 }
 
 export const FIELD_DEFINITIONS: FieldDefinition[] = [
-  { key: 'date', label: 'Date', required: true, type: 'date', description: 'Transaction or invoice date' },
-  { key: 'revenue', label: 'Revenue / Sales', required: false, type: 'number', description: 'Total revenue or sales income' },
-  { key: 'expense', label: 'Expense / Cost', required: false, type: 'number', description: 'Total expense or cost incurred' },
-  { key: 'profit', label: 'Profit', required: false, type: 'number', description: 'Net profit value (optional)' },
-  { key: 'category', label: 'Category', required: false, type: 'string', description: 'Product category or expense classification' },
-  { key: 'product', label: 'Product / Service', required: false, type: 'string', description: 'Item name or service description' },
-  { key: 'customer', label: 'Customer', required: false, type: 'string', description: 'Client or buyer name' },
-  { key: 'quantity', label: 'Quantity', required: false, type: 'number', description: 'Units sold or purchased' },
+  { key: 'date', label: 'Date', required: true, description: 'Transaction date' },
+  { key: 'revenue', label: 'Revenue', required: false, description: 'Sales income ($)' },
+  { key: 'expense', label: 'Expense', required: false, description: 'Costs / Expenses ($)' },
+  { key: 'profit', label: 'Profit', required: false, description: 'Net profit ($)' },
+  { key: 'category', label: 'Category', required: false, description: 'Grouping / Category' },
+  { key: 'product', label: 'Product / Item', required: false, description: 'Product or service name' },
+  { key: 'customer', label: 'Customer', required: false, description: 'Client or buyer name' },
+  { key: 'quantity', label: 'Quantity', required: false, description: 'Unit quantity' },
 ];
 
-export type ColumnMapping = Record<StandardField, string | null>;
+export interface ColumnMapping {
+  date: string | null;
+  revenue: string | null;
+  expense: string | null;
+  profit: string | null;
+  category: string | null;
+  product: string | null;
+  customer: string | null;
+  quantity: string | null;
+}
+
+export interface DatasetMeta {
+  fileName: string;
+  fileSize: number;
+  rowCount: number;
+  headers: string[];
+  uploadedAt: Date;
+  mapping: ColumnMapping;
+  platformPreset?: string;
+}
 
 export interface NormalizedRecord {
   id: string;
@@ -64,24 +47,12 @@ export interface NormalizedRecord {
   revenue: number | null;
   expense: number | null;
   profit: number | null;
-  product?: string;
-  category?: string;
-  customer?: string;
+  category: string | null | undefined;
+  product: string | null | undefined;
+  customer: string | null | undefined;
   quantity?: number;
-  raw: Record<string, any>;
   isDuplicate?: boolean;
-  isOutlier?: boolean;
-}
-
-export interface DatasetMeta {
-  fileName: string;
-  fileSize?: number;
-  rowCount: number;
-  headers: string[];
-  isDemo: boolean;
-  uploadedAt: Date;
-  mapping: ColumnMapping;
-  platformPreset?: PlatformPreset;
+  raw?: Record<string, any>;
 }
 
 export interface Dataset {
@@ -96,28 +67,81 @@ export interface FinancialMetrics {
   profitMargin: number | null;
   transactionCount: number;
   avgTransactionValue: number | null;
+  breakEvenRevenue: number | null;
+  fixedExpenses: number;
+  variableExpenses: number;
   hasRevenueData: boolean;
   hasExpenseData: boolean;
   hasProfitData: boolean;
-  fixedExpenses: number;
-  variableExpenses: number;
-  breakEvenRevenue: number | null;
-  monthlyBurnRate: number | null;
+  monthlyBurnRate?: number | null;
+}
+
+export interface FinancialHealthScorecard {
+  score: number; // 0 to 100
+  grade: 'A+' | 'A' | 'B' | 'C' | 'D' | 'F';
+  marginScore: number;
+  stabilityScore: number;
+  expenseControlScore: number;
+  diversificationScore: number;
+  factors: string[];
+}
+
+export type CurrencyCode = 'USD' | 'EUR' | 'GBP' | 'INR' | 'CAD' | 'AUD';
+
+export interface CurrencyConfig {
+  code: CurrencyCode;
+  symbol: string;
+  label: string;
+  locale: string;
+}
+
+export const CURRENCIES: Record<CurrencyCode, CurrencyConfig> = {
+  USD: { code: 'USD', symbol: '$', label: 'US Dollar ($)', locale: 'en-US' },
+  EUR: { code: 'EUR', symbol: '€', label: 'Euro (€)', locale: 'de-DE' },
+  GBP: { code: 'GBP', symbol: '£', label: 'British Pound (£)', locale: 'en-GB' },
+  INR: { code: 'INR', symbol: '₹', label: 'Indian Rupee (₹)', locale: 'en-IN' },
+  CAD: { code: 'CAD', symbol: 'CA$', label: 'Canadian Dollar (CA$)', locale: 'en-CA' },
+  AUD: { code: 'AUD', symbol: 'A$', label: 'Australian Dollar (A$)', locale: 'en-AU' },
+};
+
+export type DateFilterPreset = 'all' | 'this_month' | 'last_month' | 'last_3_months' | 'custom';
+
+export interface DateRange {
+  startDate: Date | null;
+  endDate: Date | null;
+}
+
+export interface BusinessObservation {
+  id: string;
+  type: 'positive' | 'negative' | 'neutral' | 'info';
+  title: string;
+  description: string;
+  metric?: string;
+}
+
+export type PlatformPreset = 'shopify' | 'stripe' | 'woocommerce' | 'square' | 'quickbooks' | 'paypal';
+
+export interface PlatformPresetConfig {
+  id: PlatformPreset;
+  name: string;
+  iconName?: string;
+  description?: string;
+  mapping: ColumnMapping;
 }
 
 export interface CustomerAnalytics {
   totalUniqueCustomers: number;
-  topCustomerName: string | null;
-  topCustomerRevenue: number;
   topCustomerSharePct: number;
   paretoRatioPct: number;
+  topCustomerName: string | null;
+  topCustomerRevenue?: number;
   topCustomersList: { name: string; totalRevenue: number; orderCount: number }[];
 }
 
 export interface ProductAnalytics {
   totalProducts: number;
   topProductByRevenue: { name: string; revenue: number; quantity: number } | null;
-  topProductByMargin: { name: string; avgPrice: number; marginPct: number } | null;
+  topProductByMargin: { name: string; avgPrice: number; marginPct?: number } | null;
   productLeaderboard: { name: string; revenue: number; quantity: number; avgPrice: number }[];
 }
 
@@ -145,37 +169,15 @@ export interface AnomalyAlert {
   month?: string;
 }
 
-export interface ReportBranding {
-  companyName: string;
-  logoUrl?: string;
-  executiveNotes?: string;
-}
-
-export interface BusinessObservation {
-  id: string;
-  type: 'positive' | 'negative' | 'neutral' | 'info';
-  title: string;
-  description: string;
-}
-
-export type DateFilterPreset = 'all' | 'this_month' | 'last_month' | 'last_3_months' | 'custom';
-
-export interface DateRange {
-  startDate: Date | null;
-  endDate: Date | null;
-}
-
-// Natural Language Search / Query Card Types
 export interface QueryResultCard {
   query: string;
-  matchedType: 'month' | 'category' | 'customer' | 'metric' | 'outlier' | 'general';
   title: string;
   valueString: string;
   subtitle: string;
-  details?: string;
+  category?: string;
+  matchedType?: string;
 }
 
-// Tax Deduction Types
 export interface TaxCategoryBreakdown {
   categoryName: string;
   taxScheduleCategory: string;
@@ -187,28 +189,118 @@ export interface TaxCategoryBreakdown {
 export interface TaxDeductionSummary {
   totalGrossExpense: number;
   totalDeductibleExpense: number;
-  estimatedTaxSavings: number; // calculated at ~25% estimated tax bracket
+  estimatedTaxSavings: number;
   breakdown: TaxCategoryBreakdown[];
 }
 
-// Target KPI Goals
 export interface KPIGoals {
   targetRevenue: number;
   targetProfitMarginPct: number;
   maxExpenseCap: number;
 }
 
-export interface GoalProgress {
-  revenueProgressPct: number;
-  marginProgressPct: number;
-  expenseCapUsedPct: number;
-  projectedGoalDays: number | null;
+export interface CohortItem {
+  month: string;
+  newCustomerCount?: number;
+  newCustomers?: number;
+  totalRevenue: number;
+  repeatPurchaseRatePct?: number;
+  repeatCount?: number;
 }
 
-// Customer Cohort Types
 export interface CohortSummary {
-  month: string;
-  newCustomerCount: number;
-  totalRevenue: number;
-  repeatPurchaseRatePct: number;
+  month?: string;
+  newCustomerCount?: number;
+  totalRevenue?: number;
+  repeatPurchaseRatePct?: number;
+  cohorts?: CohortItem[];
+  overallRepeatRatePct?: number;
+}
+
+// CRM TYPES
+export type CRMStage = 'in_touch' | 'offer_sent' | 'discussion' | 'closed_won' | 'closed_lost';
+
+export interface CRMContact {
+  id: string;
+  name: string;
+  company: string;
+  email: string;
+  phone?: string;
+  location?: string;
+  stage: CRMStage;
+  dealValue: number;
+  tags: string[];
+  notes?: string;
+  managerName?: string;
+  lastContactDate: string;
+  createdAt: string;
+  totalSpent: number;
+  orderCount: number;
+  commentsCount?: number;
+  attachmentsCount?: number;
+}
+
+export interface CRMActivity {
+  id: string;
+  contactId: string;
+  type: 'call' | 'email' | 'meeting' | 'note' | 'stage_change';
+  description: string;
+  timestamp: string;
+}
+
+export interface CRMPipelineSummary {
+  totalPipelineValue: number;
+  totalDeals: number;
+  winRatePct: number;
+  avgDealSize: number;
+  stageCounts: Record<CRMStage, number>;
+}
+
+// LOCAL AI COPILOT TYPES
+export interface AICopilotMessage {
+  id: string;
+  sender: 'user' | 'ai';
+  text: string;
+  timestamp: string;
+  cards?: {
+    title: string;
+    value: string;
+    detail: string;
+    type?: 'positive' | 'negative' | 'info';
+  }[];
+}
+
+// AUTH & ADMIN CONSOLE TYPES
+export type UserRole = 'admin' | 'user';
+export type AuthProvider = 'google' | 'apple' | 'email';
+
+export interface User {
+  id: string;
+  name: string;
+  email: string;
+  avatar?: string;
+  role: UserRole;
+  authProvider: AuthProvider;
+  createdAt: string;
+  lastLogin: string;
+  isFirstTimeUser: boolean;
+}
+
+export interface LoginSessionLog {
+  id: string;
+  userId: string;
+  userName: string;
+  userEmail: string;
+  timestamp: string;
+  ipLocation: string;
+  provider: AuthProvider;
+}
+
+export interface AdminSystemStats {
+  totalUsers: number;
+  totalLogins: number;
+  totalDatasetsUploaded: number;
+  totalAIQueriesExecuted: number;
+  totalCRMDealsCreated: number;
+  systemUptimePct: number;
 }

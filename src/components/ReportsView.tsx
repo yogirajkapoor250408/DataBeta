@@ -1,47 +1,32 @@
 import React, { useState } from 'react';
-import { NormalizedRecord, DatasetMeta, CurrencyCode, ReportBranding } from '../types';
+import { NormalizedRecord, DatasetMeta, CurrencyCode } from '../types';
 import { calculateMetrics } from '../utils/metricsCalculator';
 import { formatCurrency } from '../utils/currencyFormatter';
 import { generateBusinessSummary } from '../utils/summaryEngine';
-import { detectAnomalies } from '../utils/anomalyDetector';
-import { calculateCustomerAnalytics, calculateProductAnalytics } from '../utils/customerProductAnalytics';
-import { Printer, Database, Image as ImageIcon, Building, Edit3 } from 'lucide-react';
+import { Printer, Building2, Upload, CheckCircle2 } from 'lucide-react';
 import { format } from 'date-fns';
 
 interface ReportsViewProps {
   records: NormalizedRecord[];
-  meta: DatasetMeta;
+  meta: DatasetMeta | null;
   currency: CurrencyCode;
 }
 
 export const ReportsView: React.FC<ReportsViewProps> = ({ records, meta, currency }) => {
   const metrics = calculateMetrics(records);
   const observations = generateBusinessSummary(records);
-  const anomalies = detectAnomalies(records);
-  const customerStats = calculateCustomerAnalytics(records);
-  const productStats = calculateProductAnalytics(records);
 
-  const [branding, setBranding] = useState<ReportBranding>({
-    companyName: 'My Online Business LLC',
-    logoUrl: '',
-    executiveNotes: 'Quarterly financial performance review and unit economics evaluation.',
-  });
+  const [companyName, setCompanyName] = useState('My Online Business');
+  const [executiveNotes, setExecutiveNotes] = useState(
+    'This financial summary report was generated directly from operational transaction data using DataBeta local analytics.'
+  );
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
 
-  const [isEditingBranding, setIsEditingBranding] = useState(false);
-
-  const dates = records
-    .map((r) => r.date)
-    .filter(Boolean)
-    .sort((a, b) => a!.getTime() - b!.getTime()) as Date[];
-
-  const startDateStr = dates.length > 0 ? format(dates[0], 'MMM d, yyyy') : 'N/A';
-  const endDateStr = dates.length > 0 ? format(dates[dates.length - 1], 'MMM d, yyyy') : 'N/A';
-
-  const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const reader = new FileReader();
       reader.onload = (event) => {
-        setBranding((prev) => ({ ...prev, logoUrl: event.target?.result as string }));
+        setLogoUrl(event.target?.result as string);
       };
       reader.readAsDataURL(e.target.files[0]);
     }
@@ -53,212 +38,140 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ records, meta, currenc
 
   return (
     <div className="space-y-6">
-      {/* Executive Report Control Bar */}
-      <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 no-print">
-        <div>
-          <h2 className="text-base font-bold text-slate-900">Custom Executive PDF & Print Report</h2>
-          <p className="text-xs text-slate-500 mt-0.5">
-            Add custom company branding, logo, and notes before printing or exporting to PDF.
-          </p>
-        </div>
-
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => setIsEditingBranding(!isEditingBranding)}
-            className="flex items-center gap-1.5 px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-semibold transition-all"
-          >
-            <Edit3 className="w-4 h-4" />
-            <span>{isEditingBranding ? 'Close Customizer' : 'Customize Branding'}</span>
-          </button>
+      {/* Report Customizer Controls (Hidden on Print) */}
+      <div className="bg-white dark:bg-zinc-950 p-6 rounded-3xl border border-slate-200/80 dark:border-zinc-800 shadow-sm space-y-4 no-print">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div>
+            <h2 className="text-lg font-bold text-slate-900 dark:text-white">Custom Executive PDF Report Customizer</h2>
+            <p className="text-xs text-slate-500 dark:text-zinc-400 mt-0.5">
+              Personalize your business name, logo, and notes before printing or exporting to PDF.
+            </p>
+          </div>
 
           <button
             onClick={handlePrint}
-            className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs sm:text-sm font-bold shadow-md transition-all"
+            className="flex items-center gap-2 px-6 py-2.5 bg-rose-600 hover:bg-rose-500 text-white font-extrabold rounded-full shadow-md shadow-rose-600/30 transition-all text-xs shrink-0"
           >
-            <Printer className="w-4 h-4" />
-            <span>Print / Export PDF</span>
+            <Printer className="w-4 h-4 text-white" />
+            <span>Print Report / Save as PDF</span>
           </button>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2 border-t border-slate-100 dark:border-zinc-900">
+          <div>
+            <label className="block text-xs font-bold text-slate-700 dark:text-zinc-300 mb-1">Company / Store Name</label>
+            <input
+              type="text"
+              value={companyName}
+              onChange={(e) => setCompanyName(e.target.value)}
+              className="w-full bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-full px-4 py-1.5 text-xs text-slate-900 dark:text-white font-medium focus:outline-none focus:ring-2 focus:ring-rose-500"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-slate-700 dark:text-zinc-300 mb-1">Company Logo (Optional)</label>
+            <label className="flex items-center gap-2 px-4 py-1.5 bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-full text-xs font-bold text-slate-600 dark:text-zinc-300 cursor-pointer hover:bg-slate-100 dark:hover:bg-zinc-800">
+              <Upload className="w-3.5 h-3.5 text-slate-400" />
+              <span>{logoUrl ? 'Change Logo' : 'Upload Logo'}</span>
+              <input type="file" accept="image/*" onChange={handleLogoUpload} className="hidden" />
+            </label>
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-slate-700 dark:text-zinc-300 mb-1">Executive Notes</label>
+            <textarea
+              rows={1}
+              value={executiveNotes}
+              onChange={(e) => setExecutiveNotes(e.target.value)}
+              className="w-full bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-2xl px-4 py-1.5 text-xs text-slate-900 dark:text-white font-medium focus:outline-none focus:ring-2 focus:ring-rose-500"
+            />
+          </div>
         </div>
       </div>
 
-      {/* Branding Editor Panel */}
-      {isEditingBranding && (
-        <div className="bg-slate-900 text-white p-6 rounded-2xl border border-slate-800 shadow-xl space-y-4 no-print">
-          <h3 className="font-bold text-sm text-indigo-300">Executive Report Customization</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
-            <div>
-              <label className="block text-slate-300 font-semibold mb-1">Company / Enterprise Name</label>
-              <input
-                type="text"
-                value={branding.companyName}
-                onChange={(e) => setBranding((prev) => ({ ...prev, companyName: e.target.value }))}
-                className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              />
-            </div>
-
-            <div>
-              <label className="block text-slate-300 font-semibold mb-1">Company Logo (Upload Image)</label>
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handleLogoChange}
-                className="w-full text-slate-400 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-indigo-600 file:text-white hover:file:bg-indigo-500 cursor-pointer"
-              />
-            </div>
-
-            <div className="md:col-span-2">
-              <label className="block text-slate-300 font-semibold mb-1">Executive Notes & Observations</label>
-              <textarea
-                rows={2}
-                value={branding.executiveNotes}
-                onChange={(e) => setBranding((prev) => ({ ...prev, executiveNotes: e.target.value }))}
-                className="w-full bg-slate-800 border border-slate-700 rounded-lg p-3 text-white font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              />
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Printable PDF Report Document Card */}
-      <div className="bg-white p-8 sm:p-10 rounded-2xl border border-slate-200 shadow-xl space-y-8 print-page print-card">
-        {/* Header with Custom Logo & Branding */}
-        <div className="border-b border-slate-200 pb-6 flex items-start justify-between">
-          <div className="space-y-2">
-            {branding.logoUrl ? (
-              <img src={branding.logoUrl} alt="Logo" className="h-12 object-contain" />
+      {/* Printable Report Canvas */}
+      <div className="bg-white p-8 rounded-3xl border border-slate-200 shadow-lg space-y-6 print-page max-w-4xl mx-auto text-slate-900">
+        {/* Header */}
+        <div className="flex items-start justify-between pb-6 border-b border-slate-200">
+          <div className="flex items-center gap-4">
+            {logoUrl ? (
+              <img src={logoUrl} alt="Company Logo" className="h-12 w-auto max-w-[150px] object-contain" />
             ) : (
-              <div className="flex items-center gap-2">
-                <div className="w-9 h-9 rounded-xl bg-indigo-600 flex items-center justify-center font-bold text-white shadow-md">
-                  <Database className="w-5 h-5" />
-                </div>
-                <span className="text-xl font-bold text-slate-900 tracking-tight">DataBeta Executive Summary</span>
+              <div className="w-12 h-12 rounded-2xl bg-rose-600 text-white flex items-center justify-center font-bold text-xl shadow-md">
+                <Building2 className="w-6 h-6 text-white" />
               </div>
             )}
-
             <div>
-              <h1 className="text-xl font-black text-slate-900">{branding.companyName}</h1>
-              <p className="text-xs text-slate-500">Business Data & Financial Performance Report</p>
+              <h1 className="text-2xl font-black tracking-tight text-slate-900">{companyName}</h1>
+              <p className="text-xs text-slate-500">Executive Financial Performance Summary</p>
             </div>
           </div>
 
-          <div className="text-right text-xs text-slate-600 space-y-1">
-            <p>
-              <span className="font-semibold text-slate-800">Source:</span> {meta.fileName}
-            </p>
-            <p>
-              <span className="font-semibold text-slate-800">Period:</span> {startDateStr} – {endDateStr}
-            </p>
-            <p>
-              <span className="font-semibold text-slate-800">Generated:</span> {format(new Date(), 'MMM d, yyyy')}
-            </p>
+          <div className="text-right text-xs text-slate-500 font-mono">
+            <div>Report Date: {format(new Date(), 'yyyy-MM-dd')}</div>
+            <div>Source File: {meta?.fileName || 'DataBeta Export'}</div>
+            <div>Records Evaluated: {records.length}</div>
           </div>
         </div>
 
-        {/* Executive Notes Box */}
-        {branding.executiveNotes && (
-          <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-700">
-            <span className="font-bold text-slate-900 block mb-1">Executive Statement</span>
-            <p className="italic leading-relaxed">{branding.executiveNotes}</p>
+        {/* Executive Notes */}
+        {executiveNotes && (
+          <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 text-xs text-slate-700 leading-relaxed italic">
+            "{executiveNotes}"
           </div>
         )}
 
-        {/* Financial Metrics Grid */}
-        <div>
-          <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">
-            Financial Indicators & Key Ratios
-          </h3>
-
-          <div className="grid grid-cols-3 gap-4">
-            <div className="p-4 rounded-xl bg-slate-50 border border-slate-200">
-              <div className="text-xs text-slate-500 font-medium">Total Revenue</div>
-              <div className="text-2xl font-bold text-slate-900 mt-1">
-                {metrics.hasRevenueData ? formatCurrency(metrics.totalRevenue, currency) : 'Not enough data'}
-              </div>
+        {/* Key KPI Summary Grid */}
+        <div className="grid grid-cols-4 gap-4 print-card p-4 rounded-2xl border border-slate-200">
+          <div>
+            <span className="text-[10px] uppercase font-bold text-slate-400">Total Revenue</span>
+            <div className="text-lg font-black text-slate-900 mt-0.5">
+              {metrics.hasRevenueData ? formatCurrency(metrics.totalRevenue, currency) : 'N/A'}
             </div>
+          </div>
 
-            <div className="p-4 rounded-xl bg-slate-50 border border-slate-200">
-              <div className="text-xs text-slate-500 font-medium">Total Expenses</div>
-              <div className="text-2xl font-bold text-slate-900 mt-1">
-                {metrics.hasExpenseData ? formatCurrency(metrics.totalExpenses, currency) : 'Not enough data'}
-              </div>
+          <div>
+            <span className="text-[10px] uppercase font-bold text-slate-400">Total Expenses</span>
+            <div className="text-lg font-black text-rose-600 mt-0.5">
+              {metrics.hasExpenseData ? formatCurrency(metrics.totalExpenses, currency) : 'N/A'}
             </div>
+          </div>
 
-            <div className="p-4 rounded-xl bg-slate-50 border border-slate-200">
-              <div className="text-xs text-slate-500 font-medium">Estimated Net Profit</div>
-              <div
-                className={`text-2xl font-bold mt-1 ${
-                  (metrics.estimatedProfit || 0) >= 0 ? 'text-emerald-700' : 'text-rose-700'
-                }`}
-              >
-                {metrics.hasProfitData ? formatCurrency(metrics.estimatedProfit, currency) : 'Not enough data'}
-              </div>
+          <div>
+            <span className="text-[10px] uppercase font-bold text-slate-400">Net Profit</span>
+            <div className={`text-lg font-black mt-0.5 ${(metrics.estimatedProfit || 0) >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+              {metrics.hasProfitData ? formatCurrency(metrics.estimatedProfit, currency) : 'N/A'}
             </div>
+          </div>
 
-            <div className="p-4 rounded-xl bg-slate-50 border border-slate-200">
-              <div className="text-xs text-slate-500 font-medium">Profit Margin</div>
-              <div className="text-xl font-bold text-slate-900 mt-1">
-                {metrics.profitMargin !== null ? `${metrics.profitMargin.toFixed(1)}%` : 'Not enough data'}
-              </div>
-            </div>
-
-            <div className="p-4 rounded-xl bg-slate-50 border border-slate-200">
-              <div className="text-xs text-slate-500 font-medium">Break-Even Revenue</div>
-              <div className="text-xl font-bold text-slate-900 mt-1">
-                {metrics.breakEvenRevenue ? formatCurrency(metrics.breakEvenRevenue, currency) : 'Not enough data'}
-              </div>
-            </div>
-
-            <div className="p-4 rounded-xl bg-slate-50 border border-slate-200">
-              <div className="text-xs text-slate-500 font-medium">Average Order Value</div>
-              <div className="text-xl font-bold text-slate-900 mt-1">
-                {metrics.avgTransactionValue !== null
-                  ? formatCurrency(metrics.avgTransactionValue, currency)
-                  : 'Not enough data'}
-              </div>
+          <div>
+            <span className="text-[10px] uppercase font-bold text-slate-400">Profit Margin</span>
+            <div className="text-lg font-black text-slate-900 mt-0.5">
+              {metrics.profitMargin !== null ? `${metrics.profitMargin.toFixed(1)}%` : 'N/A'}
             </div>
           </div>
         </div>
 
-        {/* Customer & Product Highlights Section */}
-        <div className="grid grid-cols-2 gap-4">
-          <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 text-xs">
-            <h4 className="font-bold text-slate-900 mb-1">Customer Intelligence</h4>
-            <p className="text-slate-600">Total Unique Clients: {customerStats.totalUniqueCustomers}</p>
-            <p className="text-slate-600">Top Account: {customerStats.topCustomerName || 'N/A'}</p>
-            <p className="text-slate-600">
-              Pareto 80/20 Ratio: {customerStats.paretoRatioPct.toFixed(1)}% revenue from top 20%
-            </p>
-          </div>
-
-          <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 text-xs">
-            <h4 className="font-bold text-slate-900 mb-1">Product Intelligence</h4>
-            <p className="text-slate-600">Total Catalog Products: {productStats.totalProducts}</p>
-            <p className="text-slate-600">Top Grossing Item: {productStats.topProductByRevenue?.name || 'N/A'}</p>
-            <p className="text-slate-600">
-              Top Item Revenue: {formatCurrency(productStats.topProductByRevenue?.revenue || 0, currency)}
-            </p>
-          </div>
-        </div>
-
-        {/* Business Observations */}
-        <div>
-          <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">
-            Automated Business Summary
-          </h3>
-
-          <div className="space-y-2.5">
+        {/* Executive Observations List */}
+        <div className="space-y-3">
+          <h3 className="font-extrabold text-slate-900 text-sm uppercase tracking-wider">Key Business Observations</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {observations.map((obs) => (
-              <div key={obs.id} className="p-3.5 rounded-xl border border-slate-200 bg-slate-50/60 text-xs">
-                <div className="font-bold text-slate-900">{obs.title}</div>
-                <div className="text-slate-600 mt-1">{obs.description}</div>
+              <div key={obs.id} className="p-3.5 rounded-2xl border border-slate-200 bg-slate-50 text-xs space-y-1">
+                <div className="font-bold text-slate-900 flex items-center gap-1.5">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-rose-600 shrink-0" />
+                  <span>{obs.title}</span>
+                </div>
+                <p className="text-slate-600 text-[11px] leading-relaxed">{obs.description}</p>
               </div>
             ))}
           </div>
         </div>
 
-        {/* Footer Guarantee */}
-        <div className="border-t border-slate-200 pt-4 text-center text-xs text-slate-400">
-          Generated automatically by DataBeta v2.0 Pro. All financial calculations evaluated 100% client-side.
+        {/* Report Footer */}
+        <div className="pt-6 border-t border-slate-200 flex items-center justify-between text-[11px] text-slate-400 font-mono">
+          <div>Generated by DataBeta Business Intelligence Platform</div>
+          <div>Confidential & Proprietary</div>
         </div>
       </div>
     </div>

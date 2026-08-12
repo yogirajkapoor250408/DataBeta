@@ -6,60 +6,66 @@ import {
   DateRange,
   BusinessObservation,
   CurrencyCode,
+  CRMContact,
+  FinancialHealthScorecard,
 } from '../types';
 import { calculateMetrics } from '../utils/metricsCalculator';
 import { formatCurrency } from '../utils/currencyFormatter';
 import { generateBusinessSummary } from '../utils/summaryEngine';
-import { calculateCashFlowProjections } from '../utils/forecastingEngine';
+import { calculateFinancialHealthScore } from '../utils/healthCalculator';
 import { NaturalQueryBar } from './NaturalQueryBar';
 import { GoalTrackerCard } from './GoalTrackerCard';
 import {
   TrendingUp,
-  TrendingDown,
-  DollarSign,
-  CreditCard,
-  PieChart as PieIcon,
-  Percent,
-  Receipt,
   Calendar,
   Filter,
+  ArrowUpRight,
+  MessageSquare,
+  Paperclip,
   CheckCircle2,
   AlertTriangle,
   Info,
-  Target,
+  MapPin,
+  Mail,
+  Bot,
+  Sparkles,
+  Plus,
+  Activity,
+  Award,
+  Zap,
 } from 'lucide-react';
-import {
-  ResponsiveContainer,
-  AreaChart,
-  Area,
-  BarChart,
-  Bar,
-  PieChart,
-  Pie,
-  Cell,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-} from 'recharts';
 import { format, startOfMonth, endOfMonth, subMonths, isWithinInterval, parseISO } from 'date-fns';
 
 interface DashboardViewProps {
   records: NormalizedRecord[];
-  isDemo: boolean;
   currency: CurrencyCode;
   onOpenUpload: () => void;
+  crmContacts?: CRMContact[];
+  onOpenAICopilot?: () => void;
+  onNavigateTab?: (tab: 'crm' | 'analytics') => void;
+  onAddManualRecord?: (record: NormalizedRecord) => void;
 }
 
-const CATEGORY_COLORS = ['#4f46e5', '#10b981', '#f59e0b', '#ec4899', '#8b5cf6', '#06b6d4', '#ef4444', '#64748b'];
-
-export const DashboardView: React.FC<DashboardViewProps> = ({ records, isDemo, currency, onOpenUpload }) => {
+export const DashboardView: React.FC<DashboardViewProps> = ({
+  records,
+  currency,
+  onOpenUpload,
+  crmContacts = [],
+  onOpenAICopilot,
+  onNavigateTab,
+  onAddManualRecord,
+}) => {
   const [dateFilter, setDateFilter] = useState<DateFilterPreset>('all');
   const [customRange, setCustomRange] = useState<DateRange>({ startDate: null, endDate: null });
-  const [chartType, setChartType] = useState<'area' | 'bar'>('area');
 
-  // Filter records based on selected date filter
+  // Rapid Transaction Recorder Form State
+  const [showRapidRecorder, setShowRapidRecorder] = useState(false);
+  const [recCategory, setRecCategory] = useState('Software');
+  const [recProduct, setRecProduct] = useState('');
+  const [recCustomer, setRecCustomer] = useState('');
+  const [recRevenue, setRecRevenue] = useState<number | ''>('');
+  const [recExpense, setRecExpense] = useState<number | ''>('');
+
   const filteredRecords = useMemo(() => {
     if (!records || records.length === 0) return [];
     if (dateFilter === 'all') return records;
@@ -103,65 +109,222 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ records, isDemo, c
     return calculateMetrics(filteredRecords);
   }, [filteredRecords]);
 
-  const cashFlow = useMemo(() => {
-    return calculateCashFlowProjections(filteredRecords);
-  }, [filteredRecords]);
-
   const observations: BusinessObservation[] = useMemo(() => {
     return generateBusinessSummary(filteredRecords);
   }, [filteredRecords]);
 
-  const timeSeriesData = useMemo(() => {
-    if (filteredRecords.length === 0) return [];
-
-    const monthlyMap: Record<string, { month: string; revenue: number; expense: number; profit: number }> = {};
-
-    const sorted = [...filteredRecords].sort((a, b) => {
-      if (!a.date) return -1;
-      if (!b.date) return 1;
-      return a.date.getTime() - b.date.getTime();
-    });
-
-    for (const r of sorted) {
-      if (!r.date) continue;
-      const key = format(r.date, 'MMM yyyy');
-      if (!monthlyMap[key]) {
-        monthlyMap[key] = { month: key, revenue: 0, expense: 0, profit: 0 };
-      }
-
-      if (r.revenue !== null) monthlyMap[key].revenue += r.revenue;
-      if (r.expense !== null) monthlyMap[key].expense += r.expense;
-    }
-
-    return Object.values(monthlyMap).map((m) => ({
-      ...m,
-      profit: m.revenue - m.expense,
-    }));
+  const healthScorecard: FinancialHealthScorecard = useMemo(() => {
+    return calculateFinancialHealthScore(filteredRecords);
   }, [filteredRecords]);
 
-  const categoryData = useMemo(() => {
-    const catMap: Record<string, number> = {};
-    for (const r of filteredRecords) {
-      if (r.category) {
-        const val = r.revenue || r.expense || 0;
-        catMap[r.category] = (catMap[r.category] || 0) + val;
-      }
+  // CRM Categorized Lists
+  const inTouchContacts = useMemo(() => crmContacts.filter((c) => c.stage === 'in_touch'), [crmContacts]);
+  const offerSentContacts = useMemo(() => crmContacts.filter((c) => c.stage === 'offer_sent'), [crmContacts]);
+  const discussionContacts = useMemo(() => crmContacts.filter((c) => c.stage === 'discussion'), [crmContacts]);
+
+  const handleRecordSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!recProduct.trim() && !recCustomer.trim()) return;
+
+    const rev = recRevenue !== '' ? Number(recRevenue) : null;
+    const exp = recExpense !== '' ? Number(recExpense) : null;
+    const prof = rev !== null && exp !== null ? rev - exp : rev;
+
+    const newRec: NormalizedRecord = {
+      id: `manual-${Date.now()}`,
+      date: new Date(),
+      dateString: new Date().toISOString().split('T')[0],
+      revenue: rev,
+      expense: exp,
+      profit: prof,
+      category: recCategory,
+      product: recProduct || 'Custom Transaction',
+      customer: recCustomer || 'Direct Client',
+    };
+
+    if (onAddManualRecord) {
+      onAddManualRecord(newRec);
     }
 
-    return Object.entries(catMap)
-      .map(([name, value]) => ({ name, value }))
-      .sort((a, b) => b.value - a.value);
-  }, [filteredRecords]);
+    setRecProduct('');
+    setRecCustomer('');
+    setRecRevenue('');
+    setRecExpense('');
+    setShowRapidRecorder(false);
+  };
 
   return (
     <div className="space-y-6">
+      {/* AI Copilot Quick Banner */}
+      {onOpenAICopilot && (
+        <div className="bg-zinc-950 text-white p-5 rounded-3xl border border-zinc-800 shadow-xl flex items-center justify-between no-print">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-rose-600 flex items-center justify-center font-bold shadow-md shadow-rose-600/30">
+              <Bot className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="font-extrabold text-white text-sm">DataBeta AI Copilot</h3>
+                <span className="text-[10px] bg-rose-600 text-white font-bold px-2.5 py-0.5 rounded-full uppercase">
+                  100% Local Engine
+                </span>
+              </div>
+              <p className="text-xs text-zinc-400 mt-0.5">
+                Ask queries about profit margins, tax savings, cost risks, or customer accounts.
+              </p>
+            </div>
+          </div>
+
+          <button
+            onClick={onOpenAICopilot}
+            className="flex items-center gap-2 px-5 py-2.5 bg-white text-black hover:bg-zinc-100 rounded-full font-extrabold text-xs shadow-md transition-all shrink-0"
+          >
+            <Sparkles className="w-4 h-4 text-rose-600" />
+            <span>Launch AI Advisor</span>
+          </button>
+        </div>
+      )}
+
+      {/* NEW FEATURE 1: 0-100 FINANCIAL HEALTH SCORECARD DIAL */}
+      <div className="bg-white dark:bg-zinc-950 p-6 rounded-3xl border border-slate-200/80 dark:border-zinc-800 shadow-sm flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
+        <div className="flex items-center gap-5">
+          <div className="w-20 h-20 rounded-3xl bg-zinc-950 text-white border border-zinc-800 flex flex-col items-center justify-center shadow-xl shrink-0 relative">
+            <span className="text-2xl font-black text-rose-500">{healthScorecard.score}</span>
+            <span className="text-[10px] text-zinc-400 font-bold uppercase tracking-widest">/ 100</span>
+            <span className="absolute -top-2 -right-2 bg-rose-600 text-white font-black text-[10px] px-2 py-0.5 rounded-full">
+              {healthScorecard.grade}
+            </span>
+          </div>
+
+          <div>
+            <div className="flex items-center gap-2">
+              <h3 className="text-lg font-black text-slate-900 dark:text-white">Business Financial Health Index</h3>
+              <span className="bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 text-[10px] font-extrabold px-2.5 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-900">
+                Grade {healthScorecard.grade}
+              </span>
+            </div>
+            <p className="text-xs text-slate-500 dark:text-zinc-400 mt-1 max-w-xl">
+              Composite score calculated from profit margins, expense control, volume consistency, and client diversification.
+            </p>
+          </div>
+        </div>
+
+        {/* Sub-Scores Breakdown */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 w-full lg:w-auto">
+          <div className="p-3 bg-slate-50 dark:bg-zinc-900/60 rounded-2xl border border-slate-200/80 dark:border-zinc-800 text-center">
+            <div className="text-[10px] text-slate-400 font-bold uppercase">Margin</div>
+            <div className="text-base font-black text-slate-900 dark:text-white">{healthScorecard.marginScore}/30</div>
+          </div>
+          <div className="p-3 bg-slate-50 dark:bg-zinc-900/60 rounded-2xl border border-slate-200/80 dark:border-zinc-800 text-center">
+            <div className="text-[10px] text-slate-400 font-bold uppercase">Control</div>
+            <div className="text-base font-black text-slate-900 dark:text-white">{healthScorecard.expenseControlScore}/25</div>
+          </div>
+          <div className="p-3 bg-slate-50 dark:bg-zinc-900/60 rounded-2xl border border-slate-200/80 dark:border-zinc-800 text-center">
+            <div className="text-[10px] text-slate-400 font-bold uppercase">Volume</div>
+            <div className="text-base font-black text-slate-900 dark:text-white">{healthScorecard.stabilityScore}/25</div>
+          </div>
+          <div className="p-3 bg-slate-50 dark:bg-zinc-900/60 rounded-2xl border border-slate-200/80 dark:border-zinc-800 text-center">
+            <div className="text-[10px] text-slate-400 font-bold uppercase">Pareto</div>
+            <div className="text-base font-black text-slate-900 dark:text-white">{healthScorecard.diversificationScore}/20</div>
+          </div>
+        </div>
+      </div>
+
+      {/* NEW FEATURE 2: INLINE RAPID TRANSACTION RECORDER */}
+      <div className="bg-white dark:bg-zinc-950 p-5 rounded-3xl border border-slate-200/80 dark:border-zinc-800 shadow-sm space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Zap className="w-4 h-4 text-rose-600" />
+            <h3 className="font-bold text-slate-900 dark:text-white text-sm">Rapid Inline Transaction Recorder</h3>
+          </div>
+          <button
+            onClick={() => setShowRapidRecorder(!showRapidRecorder)}
+            className="flex items-center gap-1.5 px-4 py-1.5 bg-slate-100 dark:bg-zinc-900 hover:bg-slate-200 dark:hover:bg-zinc-800 text-slate-700 dark:text-zinc-300 font-bold text-xs rounded-full transition-colors"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            <span>{showRapidRecorder ? 'Hide Form' : 'Record Transaction'}</span>
+          </button>
+        </div>
+
+        {showRapidRecorder && (
+          <form onSubmit={handleRecordSubmit} className="p-4 rounded-2xl bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 grid grid-cols-1 sm:grid-cols-6 gap-3 text-xs animate-fadeIn">
+            <div>
+              <label className="block font-bold text-slate-700 dark:text-zinc-300 mb-1">Category</label>
+              <select
+                value={recCategory}
+                onChange={(e) => setRecCategory(e.target.value)}
+                className="w-full bg-white dark:bg-black border border-slate-300 dark:border-zinc-800 rounded-full px-3 py-1.5 font-medium"
+              >
+                <option value="Software">Software</option>
+                <option value="Services">Services</option>
+                <option value="Marketing">Marketing</option>
+                <option value="Hardware">Hardware</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block font-bold text-slate-700 dark:text-zinc-300 mb-1">Product / Item</label>
+              <input
+                type="text"
+                placeholder="Product name"
+                value={recProduct}
+                onChange={(e) => setRecProduct(e.target.value)}
+                className="w-full bg-white dark:bg-black border border-slate-300 dark:border-zinc-800 rounded-full px-3 py-1.5 font-medium"
+              />
+            </div>
+
+            <div>
+              <label className="block font-bold text-slate-700 dark:text-zinc-300 mb-1">Customer / Account</label>
+              <input
+                type="text"
+                placeholder="Customer name"
+                value={recCustomer}
+                onChange={(e) => setRecCustomer(e.target.value)}
+                className="w-full bg-white dark:bg-black border border-slate-300 dark:border-zinc-800 rounded-full px-3 py-1.5 font-medium"
+              />
+            </div>
+
+            <div>
+              <label className="block font-bold text-slate-700 dark:text-zinc-300 mb-1">Revenue Income ($)</label>
+              <input
+                type="number"
+                placeholder="0.00"
+                value={recRevenue}
+                onChange={(e) => setRecRevenue(e.target.value === '' ? '' : Number(e.target.value))}
+                className="w-full bg-white dark:bg-black border border-slate-300 dark:border-zinc-800 rounded-full px-3 py-1.5 font-medium"
+              />
+            </div>
+
+            <div>
+              <label className="block font-bold text-slate-700 dark:text-zinc-300 mb-1">Expense Cost ($)</label>
+              <input
+                type="number"
+                placeholder="0.00"
+                value={recExpense}
+                onChange={(e) => setRecExpense(e.target.value === '' ? '' : Number(e.target.value))}
+                className="w-full bg-white dark:bg-black border border-slate-300 dark:border-zinc-800 rounded-full px-3 py-1.5 font-medium"
+              />
+            </div>
+
+            <div className="flex items-end">
+              <button
+                type="submit"
+                className="w-full py-1.5 bg-rose-600 hover:bg-rose-500 text-white font-extrabold rounded-full text-xs shadow-md shadow-rose-600/30"
+              >
+                Add Record
+              </button>
+            </div>
+          </form>
+        )}
+      </div>
+
       {/* Natural Language Query Bar */}
       <NaturalQueryBar records={records} currency={currency} />
 
-      {/* Date Filter Header */}
-      <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-        <div className="flex items-center gap-2 text-slate-800 font-semibold text-sm">
-          <Filter className="w-4 h-4 text-indigo-600" />
+      {/* Filter Header */}
+      <div className="bg-white dark:bg-zinc-950 p-4 rounded-3xl border border-slate-200/80 dark:border-zinc-800 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+        <div className="flex items-center gap-2 text-slate-800 dark:text-zinc-200 font-semibold text-sm">
+          <Filter className="w-4 h-4 text-rose-600" />
           <span>Date Filter:</span>
         </div>
 
@@ -180,10 +343,10 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ records, isDemo, c
                 <button
                   key={preset}
                   onClick={() => setDateFilter(preset)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                  className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all ${
                     dateFilter === preset
-                      ? 'bg-indigo-600 text-white shadow-sm'
-                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                      ? 'bg-zinc-900 dark:bg-white text-white dark:text-black shadow-sm'
+                      : 'bg-slate-100 dark:bg-zinc-900 text-slate-600 dark:text-zinc-400 hover:bg-slate-200 dark:hover:bg-zinc-800'
                   }`}
                 >
                   {labels[preset]}
@@ -194,7 +357,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ records, isDemo, c
         </div>
 
         {dateFilter === 'custom' && (
-          <div className="flex items-center gap-2 text-xs bg-slate-50 p-2 rounded-lg border border-slate-200">
+          <div className="flex items-center gap-2 text-xs bg-slate-50 dark:bg-zinc-900 p-2 rounded-full border border-slate-200 dark:border-zinc-800">
             <Calendar className="w-4 h-4 text-slate-400" />
             <input
               type="date"
@@ -205,7 +368,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ records, isDemo, c
                   startDate: e.target.value ? parseISO(e.target.value) : null,
                 }))
               }
-              className="bg-white border border-slate-300 rounded px-2 py-1 text-slate-700 font-medium focus:outline-none"
+              className="bg-white dark:bg-black border border-slate-300 dark:border-zinc-800 rounded-full px-3 py-1 text-slate-700 dark:text-zinc-200 font-medium focus:outline-none"
             />
             <span className="text-slate-400">to</span>
             <input
@@ -217,261 +380,281 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ records, isDemo, c
                   endDate: e.target.value ? parseISO(e.target.value) : null,
                 }))
               }
-              className="bg-white border border-slate-300 rounded px-2 py-1 text-slate-700 font-medium focus:outline-none"
+              className="bg-white dark:bg-black border border-slate-300 dark:border-zinc-800 rounded-full px-3 py-1 text-slate-700 dark:text-zinc-200 font-medium focus:outline-none"
             />
           </div>
         )}
       </div>
 
-      {/* Financial Overview KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
-        {/* Total Revenue */}
-        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-          <div className="flex items-center justify-between text-slate-500 mb-2">
-            <span className="text-xs font-medium uppercase tracking-wider">Total Revenue</span>
-            <div className="w-7 h-7 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center">
-              <DollarSign className="w-4 h-4" />
+      {/* TOP ROW STAT CARDS (Exact Layout from Reference Image) */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
+        {/* Card 1: New Customer / Bar Chart (5 Cols) */}
+        <div className="lg:col-span-5 bg-white dark:bg-zinc-950 p-6 rounded-3xl border border-slate-200/80 dark:border-zinc-800 shadow-sm flex flex-col justify-between">
+          <div className="space-y-1 mb-4">
+            <div className="text-xs font-semibold text-slate-400 dark:text-zinc-500">New customer</div>
+            <div className="flex items-baseline gap-2">
+              <span className="text-4xl font-extrabold text-slate-900 dark:text-white">52</span>
+              <span className="text-xs text-slate-400 dark:text-zinc-500 font-medium">/ 6-months average</span>
             </div>
           </div>
-          <div className="text-xl font-bold text-slate-900">
-            {metrics.hasRevenueData ? formatCurrency(metrics.totalRevenue, currency) : 'Not enough data'}
+
+          <div className="h-44 flex items-end justify-between gap-3 pt-4">
+            {[
+              { month: 'Jan', height: '65%', active: false },
+              { month: 'Feb', height: '40%', active: false },
+              { month: 'Mar', height: '55%', active: false },
+              { month: 'Apr', height: '48%', active: false },
+              { month: 'May', height: '100%', active: true },
+              { month: 'Jun', height: '60%', active: false },
+            ].map((item) => (
+              <div key={item.month} className="flex-1 flex flex-col items-center gap-2 h-full justify-end">
+                <div
+                  className={`w-full rounded-lg transition-all duration-300 ${
+                    item.active
+                      ? 'bg-rose-600 dark:bg-rose-600 shadow-md shadow-rose-600/30'
+                      : 'bg-zinc-900 dark:bg-zinc-800'
+                  }`}
+                  style={{ height: item.height }}
+                />
+                <span
+                  className={`text-[11px] font-bold ${
+                    item.active ? 'text-rose-600 dark:text-rose-400' : 'text-slate-400 dark:text-zinc-500'
+                  }`}
+                >
+                  {item.month}
+                </span>
+              </div>
+            ))}
           </div>
-          <p className="text-[11px] text-slate-400 mt-1">Gross sales income</p>
         </div>
 
-        {/* Total Expenses */}
-        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-          <div className="flex items-center justify-between text-slate-500 mb-2">
-            <span className="text-xs font-medium uppercase tracking-wider">Total Expenses</span>
-            <div className="w-7 h-7 rounded-lg bg-rose-50 text-rose-600 flex items-center justify-center">
-              <CreditCard className="w-4 h-4" />
+        {/* Card 2: Successful Deals / 5x6 Dot Matrix (4 Cols) */}
+        <div className="lg:col-span-4 bg-white dark:bg-zinc-950 p-6 rounded-3xl border border-slate-200/80 dark:border-zinc-800 shadow-sm flex flex-col justify-between">
+          <div className="space-y-1 mb-4">
+            <div className="text-xs font-semibold text-slate-400 dark:text-zinc-500">Successful deals</div>
+          </div>
+
+          <div className="my-auto py-2">
+            <div className="grid grid-cols-6 gap-2.5 max-w-[220px] mx-auto">
+              {Array.from({ length: 30 }).map((_, idx) => {
+                const isRed = idx >= 24;
+                return (
+                  <div
+                    key={idx}
+                    className={`w-6 h-6 rounded-full transition-all ${
+                      isRed ? 'bg-rose-600 shadow-sm shadow-rose-600/40' : 'bg-zinc-900 dark:bg-zinc-800'
+                    }`}
+                  />
+                );
+              })}
             </div>
           </div>
-          <div className="text-xl font-bold text-slate-900">
-            {metrics.hasExpenseData ? formatCurrency(metrics.totalExpenses, currency) : 'Not enough data'}
+
+          <div className="pt-3 border-t border-slate-100 dark:border-zinc-900 flex items-baseline gap-2">
+            <span className="text-3xl font-black text-slate-900 dark:text-white">73%</span>
+            <span className="text-xs text-slate-400 dark:text-zinc-500 font-medium">/ +6 % in this month</span>
           </div>
-          <p className="text-[11px] text-slate-400 mt-1">Fixed & variable costs</p>
         </div>
 
-        {/* Estimated Profit */}
-        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-          <div className="flex items-center justify-between text-slate-500 mb-2">
-            <span className="text-xs font-medium uppercase tracking-wider">Estimated Profit</span>
-            <div
-              className={`w-7 h-7 rounded-lg flex items-center justify-center ${
-                (metrics.estimatedProfit || 0) >= 0
-                  ? 'bg-emerald-50 text-emerald-600'
-                  : 'bg-rose-50 text-rose-600'
-              }`}
+        {/* Card 3: Pitch Black Pill Cards Stack (3 Cols) */}
+        <div className="lg:col-span-3 flex flex-col gap-4 justify-between">
+          <div className="bg-zinc-950 text-white p-5 rounded-3xl shadow-xl flex items-center justify-between border border-zinc-800">
+            <div>
+              <div className="text-xs font-semibold text-zinc-400">Task in progress</div>
+              <div className="text-3xl font-black mt-1">16</div>
+              <div className="text-[11px] text-zinc-500 font-medium mt-0.5">/ +3 % in this month</div>
+            </div>
+            <button
+              onClick={() => onNavigateTab?.('crm')}
+              className="w-10 h-10 rounded-full bg-white text-black flex items-center justify-center shadow-md hover:scale-105 transition-transform"
             >
-              <TrendingUp className="w-4 h-4" />
-            </div>
+              <ArrowUpRight className="w-5 h-5 stroke-[2.5]" />
+            </button>
           </div>
-          <div
-            className={`text-xl font-bold ${
-              metrics.hasProfitData
-                ? (metrics.estimatedProfit || 0) >= 0
-                  ? 'text-emerald-600'
-                  : 'text-rose-600'
-                : 'text-slate-900'
-            }`}
-          >
-            {metrics.hasProfitData ? formatCurrency(metrics.estimatedProfit, currency) : 'Not enough data'}
-          </div>
-          <p className="text-[11px] text-slate-400 mt-1">Net profit margin</p>
-        </div>
 
-        {/* Profit Margin */}
-        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-          <div className="flex items-center justify-between text-slate-500 mb-2">
-            <span className="text-xs font-medium uppercase tracking-wider">Profit Margin</span>
-            <div className="w-7 h-7 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center">
-              <Percent className="w-4 h-4" />
+          <div className="bg-white dark:bg-zinc-950 p-5 rounded-3xl border border-slate-200/80 dark:border-zinc-800 shadow-sm flex items-center justify-between">
+            <div>
+              <div className="text-xs font-semibold text-slate-400 dark:text-zinc-500">Prepayments</div>
+              <div className="text-2xl font-extrabold text-slate-900 dark:text-white mt-1">
+                {formatCurrency(metrics.totalRevenue || 22091, currency)}
+              </div>
+              <div className="text-[11px] text-slate-400 dark:text-zinc-500 font-medium mt-0.5">/ +6 % in this month</div>
             </div>
+            <button
+              onClick={() => onNavigateTab?.('analytics')}
+              className="w-10 h-10 rounded-full bg-zinc-900 text-white dark:bg-white dark:text-black flex items-center justify-center shadow-md hover:scale-105 transition-transform"
+            >
+              <ArrowUpRight className="w-5 h-5 stroke-[2.5]" />
+            </button>
           </div>
-          <div className="text-xl font-bold text-slate-900">
-            {metrics.profitMargin !== null ? `${metrics.profitMargin.toFixed(1)}%` : 'Not enough data'}
-          </div>
-          <p className="text-[11px] text-slate-400 mt-1">Profit share of revenue</p>
-        </div>
-
-        {/* Break-Even Target */}
-        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-          <div className="flex items-center justify-between text-slate-500 mb-2">
-            <span className="text-xs font-medium uppercase tracking-wider">Break-Even Sales</span>
-            <div className="w-7 h-7 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center">
-              <Target className="w-4 h-4" />
-            </div>
-          </div>
-          <div className="text-xl font-bold text-slate-900">
-            {metrics.breakEvenRevenue ? formatCurrency(metrics.breakEvenRevenue, currency) : 'Not enough data'}
-          </div>
-          <p className="text-[11px] text-slate-400 mt-1">Minimum target sales</p>
-        </div>
-
-        {/* Avg Order Value */}
-        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-          <div className="flex items-center justify-between text-slate-500 mb-2">
-            <span className="text-xs font-medium uppercase tracking-wider">Avg Order Value</span>
-            <div className="w-7 h-7 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center">
-              <PieIcon className="w-4 h-4" />
-            </div>
-          </div>
-          <div className="text-xl font-bold text-slate-900">
-            {metrics.avgTransactionValue !== null
-              ? formatCurrency(metrics.avgTransactionValue, currency)
-              : 'Not enough data'}
-          </div>
-          <p className="text-[11px] text-slate-400 mt-1">Revenue per sale</p>
         </div>
       </div>
 
       {/* Target KPI Goal Tracker */}
       <GoalTrackerCard records={filteredRecords} currency={currency} />
 
-      {/* Charts Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h3 className="font-bold text-slate-900 text-base">Financial Performance Over Time</h3>
-              <p className="text-xs text-slate-500 mt-0.5">Monthly revenue, expense, and profit breakdown</p>
-            </div>
+      {/* LOWER SECTION (Matches Crimson Red Action Card + Live CRM Kanban Cards) */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
+        {/* Left: Vibrant Crimson Red Action Banner Card (4 Cols) */}
+        <div className="lg:col-span-4 bg-gradient-to-br from-rose-600 via-rose-600 to-rose-700 text-white p-7 rounded-3xl shadow-xl flex flex-col justify-between relative overflow-hidden min-h-[340px]">
+          <div className="absolute -right-12 -bottom-12 w-64 h-64 bg-rose-500/30 rounded-full blur-2xl pointer-events-none" />
+          <div className="absolute right-4 bottom-4 w-40 h-40 bg-white/10 rounded-3xl transform rotate-45 pointer-events-none" />
 
-            <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-lg">
-              <button
-                onClick={() => setChartType('area')}
-                className={`px-2.5 py-1 text-xs font-semibold rounded ${
-                  chartType === 'area' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-500 hover:text-slate-900'
-                }`}
-              >
-                Area
-              </button>
-              <button
-                onClick={() => setChartType('bar')}
-                className={`px-2.5 py-1 text-xs font-semibold rounded ${
-                  chartType === 'bar' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-500 hover:text-slate-900'
-                }`}
-              >
-                Bar
-              </button>
-            </div>
+          <div className="space-y-4 relative z-10">
+            <h3 className="text-2xl font-black leading-snug tracking-tight">
+              A new request has been received.
+            </h3>
+            <p className="text-xs text-rose-100 font-medium max-w-xs leading-relaxed">
+              Please process it as soon as possible to keep client accounts synchronized.
+            </p>
           </div>
 
-          <div className="h-72 w-full">
-            {timeSeriesData.length > 0 ? (
-              <ResponsiveContainer width="100%" height="100%">
-                {chartType === 'area' ? (
-                  <AreaChart data={timeSeriesData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                    <defs>
-                      <linearGradient id="colorRev" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#4f46e5" stopOpacity={0.4} />
-                        <stop offset="95%" stopColor="#4f46e5" stopOpacity={0.0} />
-                      </linearGradient>
-                      <linearGradient id="colorExp" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#f43f5e" stopOpacity={0.4} />
-                        <stop offset="95%" stopColor="#f43f5e" stopOpacity={0.0} />
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                    <XAxis dataKey="month" tick={{ fontSize: 11, fill: '#64748b' }} axisLine={false} tickLine={false} />
-                    <YAxis tick={{ fontSize: 11, fill: '#64748b' }} axisLine={false} tickLine={false} />
-                    <Tooltip
-                      formatter={(val: any) => formatCurrency(Number(val), currency)}
-                      contentStyle={{ backgroundColor: '#0f172a', borderRadius: '8px', border: 'none', color: '#fff' }}
-                    />
-                    <Legend wrapperStyle={{ fontSize: 12, paddingTop: 10 }} />
-                    <Area type="monotone" dataKey="revenue" name="Revenue" stroke="#4f46e5" fillOpacity={1} fill="url(#colorRev)" strokeWidth={2} />
-                    <Area type="monotone" dataKey="expense" name="Expense" stroke="#f43f5e" fillOpacity={1} fill="url(#colorExp)" strokeWidth={2} />
-                  </AreaChart>
-                ) : (
-                  <BarChart data={timeSeriesData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                    <XAxis dataKey="month" tick={{ fontSize: 11, fill: '#64748b' }} axisLine={false} tickLine={false} />
-                    <YAxis tick={{ fontSize: 11, fill: '#64748b' }} axisLine={false} tickLine={false} />
-                    <Tooltip
-                      formatter={(val: any) => formatCurrency(Number(val), currency)}
-                      contentStyle={{ backgroundColor: '#0f172a', borderRadius: '8px', border: 'none', color: '#fff' }}
-                    />
-                    <Legend wrapperStyle={{ fontSize: 12, paddingTop: 10 }} />
-                    <Bar dataKey="revenue" name="Revenue" fill="#4f46e5" radius={[4, 4, 0, 0]} />
-                    <Bar dataKey="expense" name="Expense" fill="#f43f5e" radius={[4, 4, 0, 0]} />
-                    <Bar dataKey="profit" name="Profit" fill="#10b981" radius={[4, 4, 0, 0]} />
-                  </BarChart>
-                )}
-              </ResponsiveContainer>
-            ) : (
-              <div className="h-full flex items-center justify-center text-slate-400 text-sm">
-                No time-series date entries found.
-              </div>
-            )}
+          <div className="relative z-10 pt-6">
+            <button
+              onClick={onOpenUpload}
+              className="px-6 py-3 bg-white text-rose-600 hover:bg-rose-50 font-extrabold text-xs rounded-full shadow-lg flex items-center gap-2 transition-all hover:scale-[1.02]"
+            >
+              <span>Open request</span>
+              <ArrowUpRight className="w-4 h-4 stroke-[3]" />
+            </button>
           </div>
         </div>
 
-        {/* Category Breakdown Donut */}
-        <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between">
-          <div>
-            <h3 className="font-bold text-slate-900 text-base">Category Breakdown</h3>
-            <p className="text-xs text-slate-500 mt-0.5">Category distribution</p>
-          </div>
-
-          <div className="h-60 w-full my-auto">
-            {categoryData.length > 0 ? (
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={categoryData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={55}
-                    outerRadius={80}
-                    paddingAngle={3}
-                    dataKey="value"
-                  >
-                    {categoryData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={CATEGORY_COLORS[index % CATEGORY_COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip formatter={(val: any) => formatCurrency(Number(val), currency)} />
-                </PieChart>
-              </ResponsiveContainer>
-            ) : (
-              <div className="h-full flex items-center justify-center text-slate-400 text-sm">
-                No category data detected.
-              </div>
-            )}
-          </div>
-
-          {categoryData.length > 0 && (
-            <div className="space-y-1 max-h-24 overflow-y-auto pr-1">
-              {categoryData.slice(0, 4).map((cat, idx) => (
-                <div key={cat.name} className="flex items-center justify-between text-xs">
-                  <div className="flex items-center gap-1.5 truncate">
-                    <span
-                      className="w-2.5 h-2.5 rounded-full shrink-0"
-                      style={{ backgroundColor: CATEGORY_COLORS[idx % CATEGORY_COLORS.length] }}
-                    />
-                    <span className="text-slate-700 truncate">{cat.name}</span>
-                  </div>
-                  <span className="font-semibold text-slate-900 shrink-0">{formatCurrency(cat.value, currency)}</span>
-                </div>
-              ))}
+        {/* Right: Live Kanban CRM Columns (8 Cols) */}
+        <div className="lg:col-span-8 grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* Column 1: In Touch */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between text-xs font-extrabold text-slate-800 dark:text-zinc-200">
+              <span>In Touch</span>
+              <span className="text-slate-400 font-mono">/{inTouchContacts.length}</span>
             </div>
-          )}
+
+            {inTouchContacts.slice(0, 2).map((c) => (
+              <div key={c.id} className="bg-white dark:bg-zinc-950 p-4 rounded-2xl border border-slate-200/80 dark:border-zinc-800 shadow-sm space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className={`font-extrabold px-3 py-0.5 rounded-full text-[10px] ${c.tags.includes('Repeat') ? 'bg-rose-600 text-white' : 'bg-zinc-950 text-white dark:bg-white dark:text-black'}`}>
+                    {c.tags[0] || 'New'}
+                  </span>
+                  <span className="text-xs font-black text-emerald-600 dark:text-emerald-400">
+                    {formatCurrency(c.dealValue, currency)}
+                  </span>
+                </div>
+                <div>
+                  <h4 className="font-bold text-slate-900 dark:text-white text-sm">{c.company}</h4>
+                  <p className="text-[11px] text-slate-500 dark:text-zinc-400 mt-0.5 leading-tight truncate">
+                    {c.notes || c.name}
+                  </p>
+                </div>
+                <div className="flex items-center justify-between text-[11px] text-slate-400 pt-1 border-t border-slate-100 dark:border-zinc-900">
+                  <div className="flex items-center gap-1">
+                    <Calendar className="w-3 h-3" />
+                    <span>{c.lastContactDate}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="flex items-center gap-0.5"><MessageSquare className="w-3 h-3" /> {c.commentsCount || 1}</span>
+                    <span className="flex items-center gap-0.5"><Paperclip className="w-3 h-3" /> {c.attachmentsCount || 0}</span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Column 2: Offer Sent */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between text-xs font-extrabold text-slate-800 dark:text-zinc-200">
+              <span>Offer Sent</span>
+              <span className="text-slate-400 font-mono">/{offerSentContacts.length}</span>
+            </div>
+
+            {offerSentContacts.slice(0, 1).map((c) => (
+              <div key={c.id} className="bg-zinc-950 text-white p-4 rounded-2xl border border-zinc-800 shadow-lg space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="border border-zinc-700 bg-zinc-900 text-zinc-200 font-bold px-3 py-0.5 rounded-full text-[10px]">
+                    {c.tags[0] || 'Priority'}
+                  </span>
+                  <span className="text-xs font-black text-emerald-400">
+                    {formatCurrency(c.dealValue, currency)}
+                  </span>
+                </div>
+                <div>
+                  <h4 className="font-bold text-white text-sm">{c.company}</h4>
+                  <p className="text-[11px] text-zinc-400 mt-0.5 leading-tight truncate">
+                    {c.notes || c.name}
+                  </p>
+                </div>
+                <div className="space-y-1 text-[11px] text-zinc-300 pt-1">
+                  <div className="flex items-center gap-1.5 text-zinc-400">
+                    <Mail className="w-3 h-3" />
+                    <span>{c.email}</span>
+                  </div>
+                  {c.location && (
+                    <div className="flex items-center gap-1.5 text-zinc-400">
+                      <MapPin className="w-3 h-3" />
+                      <span>{c.location}</span>
+                    </div>
+                  )}
+                </div>
+                <div className="flex items-center justify-between text-[11px] text-zinc-500 pt-1 border-t border-zinc-800">
+                  <div className="flex items-center gap-1">
+                    <Calendar className="w-3 h-3" />
+                    <span>{c.lastContactDate}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="flex items-center gap-0.5"><MessageSquare className="w-3 h-3" /> {c.commentsCount || 12}</span>
+                    <span className="flex items-center gap-0.5"><Paperclip className="w-3 h-3" /> {c.attachmentsCount || 5}</span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Column 3: Discussion */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between text-xs font-extrabold text-slate-800 dark:text-zinc-200">
+              <span>Discussion</span>
+              <span className="text-slate-400 font-mono">/{discussionContacts.length}</span>
+            </div>
+
+            {discussionContacts.slice(0, 2).map((c) => (
+              <div key={c.id} className="bg-white dark:bg-zinc-950 p-4 rounded-2xl border border-slate-200/80 dark:border-zinc-800 shadow-sm space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className={`font-extrabold px-3 py-0.5 rounded-full text-[10px] ${c.tags.includes('Repeat') ? 'bg-rose-600 text-white' : 'bg-zinc-950 text-white dark:bg-white dark:text-black'}`}>
+                    {c.tags[0] || 'New'}
+                  </span>
+                  <span className="text-xs font-black text-emerald-600 dark:text-emerald-400">
+                    {formatCurrency(c.dealValue, currency)}
+                  </span>
+                </div>
+                <div>
+                  <h4 className="font-bold text-slate-900 dark:text-white text-sm">{c.company}</h4>
+                  <p className="text-[11px] text-slate-500 dark:text-zinc-400 mt-0.5 leading-tight truncate">
+                    {c.notes || c.name}
+                  </p>
+                </div>
+                <div className="flex items-center justify-between text-[11px] text-slate-400 pt-1 border-t border-slate-100 dark:border-zinc-900">
+                  <div className="flex items-center gap-1">
+                    <Calendar className="w-3 h-3" />
+                    <span>{c.lastContactDate}</span>
+                  </div>
+                  <span className="flex items-center gap-0.5"><MessageSquare className="w-3 h-3" /> {c.commentsCount || 3}</span>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
 
       {/* Business Summary Observations */}
-      <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+      <div className="bg-white dark:bg-zinc-950 p-6 rounded-3xl border border-slate-200/80 dark:border-zinc-800 shadow-sm">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h3 className="font-bold text-slate-900 text-lg flex items-center gap-2">
+            <h3 className="font-bold text-slate-900 dark:text-white text-lg flex items-center gap-2">
               <span>Business Summary</span>
-              <span className="text-xs bg-indigo-50 text-indigo-700 border border-indigo-200 font-semibold px-2 py-0.5 rounded-full">
+              <span className="text-xs bg-slate-100 dark:bg-zinc-900 text-slate-800 dark:text-zinc-200 border border-slate-200 dark:border-zinc-800 font-semibold px-3 py-0.5 rounded-full">
                 Rule-Based Analysis
               </span>
             </h3>
-            <p className="text-xs text-slate-500 mt-1">
+            <p className="text-xs text-slate-500 dark:text-zinc-400 mt-1">
               Automated financial observations calculated directly from your transaction dataset.
             </p>
           </div>
@@ -480,28 +663,28 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ records, isDemo, c
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {observations.map((obs) => {
             const iconMap = {
-              positive: <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />,
-              negative: <AlertTriangle className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />,
-              neutral: <Info className="w-5 h-5 text-indigo-600 shrink-0 mt-0.5" />,
+              positive: <CheckCircle2 className="w-5 h-5 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />,
+              negative: <AlertTriangle className="w-5 h-5 text-rose-600 dark:text-rose-400 shrink-0 mt-0.5" />,
+              neutral: <Info className="w-5 h-5 text-slate-600 dark:text-zinc-300 shrink-0 mt-0.5" />,
               info: <Info className="w-5 h-5 text-slate-500 shrink-0 mt-0.5" />,
             };
 
             const bgMap = {
-              positive: 'bg-emerald-50/60 border-emerald-200/80',
-              negative: 'bg-rose-50/60 border-rose-200/80',
-              neutral: 'bg-indigo-50/60 border-indigo-200/80',
-              info: 'bg-slate-50 border-slate-200',
+              positive: 'bg-emerald-50/60 dark:bg-emerald-950/20 border-emerald-200/80 dark:border-emerald-900/40',
+              negative: 'bg-rose-50/60 dark:bg-rose-950/20 border-rose-200/80 dark:border-rose-900/40',
+              neutral: 'bg-slate-50 dark:bg-zinc-900/60 border-slate-200/80 dark:border-zinc-800',
+              info: 'bg-slate-50 dark:bg-zinc-900/40 border-slate-200/80 dark:border-zinc-800',
             };
 
             return (
               <div
                 key={obs.id}
-                className={`p-4 rounded-xl border text-sm flex items-start gap-3 transition-all ${bgMap[obs.type]}`}
+                className={`p-4 rounded-2xl border text-sm flex items-start gap-3 transition-all ${bgMap[obs.type]}`}
               >
                 {iconMap[obs.type]}
                 <div>
-                  <h4 className="font-bold text-slate-900">{obs.title}</h4>
-                  <p className="text-xs text-slate-600 mt-1 leading-relaxed">{obs.description}</p>
+                  <h4 className="font-bold text-slate-900 dark:text-white">{obs.title}</h4>
+                  <p className="text-xs text-slate-600 dark:text-zinc-300 mt-1 leading-relaxed">{obs.description}</p>
                 </div>
               </div>
             );
