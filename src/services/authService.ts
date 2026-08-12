@@ -79,6 +79,19 @@ export const authService = {
     return { user: appUser, error: null };
   },
 
+  async signInWithGoogle(): Promise<{ error: Error | null }> {
+    if (!isSupabaseConfigured()) {
+      return { error: new Error('Supabase is not configured. Please set environment variables.') };
+    }
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: `${window.location.origin}`,
+      },
+    });
+    return { error };
+  },
+
   async signOut(): Promise<{ error: Error | null }> {
     if (!isSupabaseConfigured()) return { error: null };
     const { error } = await supabase.auth.signOut();
