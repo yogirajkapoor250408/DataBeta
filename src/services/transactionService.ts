@@ -148,8 +148,10 @@ export const transactionService = {
 
     if (custInserts.length > 0) {
       try {
-        await supabase.from('customers').upsert(custInserts, { onConflict: 'id' });
-      } catch {}
+        await supabase.from('customers').upsert(custInserts, { onConflict: 'business_id,name' });
+      } catch (err) {
+        console.error('Customer sync upsert failure:', err);
+      }
     }
 
     const prodInserts = Object.entries(productMap).map(([name, val]) => ({
@@ -162,8 +164,10 @@ export const transactionService = {
 
     if (prodInserts.length > 0) {
       try {
-        await supabase.from('products').upsert(prodInserts, { onConflict: 'id' });
-      } catch {}
+        await supabase.from('products').upsert(prodInserts, { onConflict: 'business_id,name' });
+      } catch (err) {
+        console.error('Product sync upsert failure:', err);
+      }
     }
   },
 };

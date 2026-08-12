@@ -81,7 +81,8 @@ CREATE TABLE IF NOT EXISTS public.customers (
   order_count INT DEFAULT 0,
   first_purchase DATE,
   last_purchase DATE,
-  created_at TIMESTAMPTZ DEFAULT NOW()
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  CONSTRAINT unique_business_customer_name UNIQUE (business_id, name)
 );
 
 -- 8. Products
@@ -93,7 +94,8 @@ CREATE TABLE IF NOT EXISTS public.products (
   revenue NUMERIC(12, 2) DEFAULT 0,
   units_sold NUMERIC(10, 2) DEFAULT 0,
   unit_cost NUMERIC(12, 2),
-  created_at TIMESTAMPTZ DEFAULT NOW()
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  CONSTRAINT unique_business_product_name UNIQUE (business_id, name)
 );
 
 -- 9. CRM Deals

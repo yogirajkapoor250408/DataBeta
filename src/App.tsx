@@ -337,6 +337,8 @@ export const App: React.FC = () => {
         <GuidedTourModal
           isOpen={isTourOpen}
           user={currentUser}
+          activeTab={activeTab}
+          setActiveTab={setActiveTab}
           onClose={(updatedUser) => {
             setCurrentUser(updatedUser);
             setIsTourOpen(false);

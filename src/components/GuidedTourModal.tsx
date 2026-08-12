@@ -1,62 +1,107 @@
-import React, { useState } from 'react';
-import { Sparkles, FileSpreadsheet, BarChart3, Users, Bot, ArrowRight, CheckCircle2, X } from 'lucide-react';
-
+import React, { useState, useEffect } from 'react';
+import { Sparkles, ArrowRight, X, LayoutDashboard, Table, Users, GitPullRequest, Zap, Upload } from 'lucide-react';
 import { User } from '../types';
+import { CoreTab } from './Navbar';
 
 interface GuidedTourModalProps {
   isOpen: boolean;
   user: User;
+  activeTab: CoreTab;
+  setActiveTab: (tab: CoreTab) => void;
   onClose: (updatedUser: User) => void;
 }
 
-const STEPS = [
+interface TourStep {
+  step: number;
+  title: string;
+  tab: CoreTab;
+  description: string;
+  targetSelector: string;
+  highlightText: string;
+}
+
+const TOUR_STEPS: TourStep[] = [
   {
     step: 1,
-    title: 'Upload Spreadsheets & Auto-Mapping',
-    icon: FileSpreadsheet,
-    description: 'Upload any CSV or Excel transaction file from Shopify, Stripe, WooCommerce, QuickBooks, or Square. DataBeta auto-detects columns and processes data 100% locally in browser memory.',
-    badge: 'Step 1 of 4',
+    title: 'Executive Overview Dashboard',
+    tab: 'overview',
+    description: 'This is your company control center. It computes real-time margins, revenue trends, and operational summaries derived from your database.',
+    targetSelector: 'main',
+    highlightText: 'Overview Canvas'
   },
   {
     step: 2,
-    title: 'Financial Intelligence & Unit Margins',
-    icon: BarChart3,
-    description: 'View real-time profit margins, break-even targets, Pareto 80/20 customer spend distributions, and IRS Schedule C tax deduction estimates.',
-    badge: 'Step 2 of 4',
+    title: 'Transactions Ledger & Logging',
+    tab: 'transactions',
+    description: 'Track and review every transaction row. You can manually log single items or audit the imported general ledger from here.',
+    targetSelector: 'main',
+    highlightText: 'Data Ledger'
   },
   {
     step: 3,
-    title: 'Integrated CRM Deal Pipeline',
-    icon: Users,
-    description: 'DataBeta automatically links customer sales to CRM contact cards, tracks Lifetime Value (LTV), and allows moving deals across Kanban pipeline stages.',
-    badge: 'Step 3 of 4',
+    title: 'Client Intelligence & 360 Dossiers',
+    tab: 'customers',
+    description: 'Monitor buyer retention, search accounts, and click on any customer to open their Customer 360 intelligence dossier.',
+    targetSelector: 'main',
+    highlightText: 'Client Index'
   },
   {
     step: 4,
-    title: 'Private Local Insight Engine',
-    icon: Bot,
-    description: 'Consult your private Rule-Based Insight Engine for executive briefings, cost risk analysis, and margin growth advice — 100% algorithm driven with zero cloud API keys.',
-    badge: 'Step 4 of 4',
+    title: 'Sales Pipeline CRM',
+    tab: 'pipeline',
+    description: 'Manage active deals across our 6-stage Kanban board. Move deals to visually update deal statuses and track conversion value.',
+    targetSelector: 'main',
+    highlightText: 'Kanban Board'
   },
+  {
+    step: 5,
+    title: 'AI-Free Analytical Insights',
+    tab: 'insights',
+    description: 'Read cost risk reports, marketing insights, and margin metrics computed directly from real numbers with absolute local privacy.',
+    targetSelector: 'main',
+    highlightText: 'Insight Engine'
+  },
+  {
+    step: 6,
+    title: 'Import Spreadsheet Files',
+    tab: 'overview',
+    description: 'Upload any standard Shopify, Stripe, or custom CSV/Excel files. DataBeta auto-maps header columns instantly.',
+    targetSelector: 'button:has(svg.lucide-upload), button:contains("Import")',
+    highlightText: 'Import Utility'
+  }
 ];
 
 export const GuidedTourModal: React.FC<GuidedTourModalProps> = ({
   isOpen,
   user,
+  activeTab,
+  setActiveTab,
   onClose,
 }) => {
   const [currentStepIdx, setCurrentStepIdx] = useState(0);
 
+  // Sync tab with active tour step
+  useEffect(() => {
+    if (isOpen) {
+      setActiveTab(TOUR_STEPS[currentStepIdx].tab);
+    }
+  }, [currentStepIdx, isOpen]);
+
   if (!isOpen) return null;
 
-  const currentStep = STEPS[currentStepIdx];
-  const StepIcon = currentStep.icon;
+  const currentStep = TOUR_STEPS[currentStepIdx];
 
   const handleNext = () => {
-    if (currentStepIdx < STEPS.length - 1) {
+    if (currentStepIdx < TOUR_STEPS.length - 1) {
       setCurrentStepIdx((prev) => prev + 1);
     } else {
       handleComplete();
+    }
+  };
+
+  const handleBack = () => {
+    if (currentStepIdx > 0) {
+      setCurrentStepIdx((prev) => prev - 1);
     }
   };
 
@@ -66,70 +111,71 @@ export const GuidedTourModal: React.FC<GuidedTourModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="bg-white dark:bg-zinc-950 rounded-3xl shadow-2xl border border-slate-200/80 dark:border-zinc-800 max-w-lg w-full p-8 relative space-y-6 animate-fadeIn">
+    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-end justify-center sm:items-center p-4">
+      {/* Floating Tour Guide Box */}
+      <div className="bg-white dark:bg-zinc-950 rounded-3xl shadow-2xl border border-slate-200 dark:border-zinc-800 max-w-md w-full p-6 relative space-y-4 animate-fadeIn transition-all duration-200 mb-20 sm:mb-0">
         <button
           onClick={handleComplete}
-          className="absolute top-5 right-5 text-slate-400 dark:text-zinc-500 hover:text-slate-600 dark:hover:text-zinc-200 text-xs font-bold flex items-center gap-1"
+          className="absolute top-5 right-5 text-slate-400 dark:text-zinc-500 hover:text-slate-600 dark:hover:text-zinc-200"
         >
-          <span>Skip Tour</span>
-          <X className="w-4 h-4" />
+          <X className="w-5 h-5 active:scale-90 transition-transform" />
         </button>
 
-        {/* Step Badge & Title Header */}
-        <div className="space-y-3">
-          <span className="bg-rose-600 text-white font-extrabold px-3 py-1 rounded-full text-[10px] uppercase tracking-wider">
-            {currentStep.badge}
+        {/* Header Indicator */}
+        <div className="flex items-center justify-between">
+          <span className="bg-rose-50 dark:bg-rose-950/50 text-rose-600 dark:text-rose-400 font-extrabold px-3 py-1 rounded-full text-[10px] uppercase tracking-wider">
+            Step {currentStep.step} of {TOUR_STEPS.length}
           </span>
-          <h3 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
-            Welcome, {user.name}!
-          </h3>
-          <p className="text-xs text-slate-500 dark:text-zinc-400">
-            Let’s take a quick 4-step guided tour of DataBeta’s features.
-          </p>
+          <span className="text-[10px] font-mono text-slate-400 dark:text-zinc-500">
+            Target: {currentStep.highlightText}
+          </span>
         </div>
 
-        {/* Active Step Graphic Card */}
-        <div className="p-6 rounded-3xl bg-slate-50 dark:bg-zinc-900 border border-slate-200/80 dark:border-zinc-800 space-y-3">
-          <div className="w-12 h-12 rounded-2xl bg-rose-600 text-white flex items-center justify-center font-bold shadow-md shadow-rose-600/30">
-            <StepIcon className="w-6 h-6" />
-          </div>
-          <h4 className="font-extrabold text-slate-900 dark:text-white text-base">{currentStep.title}</h4>
-          <p className="text-xs text-slate-600 dark:text-zinc-300 leading-relaxed">
+        {/* Title */}
+        <div className="space-y-1">
+          <h3 className="text-xl font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
+            <Sparkles className="w-5 h-5 text-rose-600 animate-pulse" />
+            <span>{currentStep.title}</span>
+          </h3>
+          <p className="text-xs text-slate-600 dark:text-zinc-300 leading-relaxed pt-1">
             {currentStep.description}
           </p>
         </div>
 
-        {/* Progress Step Indicators */}
-        <div className="flex items-center justify-center gap-2 pt-2">
-          {STEPS.map((s, idx) => (
-            <div
-              key={s.step}
-              className={`h-2 rounded-full transition-all ${
-                idx === currentStepIdx
-                  ? 'w-8 bg-rose-600'
-                  : 'w-2 bg-slate-200 dark:bg-zinc-800'
-              }`}
-            />
-          ))}
+        {/* Interactive Pointer Notification Box */}
+        <div className="p-3 bg-rose-50/50 dark:bg-rose-950/20 border border-rose-100 dark:border-rose-900/50 rounded-2xl text-[11px] text-rose-700 dark:text-rose-300 flex items-start gap-2.5">
+          <div className="font-extrabold shrink-0 mt-0.5">TIP:</div>
+          <p className="font-medium">
+            Notice how the interface automatically switches to the <span className="font-bold underline">{currentStep.tab.toUpperCase()}</span> screen to guide your workspace setup.
+          </p>
         </div>
 
-        {/* Next / Finish Button */}
-        <div className="pt-2 flex items-center justify-between">
+        {/* Tour Actions */}
+        <div className="pt-2 flex items-center justify-between border-t border-slate-100 dark:border-zinc-900">
           <button
             onClick={handleComplete}
-            className="text-xs text-slate-500 dark:text-zinc-400 font-bold hover:text-slate-900 dark:hover:text-white"
+            className="text-xs text-slate-400 dark:text-zinc-500 font-bold hover:text-slate-600 dark:hover:text-zinc-300 active:scale-95 transition-all"
           >
-            Skip & Open Platform
+            End Tour
           </button>
 
-          <button
-            onClick={handleNext}
-            className="flex items-center gap-2 px-6 py-2.5 bg-rose-600 hover:bg-rose-500 text-white font-extrabold rounded-full text-xs shadow-md shadow-rose-600/30 transition-all hover:scale-105"
-          >
-            <span>{currentStepIdx === STEPS.length - 1 ? 'Finish & Launch Platform' : 'Next Step'}</span>
-            <ArrowRight className="w-4 h-4" />
-          </button>
+          <div className="flex items-center gap-2">
+            {currentStepIdx > 0 && (
+              <button
+                onClick={handleBack}
+                className="px-4 py-2 bg-slate-100 dark:bg-zinc-900 hover:bg-slate-200 dark:hover:bg-zinc-800 text-slate-800 dark:text-zinc-200 font-bold text-xs rounded-full active:scale-95 transition-all"
+              >
+                Back
+              </button>
+            )}
+            <button
+              onClick={handleNext}
+              className="flex items-center gap-2 px-5 py-2.5 bg-rose-600 hover:bg-rose-500 text-white font-extrabold text-xs rounded-full shadow-md shadow-rose-600/30 active:scale-95 transition-all"
+            >
+              <span>{currentStepIdx === TOUR_STEPS.length - 1 ? 'Get Started' : 'Next Step'}</span>
+              <ArrowRight className="w-4 h-4" />
+            </button>
+          </div>
         </div>
       </div>
     </div>
