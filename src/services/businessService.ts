@@ -85,23 +85,30 @@ export const businessService = {
       .select('id, business_id, user_id, role, businesses (id, name, type, country, currency, logo_url, created_at)')
       .eq('user_id', userId);
 
-    if (error || !data) return [];
+    if (error) {
+      console.error('Supabase query error in getUserBusinesses:', error.message);
+      return [];
+    }
 
-    return data.map((item: any) => ({
-      id: item.id,
-      businessId: item.business_id,
-      userId: item.user_id,
-      role: item.role,
-      business: {
-        id: item.businesses.id,
-        name: item.businesses.name,
-        type: item.businesses.type,
-        country: item.businesses.country,
-        currency: item.businesses.currency as CurrencyCode,
-        logoUrl: item.businesses.logo_url,
-        createdAt: item.businesses.created_at,
-      },
-    }));
+    if (!data) return [];
+
+    return data
+      .filter((item: any) => item && item.businesses)
+      .map((item: any) => ({
+        id: item.id,
+        businessId: item.business_id,
+        userId: item.user_id,
+        role: item.role,
+        business: {
+          id: item.businesses.id,
+          name: item.businesses.name,
+          type: item.businesses.type,
+          country: item.businesses.country,
+          currency: item.businesses.currency as CurrencyCode,
+          logoUrl: item.businesses.logo_url,
+          createdAt: item.businesses.created_at,
+        },
+      }));
   },
 
   async updateBusinessSettings(
