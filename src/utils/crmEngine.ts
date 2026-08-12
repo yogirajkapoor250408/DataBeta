@@ -92,11 +92,15 @@ export function calculatePipelineSummary(contacts: CRMContact[]): CRMPipelineSum
   let totalPipelineValue = 0;
   let closedWonCount = 0;
   const stageCounts: Record<CRMStage, number> = {
+    lead: 0,
+    qualified: 0,
+    proposal: 0,
+    negotiation: 0,
+    closed_won: 0,
+    closed_lost: 0,
     in_touch: 0,
     offer_sent: 0,
     discussion: 0,
-    closed_won: 0,
-    closed_lost: 0,
   };
 
   for (const c of contacts) {

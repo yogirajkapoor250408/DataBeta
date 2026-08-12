@@ -1,17 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { Navbar } from './components/Navbar';
+import { Navbar, CoreTab } from './components/Navbar';
 import { LandingPage } from './components/LandingPage';
 import { DashboardView } from './components/DashboardView';
-import { AnalyticsView } from './components/AnalyticsView';
-import { CRMView } from './components/CRMView';
-import { TaxView } from './components/TaxView';
 import { DataTableView } from './components/DataTableView';
-import { ReportsView } from './components/ReportsView';
-import { SettingsView } from './components/SettingsView';
-import { AdminConsoleView } from './components/AdminConsoleView';
+import { CustomersView } from './components/CustomersView';
+import { CRMView } from './components/CRMView';
+import { InsightsView } from './components/InsightsView';
 import { EmptyState } from './components/EmptyState';
 import { FileUploadModal } from './components/FileUploadModal';
-import { AICopilotModal } from './components/AICopilotModal';
 import { AuthModal } from './components/AuthModal';
 import { GuidedTourModal } from './components/GuidedTourModal';
 import { OnboardingModal } from './components/OnboardingModal';
@@ -20,7 +16,6 @@ import { authService } from './services/authService';
 import { businessService, Business, BusinessMembership } from './services/businessService';
 import { transactionService } from './services/transactionService';
 import { crmService } from './services/crmService';
-import { goalService } from './services/goalService';
 import { auditService } from './services/auditService';
 
 const THEME_KEY = 'databeta_theme';
@@ -28,9 +23,7 @@ const ACTIVE_BIZ_KEY = 'databeta_active_biz_id';
 
 export const App: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [activeTab, setActiveTab] = useState<
-    'landing' | 'dashboard' | 'analytics' | 'crm' | 'tax' | 'data' | 'reports' | 'settings' | 'admin'
-  >('landing');
+  const [activeTab, setActiveTab] = useState<CoreTab>('landing');
 
   // Business & Multi-Tenant State
   const [memberships, setMemberships] = useState<BusinessMembership[]>([]);
@@ -41,11 +34,10 @@ export const App: React.FC = () => {
   const [dataset, setDataset] = useState<Dataset | null>(null);
   const [crmContacts, setCrmContacts] = useState<CRMContact[]>([]);
   const [currency, setCurrency] = useState<CurrencyCode>('USD');
-  const [theme, setTheme] = useState<'dark' | 'light'>('light');
+  const [theme, setTheme] = useState<'dark' | 'light'>('dark');
 
   // Modals State
   const [isUploadOpen, setIsUploadOpen] = useState(false);
-  const [isAICopilotOpen, setIsAICopilotOpen] = useState(false);
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [authMode, setAuthMode] = useState<'signin' | 'signup'>('signin');
   const [isTourOpen, setIsTourOpen] = useState(false);
@@ -58,7 +50,7 @@ export const App: React.FC = () => {
         setTheme(storedTheme);
         if (storedTheme === 'dark') document.documentElement.classList.add('dark');
         else document.documentElement.classList.remove('dark');
-      } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+      } else {
         setTheme('dark');
         document.documentElement.classList.add('dark');
       }
@@ -68,7 +60,7 @@ export const App: React.FC = () => {
     const sub = authService.onAuthStateChange(async (user) => {
       setCurrentUser(user);
       if (user) {
-        if (activeTab === 'landing') setActiveTab('dashboard');
+        if (activeTab === 'landing') setActiveTab('overview');
         await loadUserBusinesses(user.id);
       } else {
         setMemberships([]);
@@ -93,7 +85,6 @@ export const App: React.FC = () => {
       const matched = userBizs.find((m) => m.business.id === lastActiveId) || userBizs[0];
       handleSwitchBusiness(matched.business);
     } else {
-      // Trigger onboarding for new user
       setIsOnboardingOpen(true);
     }
   };
@@ -204,7 +195,7 @@ export const App: React.FC = () => {
       await transactionService.clearBusinessTransactions(activeBusiness.id);
     }
     setDataset(null);
-    setActiveTab('dashboard');
+    setActiveTab('overview');
   };
 
   const handleContactsChange = (updated: CRMContact[]) => {
@@ -219,7 +210,7 @@ export const App: React.FC = () => {
   const handleAuthSuccess = async (user: User) => {
     setCurrentUser(user);
     setIsAuthOpen(false);
-    setActiveTab('dashboard');
+    setActiveTab('overview');
     await loadUserBusinesses(user.id);
   };
 
@@ -234,7 +225,7 @@ export const App: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#f4f4f6] dark:bg-black text-slate-900 dark:text-zinc-100 flex flex-col font-sans transition-colors duration-200">
+    <div className="min-h-screen bg-[#09090b] text-zinc-100 flex flex-col font-sans transition-colors duration-200 selection:bg-rose-600 selection:text-white">
       <Navbar
         activeTab={activeTab}
         setActiveTab={setActiveTab}
@@ -244,10 +235,7 @@ export const App: React.FC = () => {
         theme={theme}
         onToggleTheme={handleToggleTheme}
         onOpenUpload={() => setIsUploadOpen(true)}
-        onLoadDemo={() => setIsUploadOpen(true)}
         onClearData={handleClearData}
-        onOpenAICopilot={() => setIsAICopilotOpen(true)}
-        crmDealCount={crmContacts.length}
         currentUser={currentUser}
         onOpenAuth={handleOpenAuth}
         onLogout={handleLogout}
@@ -260,62 +248,56 @@ export const App: React.FC = () => {
       {activeTab === 'landing' ? (
         <LandingPage
           onOpenAuth={handleOpenAuth}
-          onExploreDemo={() => setActiveTab('dashboard')}
+          onExploreDemo={() => setActiveTab('overview')}
         />
       ) : (
         <main className="pl-16 flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          {!dataset && activeTab !== 'admin' ? (
+          {!dataset && activeTab === 'overview' ? (
             <EmptyState onOpenUpload={() => setIsUploadOpen(true)} />
           ) : (
             <>
-              {activeTab === 'dashboard' && (
+              {activeTab === 'overview' && (
                 <DashboardView
                   records={dataset?.records || []}
                   currency={currency}
                   onOpenUpload={() => setIsUploadOpen(true)}
                   crmContacts={crmContacts}
-                  onOpenAICopilot={() => setIsAICopilotOpen(true)}
                   onNavigateTab={(tab) => setActiveTab(tab)}
                   onAddManualRecord={handleAddManualRecord}
                 />
               )}
 
-              {activeTab === 'analytics' && (
-                <AnalyticsView records={dataset?.records || []} currency={currency} />
+              {activeTab === 'transactions' && (
+                <DataTableView
+                  records={dataset?.records || []}
+                  currency={currency}
+                  onAddManualRecord={handleAddManualRecord}
+                />
               )}
 
-              {activeTab === 'crm' && (
+              {activeTab === 'customers' && (
+                <CustomersView
+                  records={dataset?.records || []}
+                  crmDeals={crmContacts}
+                  currency={currency}
+                />
+              )}
+
+              {activeTab === 'pipeline' && (
                 <CRMView
                   contacts={crmContacts}
                   onContactsChange={handleContactsChange}
                   currency={currency}
                   records={dataset?.records || []}
+                  activeBusinessId={activeBusiness?.id}
                 />
               )}
 
-              {activeTab === 'tax' && (
-                <TaxView records={dataset?.records || []} currency={currency} />
-              )}
-
-              {activeTab === 'data' && (
-                <DataTableView records={dataset?.records || []} currency={currency} />
-              )}
-
-              {activeTab === 'reports' && (
-                <ReportsView records={dataset?.records || []} meta={dataset?.meta || null} currency={currency} />
-              )}
-
-              {activeTab === 'admin' && currentUser?.role === 'admin' && (
-                <AdminConsoleView currentUser={currentUser} />
-              )}
-
-              {activeTab === 'settings' && (
-                <SettingsView
-                  meta={dataset?.meta || null}
+              {activeTab === 'insights' && (
+                <InsightsView
                   records={dataset?.records || []}
+                  crmDeals={crmContacts}
                   currency={currency}
-                  onCurrencyChange={handleCurrencyChange}
-                  onClearData={handleClearData}
                 />
               )}
             </>
@@ -324,8 +306,8 @@ export const App: React.FC = () => {
       )}
 
       {activeTab !== 'landing' && (
-        <footer className="pl-16 bg-white dark:bg-zinc-950 border-t border-slate-200 dark:border-zinc-800 py-4 text-center text-xs text-slate-500 dark:text-zinc-400 no-print transition-colors">
-          <p>DataBeta — Multi-Tenant Business Intelligence & Client-Side CRM Platform</p>
+        <footer className="pl-16 bg-zinc-950 border-t border-zinc-800/80 py-4 text-center text-xs text-zinc-500 no-print">
+          <p>DataBeta — High-Performance Business Intelligence & CRM MVP</p>
         </footer>
       )}
 
@@ -333,14 +315,6 @@ export const App: React.FC = () => {
         isOpen={isUploadOpen}
         onClose={() => setIsUploadOpen(false)}
         onDatasetLoaded={handleDatasetLoaded}
-      />
-
-      <AICopilotModal
-        isOpen={isAICopilotOpen}
-        onClose={() => setIsAICopilotOpen(false)}
-        records={dataset?.records || []}
-        currency={currency}
-        contacts={crmContacts}
       />
 
       <AuthModal

@@ -218,7 +218,7 @@ export interface CohortSummary {
 }
 
 // CRM TYPES
-export type CRMStage = 'in_touch' | 'offer_sent' | 'discussion' | 'closed_won' | 'closed_lost';
+export type CRMStage = 'lead' | 'qualified' | 'proposal' | 'negotiation' | 'closed_won' | 'closed_lost' | 'in_touch' | 'offer_sent' | 'discussion';
 
 export interface CRMContact {
   id: string;
