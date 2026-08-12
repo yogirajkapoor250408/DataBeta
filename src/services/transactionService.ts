@@ -3,7 +3,7 @@ import { NormalizedRecord, ColumnMapping, DatasetMeta } from '../types';
 
 export const transactionService = {
   async getBusinessTransactions(businessId: string): Promise<NormalizedRecord[]> {
-    if (!isSupabaseConfigured()) return [];
+    if (!isSupabaseConfigured()) throw new Error('Supabase is not configured.');
 
     const { data, error } = await supabase
       .from('transactions')
@@ -33,7 +33,7 @@ export const transactionService = {
     records: NormalizedRecord[]
   ): Promise<{ datasetId: string | null; error: Error | null }> {
     if (!isSupabaseConfigured()) {
-      return { datasetId: `local-ds-${Date.now()}`, error: null };
+      return { datasetId: null, error: new Error('Supabase is not configured. Connect a database to import data.') };
     }
 
     // 1. Create Dataset metadata entry
@@ -87,7 +87,7 @@ export const transactionService = {
     businessId: string,
     rec: NormalizedRecord
   ): Promise<{ error: Error | null }> {
-    if (!isSupabaseConfigured()) return { error: null };
+    if (!isSupabaseConfigured()) return { error: new Error('Supabase is not configured.') };
 
     const { error } = await supabase.from('transactions').insert({
       business_id: businessId,
@@ -109,14 +109,14 @@ export const transactionService = {
   },
 
   async clearBusinessTransactions(businessId: string): Promise<{ error: Error | null }> {
-    if (!isSupabaseConfigured()) return { error: null };
+    if (!isSupabaseConfigured()) return { error: new Error('Supabase is not configured.') };
 
     const { error } = await supabase.from('transactions').delete().eq('business_id', businessId);
     return { error };
   },
 
   async syncCustomersAndProducts(businessId: string, records: NormalizedRecord[]) {
-    if (!isSupabaseConfigured()) return;
+    if (!isSupabaseConfigured()) throw new Error('Supabase is not configured.');
 
     // Extract unique customers
     const customerMap: Record<string, { total: number; count: number; date: string }> = {};

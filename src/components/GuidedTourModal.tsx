@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Sparkles, FileSpreadsheet, BarChart3, Users, Bot, ArrowRight, CheckCircle2, X } from 'lucide-react';
-import { markTourCompleted } from '../utils/authEngine';
+
 import { User } from '../types';
 
 interface GuidedTourModalProps {
@@ -61,7 +61,7 @@ export const GuidedTourModal: React.FC<GuidedTourModalProps> = ({
   };
 
   const handleComplete = () => {
-    const updated = markTourCompleted(user);
+    const updated = { ...user, isFirstTimeUser: false };
     onClose(updated);
   };
 

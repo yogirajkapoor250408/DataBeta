@@ -28,16 +28,7 @@ export const businessService = {
     currency: CurrencyCode
   ): Promise<{ business: Business | null; error: Error | null }> {
     if (!isSupabaseConfigured()) {
-      // Local fallback representation if Supabase credentials not set up yet
-      const localBiz: Business = {
-        id: `biz-${Date.now()}`,
-        name,
-        type,
-        country,
-        currency,
-        createdAt: new Date().toISOString(),
-      };
-      return { business: localBiz, error: null };
+      return { business: null, error: new Error('Supabase is not configured. Please connect a database to create a business.') };
     }
 
     const { data: business, error: bizError } = await supabase
@@ -117,7 +108,7 @@ export const businessService = {
     businessId: string,
     updates: Partial<{ name: string; currency: CurrencyCode; country: string; logoUrl: string }>
   ): Promise<{ error: Error | null }> {
-    if (!isSupabaseConfigured()) return { error: null };
+    if (!isSupabaseConfigured()) return { error: new Error('Supabase is not configured.') };
 
     const payload: any = {};
     if (updates.name) payload.name = updates.name;

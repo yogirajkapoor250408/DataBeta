@@ -189,6 +189,8 @@ CREATE POLICY "Users can view own profile" ON public.profiles
   FOR SELECT USING (auth.uid() = id);
 CREATE POLICY "Users can update own profile" ON public.profiles
   FOR UPDATE USING (auth.uid() = id);
+CREATE POLICY "Users can insert own profile" ON public.profiles
+  FOR INSERT WITH CHECK (auth.uid() = id);
 
 -- Businesses Policies
 CREATE POLICY "Members can view their business" ON public.businesses
@@ -200,10 +202,14 @@ CREATE POLICY "Owners and Admins can update business" ON public.businesses
       WHERE user_id = auth.uid() AND role IN ('owner', 'admin')
     )
   );
+CREATE POLICY "Authenticated users can create businesses" ON public.businesses
+  FOR INSERT TO authenticated WITH CHECK (true);
 
 -- Business Members Policies
 CREATE POLICY "Members can view team members" ON public.business_members
   FOR SELECT USING (business_id IN (SELECT get_user_business_ids()));
+CREATE POLICY "Users can insert their own membership" ON public.business_members
+  FOR INSERT TO authenticated WITH CHECK (user_id = auth.uid());
 CREATE POLICY "Owners and Admins can manage members" ON public.business_members
   FOR ALL USING (
     business_id IN (

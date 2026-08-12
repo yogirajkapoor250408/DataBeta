@@ -225,7 +225,7 @@ export const App: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#09090b] text-zinc-100 flex flex-col font-sans transition-colors duration-200 selection:bg-rose-600 selection:text-white">
+    <div className="min-h-screen bg-slate-50 text-slate-900 dark:bg-[#09090b] dark:text-zinc-100 flex flex-col font-sans transition-colors duration-200 selection:bg-rose-600 selection:text-white">
       <Navbar
         activeTab={activeTab}
         setActiveTab={setActiveTab}
@@ -251,7 +251,7 @@ export const App: React.FC = () => {
           onExploreDemo={() => setActiveTab('overview')}
         />
       ) : (
-        <main className="pl-16 flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <main className="pl-0 md:pl-16 flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 pb-24 md:pb-8">
           {!dataset && activeTab === 'overview' ? (
             <EmptyState onOpenUpload={() => setIsUploadOpen(true)} />
           ) : (
@@ -306,7 +306,7 @@ export const App: React.FC = () => {
       )}
 
       {activeTab !== 'landing' && (
-        <footer className="pl-16 bg-zinc-950 border-t border-zinc-800/80 py-4 text-center text-xs text-zinc-500 no-print">
+        <footer className="pl-0 md:pl-16 bg-white dark:bg-zinc-950 border-t border-slate-200 dark:border-zinc-800/80 py-4 text-center text-xs text-slate-500 dark:text-zinc-500 no-print pb-24 md:pb-4">
           <p>DataBeta — High-Performance Business Intelligence & CRM MVP</p>
         </footer>
       )}

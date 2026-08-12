@@ -3,7 +3,7 @@ import { CRMContact, CRMActivity } from '../types';
 
 export const crmService = {
   async getDeals(businessId: string): Promise<CRMContact[]> {
-    if (!isSupabaseConfigured()) return [];
+    if (!isSupabaseConfigured()) throw new Error('Supabase is not configured.');
 
     const { data, error } = await supabase
       .from('crm_deals')
@@ -32,15 +32,7 @@ export const crmService = {
 
   async createDeal(businessId: string, deal: Omit<CRMContact, 'id' | 'createdAt' | 'lastContactDate' | 'totalSpent' | 'orderCount'>): Promise<{ deal: CRMContact | null; error: Error | null }> {
     if (!isSupabaseConfigured()) {
-      const mockDeal: CRMContact = {
-        ...deal,
-        id: `local-crm-${Date.now()}`,
-        lastContactDate: 'Today',
-        createdAt: new Date().toISOString().split('T')[0],
-        totalSpent: deal.dealValue,
-        orderCount: 1,
-      };
-      return { deal: mockDeal, error: null };
+      return { deal: null, error: new Error('Supabase is not configured. Connect a database to create deals.') };
     }
 
     const { data, error } = await supabase
@@ -81,7 +73,7 @@ export const crmService = {
   },
 
   async updateDealStage(businessId: string, dealId: string, newStage: CRMContact['stage']): Promise<{ error: Error | null }> {
-    if (!isSupabaseConfigured()) return { error: null };
+    if (!isSupabaseConfigured()) return { error: new Error('Supabase is not configured.') };
 
     const { error } = await supabase
       .from('crm_deals')
@@ -93,7 +85,7 @@ export const crmService = {
   },
 
   async deleteDeal(businessId: string, dealId: string): Promise<{ error: Error | null }> {
-    if (!isSupabaseConfigured()) return { error: null };
+    if (!isSupabaseConfigured()) return { error: new Error('Supabase is not configured.') };
 
     const { error } = await supabase
       .from('crm_deals')
