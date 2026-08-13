@@ -334,35 +334,36 @@ const InnerDashboardApp: React.FC = () => {
       />
 
       <main className="pl-0 md:pl-16 flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 pb-24 md:pb-8">
-        {/* Always-accessible tabs (no data required) */}
-        {activeTab === 'pipeline' ? (
-          <CRMView
-            contacts={crmContacts}
-            onContactsChange={handleContactsChange}
-            currency={currency}
-            records={dataset?.records || []}
-            activeBusinessId={activeBusiness?.id}
-          />
-        ) : activeTab === 'settings' ? (
-          <SettingsView
-            meta={dataset?.meta || null}
-            records={dataset?.records || []}
-            currency={currency}
-            onCurrencyChange={handleCurrencyChange}
-            onClearData={handleClearData}
-            activeBusiness={activeBusiness}
-            onUpdateBusiness={handleUpdateBusiness}
-          />
-        ) : activeTab === 'reports' ? (
-          <ReportsView
-            records={dataset?.records || []}
-            meta={dataset?.meta || null}
-            currency={currency}
-            businessName={activeBusiness?.name}
-          />
-        ) : !dataset && activeTab === 'overview' ? (
-          <EmptyState onOpenUpload={() => setIsUploadOpen(true)} />
-        ) : (
+        <div key={activeTab} className="animate-tabFade">
+          {/* Always-accessible tabs (no data required) */}
+          {activeTab === 'pipeline' ? (
+            <CRMView
+              contacts={crmContacts}
+              onContactsChange={handleContactsChange}
+              currency={currency}
+              records={dataset?.records || []}
+              activeBusinessId={activeBusiness?.id}
+            />
+          ) : activeTab === 'settings' ? (
+            <SettingsView
+              meta={dataset?.meta || null}
+              records={dataset?.records || []}
+              currency={currency}
+              onCurrencyChange={handleCurrencyChange}
+              onClearData={handleClearData}
+              activeBusiness={activeBusiness}
+              onUpdateBusiness={handleUpdateBusiness}
+            />
+          ) : activeTab === 'reports' ? (
+            <ReportsView
+              records={dataset?.records || []}
+              meta={dataset?.meta || null}
+              currency={currency}
+              businessName={activeBusiness?.name}
+            />
+          ) : !dataset && activeTab === 'overview' ? (
+            <EmptyState onOpenUpload={() => setIsUploadOpen(true)} />
+          ) : (
             <>
               {activeTab === 'overview' && (
                 <DashboardView
@@ -415,7 +416,8 @@ const InnerDashboardApp: React.FC = () => {
               )}
             </>
           )}
-        </main>
+        </div>
+      </main>
 
       <footer className="pl-0 md:pl-16 bg-white dark:bg-zinc-950 border-t border-slate-200 dark:border-zinc-800/80 py-4 text-center text-xs text-slate-500 dark:text-zinc-500 no-print pb-24 md:pb-4">
         <p>DataBeta Technologies — Business Intelligence & CRM Platform</p>

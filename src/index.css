@@ -63,80 +63,87 @@
     scrollbar-width: none;
   }
 
-  /* iPhone 17 Pro Max Fluid Interaction System */
+  /* Executive Motion System: Serene, Smooth Fade & Slide */
   .ios-btn {
-    @apply active:scale-[0.96] active:opacity-90 transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] select-none;
+    @apply active:scale-[0.98] active:opacity-90 transition-all duration-150 ease-[cubic-bezier(0.16,1,0.3,1)] select-none;
   }
 
-  .ios-spring-card {
-    transition: transform 300ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 300ms cubic-bezier(0.16, 1, 0.3, 1), border-color 200ms ease;
-    will-change: transform;
+  .hover-card-subtle {
+    transition: transform 200ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 200ms cubic-bezier(0.16, 1, 0.3, 1), border-color 150ms ease;
   }
 
-  .ios-spring-card:hover {
-    transform: translateY(-4px) scale(1.01);
-    box-shadow: 0 20px 40px -15px rgba(225, 29, 72, 0.15);
-  }
-
-  .ios-spring-card:active {
-    transform: scale(0.98);
+  .hover-card-subtle:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.04), 0 8px 10px -6px rgba(0, 0, 0, 0.02);
   }
 }
 
-/* Apple iPhone Pro Ultra-Fluid Springs (150ms-350ms) */
-.transition-ios-fast {
-  transition: all 150ms cubic-bezier(0.16, 1, 0.3, 1);
+/* Apple/Stripe-Grade Smooth Transitions (150ms-240ms) */
+.transition-fast {
+  transition: all 120ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.transition-ios-spring {
-  transition: transform 320ms cubic-bezier(0.34, 1.35, 0.64, 1), opacity 220ms ease, box-shadow 250ms ease;
+.transition-smooth {
+  transition: all 200ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.transition-ios-smooth {
-  transition: all 260ms cubic-bezier(0.16, 1, 0.3, 1);
+.transition-fade {
+  transition: opacity 180ms cubic-bezier(0.16, 1, 0.3, 1), transform 180ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-/* Fluid Keyframe Animations */
-@keyframes iosSlideInRight {
-  0% {
-    transform: translateX(100%) scale(0.96);
+/* Pure Smooth Fade Keyframes */
+@keyframes smoothFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fadeIn {
+  animation: smoothFadeIn 180ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes smoothTabFade {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-tabFade {
+  animation: smoothTabFade 200ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes smoothSlideInRight {
+  from {
+    transform: translateX(100%);
     opacity: 0;
   }
-  100% {
-    transform: translateX(0) scale(1);
+  to {
+    transform: translateX(0);
     opacity: 1;
   }
 }
 
 .animate-slideInRight {
-  animation: iosSlideInRight 320ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: smoothSlideInRight 240ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-@keyframes iosPopIn {
-  0% {
-    opacity: 0;
-    transform: scale(0.92) translateY(8px);
-  }
-  70% {
-    transform: scale(1.015) translateY(-1px);
-  }
-  100% {
-    opacity: 1;
-    transform: scale(1) translateY(0);
-  }
-}
-
-.animate-fadeIn {
-  animation: iosPopIn 260ms cubic-bezier(0.34, 1.35, 0.64, 1) forwards;
-}
-
-@keyframes iosFluidFloat {
+@keyframes gentleFloat {
   0%, 100% { transform: translateY(0px); }
-  50% { transform: translateY(-6px); }
+  50% { transform: translateY(-4px); }
 }
 
 .animate-float {
-  animation: iosFluidFloat 4s ease-in-out infinite;
+  animation: gentleFloat 5s ease-in-out infinite;
 }
 
 /* Accessibility: Prefers Reduced Motion */

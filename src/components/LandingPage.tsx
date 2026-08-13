@@ -91,7 +91,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onOpenAuth, onExploreD
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
           <button
             onClick={() => onOpenAuth('signup')}
-            className="w-full sm:w-auto flex items-center justify-center gap-2 px-8 py-3.5 bg-rose-600 hover:bg-rose-500 text-white font-extrabold text-sm rounded-full shadow-xl shadow-rose-600/30 transition-all hover:scale-105"
+            className="w-full sm:w-auto flex items-center justify-center gap-2 px-8 py-3.5 bg-rose-600 hover:bg-rose-500 text-white font-extrabold text-sm rounded-full shadow-lg shadow-rose-600/30 transition-all hover:scale-[1.02] active:scale-[0.98]"
           >
             <span>Start Free Today</span>
             <ArrowRight className="w-4 h-4" />
@@ -99,7 +99,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onOpenAuth, onExploreD
 
           <button
             onClick={() => onOpenAuth('signin')}
-            className="w-full sm:w-auto flex items-center justify-center gap-2 px-8 py-3.5 bg-zinc-950 dark:bg-white text-white dark:text-black font-extrabold text-sm rounded-full shadow-lg transition-all hover:scale-105"
+            className="w-full sm:w-auto flex items-center justify-center gap-2 px-8 py-3.5 bg-zinc-950 dark:bg-white text-white dark:text-black font-extrabold text-sm rounded-full shadow-lg transition-all hover:scale-[1.02] active:scale-[0.98]"
           >
             <span>Sign In to Dashboard</span>
           </button>
@@ -134,7 +134,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onOpenAuth, onExploreD
               <div className="p-5 rounded-2xl bg-zinc-900 border border-zinc-800">
                 <div className="text-xs text-zinc-400 font-semibold">Active Prepayments</div>
                 <div className="text-3xl font-black text-white mt-1">$22,091</div>
-                <div className="text-[11px] text-zinc-500 mt-1">/ 100% verified locally</div>
+                <div className="text-[11px] text-zinc-500 mt-1">/ Multi-Tenant Cloud Verified</div>
               </div>
             </div>
           </div>
