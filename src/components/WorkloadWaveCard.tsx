@@ -27,11 +27,11 @@ export const WorkloadWaveCard: React.FC<WorkloadWaveCardProps> = ({
   const isHealthy = progressPct >= 50;
 
   return (
-    <div className="relative overflow-hidden bg-white dark:bg-zinc-950 p-6 rounded-3xl border border-slate-200/80 dark:border-zinc-800/80 shadow-xs flex flex-col justify-between h-full min-h-[220px] transition-all group">
+    <div className="relative overflow-hidden bg-white dark:bg-zinc-950 p-6 rounded-3xl border border-slate-200/80 dark:border-zinc-800/80 shadow-xs flex flex-col justify-between h-full min-h-[220px] transition-all hover-card-lift group">
       {/* Background Fluid Wave Animation */}
-      <div className="absolute inset-x-0 bottom-0 h-32 pointer-events-none opacity-20 dark:opacity-30 transition-opacity">
+      <div className="absolute inset-x-0 bottom-0 h-32 pointer-events-none opacity-20 dark:opacity-30 transition-opacity overflow-hidden">
         <svg
-          className="w-full h-full text-rose-600 dark:text-rose-500"
+          className="w-[120%] h-full text-rose-600 dark:text-rose-500 animate-wave"
           viewBox="0 0 1440 320"
           preserveAspectRatio="none"
         >

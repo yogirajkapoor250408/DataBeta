@@ -123,7 +123,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
       {/* 6 Executive Key Metric Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3">
-        <div className="bg-white dark:bg-zinc-950 p-5 rounded-3xl border border-slate-200/80 dark:border-zinc-800 shadow-xs space-y-1">
+        <div className="bg-white dark:bg-zinc-950 p-5 rounded-3xl border border-slate-200/80 dark:border-zinc-800 shadow-xs space-y-1 hover-card-lift transition-all">
           <div className="text-[10px] font-bold text-slate-500 dark:text-zinc-400 uppercase tracking-wider">Total Revenue</div>
           <div className="text-xl font-black text-slate-900 dark:text-white">
             {metrics.totalRevenue !== null ? formatCurrency(metrics.totalRevenue, currency) : <span className="text-slate-400 dark:text-zinc-600 text-sm font-medium">No data</span>}
@@ -131,7 +131,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           <p className="text-[10px] text-slate-400 dark:text-zinc-500 font-mono">{metrics.transactionCount} transactions</p>
         </div>
 
-        <div className="bg-white dark:bg-zinc-950 p-5 rounded-3xl border border-slate-200/80 dark:border-zinc-800 shadow-xs space-y-1">
+        <div className="bg-white dark:bg-zinc-950 p-5 rounded-3xl border border-slate-200/80 dark:border-zinc-800 shadow-xs space-y-1 hover-card-lift transition-all">
           <div className="text-[10px] font-bold text-slate-500 dark:text-zinc-400 uppercase tracking-wider">Total Expenses</div>
           <div className="text-xl font-black text-slate-700 dark:text-zinc-300">
             {metrics.totalExpenses !== null ? formatCurrency(metrics.totalExpenses, currency) : <span className="text-slate-400 dark:text-zinc-600 text-sm font-medium">No data</span>}
@@ -139,7 +139,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           <p className="text-[10px] text-slate-400 dark:text-zinc-500 font-mono">Operational costs</p>
         </div>
 
-        <div className="bg-white dark:bg-zinc-950 p-5 rounded-3xl border border-slate-200/80 dark:border-zinc-800 shadow-xs space-y-1">
+        <div className="bg-white dark:bg-zinc-950 p-5 rounded-3xl border border-slate-200/80 dark:border-zinc-800 shadow-xs space-y-1 hover-card-lift transition-all">
           <div className="text-[10px] font-bold text-slate-500 dark:text-zinc-400 uppercase tracking-wider">Net Profit</div>
           <div className="text-xl font-black text-rose-600 dark:text-rose-500">
             {metrics.estimatedProfit !== null ? formatCurrency(metrics.estimatedProfit, currency) : <span className="text-slate-400 dark:text-zinc-600 text-sm font-medium">No data</span>}
@@ -147,7 +147,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           <p className="text-[10px] text-slate-400 dark:text-zinc-500 font-mono">Bottom line income</p>
         </div>
 
-        <div className="bg-white dark:bg-zinc-950 p-5 rounded-3xl border border-slate-200/80 dark:border-zinc-800 shadow-xs space-y-1">
+        <div className="bg-white dark:bg-zinc-950 p-5 rounded-3xl border border-slate-200/80 dark:border-zinc-800 shadow-xs space-y-1 hover-card-lift transition-all">
           <div className="text-[10px] font-bold text-slate-500 dark:text-zinc-400 uppercase tracking-wider">Profit Margin</div>
           <div className="text-xl font-black text-emerald-600 dark:text-emerald-400">
             {metrics.profitMargin !== null ? `${metrics.profitMargin.toFixed(1)}%` : 'N/A'}
@@ -155,13 +155,13 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           <p className="text-[10px] text-slate-400 dark:text-zinc-500 font-mono">Margin strength</p>
         </div>
 
-        <div className="bg-white dark:bg-zinc-950 p-5 rounded-3xl border border-slate-200/80 dark:border-zinc-800 shadow-xs space-y-1">
+        <div className="bg-white dark:bg-zinc-950 p-5 rounded-3xl border border-slate-200/80 dark:border-zinc-800 shadow-xs space-y-1 hover-card-lift transition-all">
           <div className="text-[10px] font-bold text-slate-500 dark:text-zinc-400 uppercase tracking-wider">Unique Customers</div>
           <div className="text-xl font-black text-slate-900 dark:text-white">{customerStats.totalUniqueCustomers}</div>
           <p className="text-[10px] text-slate-400 dark:text-zinc-500 font-mono">Buyer accounts</p>
         </div>
 
-        <div className="bg-white dark:bg-zinc-950 p-5 rounded-3xl border border-slate-200/80 dark:border-zinc-800 shadow-xs space-y-1">
+        <div className="bg-white dark:bg-zinc-950 p-5 rounded-3xl border border-slate-200/80 dark:border-zinc-800 shadow-xs space-y-1 hover-card-lift transition-all">
           <div className="text-[10px] font-bold text-slate-500 dark:text-zinc-400 uppercase tracking-wider">Open Pipeline</div>
           <div className="text-xl font-black text-slate-900 dark:text-white">
             {formatCurrency(pipelineStats.totalPipelineValue, currency)}
