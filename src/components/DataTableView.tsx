@@ -119,20 +119,20 @@ export const DataTableView: React.FC<DataTableViewProps> = ({
   return (
     <div className="space-y-6">
       {/* Top Banner Header */}
-      <div className="bg-zinc-950 text-white p-7 rounded-3xl border border-zinc-800 shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+      <div className="bg-white dark:bg-zinc-950 text-slate-900 dark:text-white p-7 rounded-3xl border border-slate-200/80 dark:border-zinc-800 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2 text-xs font-bold text-rose-500 uppercase tracking-widest mb-1">
+          <div className="flex items-center gap-2 text-xs font-bold text-rose-600 dark:text-rose-500 uppercase tracking-widest mb-1">
             Operational Data Entry & Ledger Studio
           </div>
-          <h2 className="text-2xl font-black text-white tracking-tight">Transactions Studio</h2>
-          <p className="text-xs text-zinc-400 mt-1 max-w-xl">
+          <h2 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">Transactions Studio</h2>
+          <p className="text-xs text-slate-500 dark:text-zinc-400 mt-1 max-w-xl">
             Inspect, search, sort, and record individual business sales and operational expenses.
           </p>
         </div>
 
         <button
           onClick={() => setShowManualModal(true)}
-          className="flex items-center gap-2 px-5 py-2.5 bg-rose-600 hover:bg-rose-500 text-white font-extrabold text-xs rounded-full shadow-lg shadow-rose-600/30 transition-all shrink-0"
+          className="flex items-center gap-2 px-5 py-2.5 bg-rose-600 hover:bg-rose-500 text-white font-extrabold text-xs rounded-full shadow-md shadow-rose-600/30 active:scale-95 transition-all shrink-0"
         >
           <Plus className="w-4 h-4" />
           <span>Record Transaction</span>
@@ -140,49 +140,49 @@ export const DataTableView: React.FC<DataTableViewProps> = ({
       </div>
 
       {/* Controls Bar: Search, Category Filter, Sort */}
-      <div className="bg-zinc-950 p-4 rounded-3xl border border-zinc-800 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
+      <div className="bg-white dark:bg-zinc-950 p-4 rounded-3xl border border-slate-200/80 dark:border-zinc-800 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-4">
         <div className="flex items-center gap-3 w-full sm:w-auto">
           {/* Search */}
           <div className="relative w-full sm:w-64">
-            <Search className="w-4 h-4 text-zinc-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+            <Search className="w-4 h-4 text-slate-400 dark:text-zinc-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
             <input
               type="text"
               placeholder="Search customer, product, category..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full bg-zinc-900 border border-zinc-800 rounded-full pl-9 pr-4 py-2 text-xs text-white font-medium focus:outline-none focus:ring-2 focus:ring-rose-500"
+              className="w-full bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-full pl-9 pr-4 py-2 text-xs text-slate-900 dark:text-white font-medium focus:outline-none focus:ring-2 focus:ring-rose-500"
             />
           </div>
 
           {/* Category Filter */}
-          <div className="flex items-center gap-2 bg-zinc-900 border border-zinc-800 rounded-full px-3 py-1.5 text-xs text-white">
-            <Filter className="w-3.5 h-3.5 text-zinc-400" />
+          <div className="flex items-center gap-2 bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-full px-3 py-1.5 text-xs text-slate-900 dark:text-white">
+            <Filter className="w-3.5 h-3.5 text-slate-400 dark:text-zinc-400" />
             <select
               value={categoryFilter}
               onChange={(e) => setCategoryFilter(e.target.value)}
-              className="bg-transparent text-white font-bold text-xs focus:outline-none cursor-pointer"
+              className="bg-transparent text-slate-900 dark:text-white font-bold text-xs focus:outline-none cursor-pointer"
             >
-              <option value="all" className="bg-black">All Categories</option>
+              <option value="all" className="bg-white dark:bg-black text-slate-900 dark:text-white">All Categories</option>
               {categories.map((c) => (
-                <option key={c} value={c} className="bg-black">{c}</option>
+                <option key={c} value={c} className="bg-white dark:bg-black text-slate-900 dark:text-white">{c}</option>
               ))}
             </select>
           </div>
         </div>
 
         {/* Total records indicator */}
-        <div className="text-xs font-mono text-zinc-400">
+        <div className="text-xs font-mono text-slate-500 dark:text-zinc-400">
           Showing {paginatedRecords.length} of {processedRecords.length} Transactions
         </div>
       </div>
 
       {/* Transaction Table */}
-      <div className="bg-zinc-950 rounded-3xl border border-zinc-800 overflow-hidden shadow-sm">
+      <div className="bg-white dark:bg-zinc-950 rounded-3xl border border-slate-200/80 dark:border-zinc-800 overflow-hidden shadow-xs">
         {paginatedRecords.length > 0 ? (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs border-collapse">
               <thead>
-                <tr className="bg-zinc-900 text-zinc-400 font-bold uppercase text-[10px] border-b border-zinc-800">
+                <tr className="bg-slate-100 dark:bg-zinc-900 text-slate-600 dark:text-zinc-400 font-bold uppercase text-[10px] border-b border-slate-200 dark:border-zinc-800">
                   <th className="p-4 cursor-pointer" onClick={() => { setSortField('date'); setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc'); }}>
                     Date {sortField === 'date' ? (sortOrder === 'asc' ? '↑' : '↓') : ''}
                   </th>
@@ -200,24 +200,24 @@ export const DataTableView: React.FC<DataTableViewProps> = ({
                   </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-zinc-900">
+              <tbody className="divide-y divide-slate-100 dark:divide-zinc-900">
                 {paginatedRecords.map((r) => (
-                  <tr key={r.id} className="hover:bg-zinc-900/60 transition-colors">
-                    <td className="p-4 text-zinc-400 font-mono">{r.dateString}</td>
-                    <td className="p-4 font-bold text-white">{r.customer || 'Direct Client'}</td>
-                    <td className="p-4 font-medium text-zinc-300">{r.product || 'Standard Line Item'}</td>
+                  <tr key={r.id} className="hover:bg-slate-50 dark:hover:bg-zinc-900/60 transition-colors">
+                    <td className="p-4 text-slate-500 dark:text-zinc-400 font-mono">{r.dateString}</td>
+                    <td className="p-4 font-bold text-slate-900 dark:text-white">{r.customer || 'Direct Client'}</td>
+                    <td className="p-4 font-medium text-slate-600 dark:text-zinc-300">{r.product || 'Standard Line Item'}</td>
                     <td className="p-4">
-                      <span className="px-2.5 py-0.5 rounded-full bg-zinc-900 border border-zinc-800 text-[10px] font-bold text-zinc-300 uppercase">
+                      <span className="px-2.5 py-0.5 rounded-full bg-slate-100 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 text-[10px] font-bold text-slate-600 dark:text-zinc-300 uppercase">
                         {r.category || 'General'}
                       </span>
                     </td>
-                    <td className="p-4 text-right font-extrabold text-emerald-400">
+                    <td className="p-4 text-right font-extrabold text-emerald-600 dark:text-emerald-400">
                       {r.revenue ? formatCurrency(r.revenue, currency) : '—'}
                     </td>
-                    <td className="p-4 text-right font-extrabold text-zinc-400">
+                    <td className="p-4 text-right font-extrabold text-slate-500 dark:text-zinc-400">
                       {r.expense ? formatCurrency(r.expense, currency) : '—'}
                     </td>
-                    <td className="p-4 text-right font-extrabold text-rose-500">
+                    <td className="p-4 text-right font-extrabold text-rose-600 dark:text-rose-500">
                       {formatCurrency(r.profit || 0, currency)}
                     </td>
                   </tr>
@@ -227,11 +227,11 @@ export const DataTableView: React.FC<DataTableViewProps> = ({
           </div>
         ) : (
           <div className="p-12 text-center space-y-3">
-            <div className="w-12 h-12 rounded-2xl bg-zinc-900 border border-zinc-800 text-zinc-500 flex items-center justify-center mx-auto">
+            <div className="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 text-slate-500 dark:text-zinc-500 flex items-center justify-center mx-auto">
               <Table className="w-6 h-6" />
             </div>
-            <h3 className="font-extrabold text-white text-base">No Transactions Found</h3>
-            <p className="text-xs text-zinc-400 max-w-sm mx-auto">
+            <h3 className="font-extrabold text-slate-900 dark:text-white text-base">No Transactions Found</h3>
+            <p className="text-xs text-slate-500 dark:text-zinc-400 max-w-sm mx-auto">
               Import a CSV or Excel spreadsheet, or click "Record Transaction" to create your first manual entry.
             </p>
           </div>
@@ -240,19 +240,19 @@ export const DataTableView: React.FC<DataTableViewProps> = ({
 
       {/* Pagination Footer */}
       {totalPages > 1 && (
-        <div className="flex items-center justify-between p-4 bg-zinc-950 rounded-3xl border border-zinc-800 text-xs">
+        <div className="flex items-center justify-between p-4 bg-white dark:bg-zinc-950 rounded-3xl border border-slate-200/80 dark:border-zinc-800 text-xs shadow-xs">
           <button
             disabled={currentPage === 1}
             onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-            className="px-4 py-1.5 rounded-full bg-zinc-900 border border-zinc-800 font-bold text-zinc-300 disabled:opacity-50"
+            className="px-4 py-1.5 rounded-full bg-slate-100 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 font-bold text-slate-700 dark:text-zinc-300 disabled:opacity-50 active:scale-95 transition-all"
           >
             Previous
           </button>
-          <span className="font-mono text-zinc-400">Page {currentPage} of {totalPages}</span>
+          <span className="font-mono text-slate-500 dark:text-zinc-400">Page {currentPage} of {totalPages}</span>
           <button
             disabled={currentPage === totalPages}
             onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-            className="px-4 py-1.5 rounded-full bg-zinc-900 border border-zinc-800 font-bold text-zinc-300 disabled:opacity-50"
+            className="px-4 py-1.5 rounded-full bg-slate-100 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 font-bold text-slate-700 dark:text-zinc-300 disabled:opacity-50 active:scale-95 transition-all"
           >
             Next
           </button>
@@ -261,21 +261,21 @@ export const DataTableView: React.FC<DataTableViewProps> = ({
 
       {/* Manual Entry Modal */}
       {showManualModal && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-zinc-950 text-white rounded-3xl border border-zinc-800 p-6 max-w-md w-full space-y-4 animate-fadeIn">
-            <h3 className="text-xl font-black">Record Manual Transaction</h3>
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-zinc-950 text-slate-900 dark:text-white rounded-3xl border border-slate-200 dark:border-zinc-800 p-6 max-w-md w-full space-y-4 animate-fadeIn shadow-2xl">
+            <h3 className="text-xl font-black tracking-tight">Record Manual Transaction</h3>
 
             <form onSubmit={handleManualSubmit} className="space-y-3 text-xs">
               <div>
-                <label className="block font-bold text-zinc-400 mb-1">Transaction Type</label>
+                <label className="block font-bold text-slate-600 dark:text-zinc-400 mb-1">Transaction Type</label>
                 <div className="grid grid-cols-2 gap-2">
                   <button
                     type="button"
                     onClick={() => setMType('revenue')}
                     className={`py-2 rounded-xl font-bold border transition-all ${
                       mType === 'revenue'
-                        ? 'bg-rose-600 text-white border-rose-500'
-                        : 'bg-zinc-900 text-zinc-400 border-zinc-800'
+                        ? 'bg-rose-600 text-white border-rose-500 shadow-md shadow-rose-600/30'
+                        : 'bg-slate-50 dark:bg-zinc-900 text-slate-600 dark:text-zinc-400 border-slate-200 dark:border-zinc-800'
                     }`}
                   >
                     Sale (Revenue)
@@ -285,8 +285,8 @@ export const DataTableView: React.FC<DataTableViewProps> = ({
                     onClick={() => setMType('expense')}
                     className={`py-2 rounded-xl font-bold border transition-all ${
                       mType === 'expense'
-                        ? 'bg-rose-600 text-white border-rose-500'
-                        : 'bg-zinc-900 text-zinc-400 border-zinc-800'
+                        ? 'bg-rose-600 text-white border-rose-500 shadow-md shadow-rose-600/30'
+                        : 'bg-slate-50 dark:bg-zinc-900 text-slate-600 dark:text-zinc-400 border-slate-200 dark:border-zinc-800'
                     }`}
                   >
                     Operational Expense
@@ -295,72 +295,72 @@ export const DataTableView: React.FC<DataTableViewProps> = ({
               </div>
 
               <div>
-                <label className="block font-bold text-zinc-400 mb-1">Date</label>
+                <label className="block font-bold text-slate-600 dark:text-zinc-400 mb-1">Date</label>
                 <input
                   type="date"
                   required
                   value={mDate}
                   onChange={(e) => setMDate(e.target.value)}
-                  className="w-full bg-zinc-900 border border-zinc-800 rounded-full px-4 py-2 text-white font-medium focus:outline-none focus:ring-2 focus:ring-rose-500"
+                  className="w-full bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-full px-4 py-2 text-slate-900 dark:text-white font-medium focus:outline-none focus:ring-2 focus:ring-rose-500"
                 />
               </div>
 
               <div>
-                <label className="block font-bold text-zinc-400 mb-1">Amount ($)</label>
+                <label className="block font-bold text-slate-600 dark:text-zinc-400 mb-1">Amount</label>
                 <input
                   type="number"
                   required
                   placeholder="150"
                   value={mAmount}
                   onChange={(e) => setMAmount(e.target.value === '' ? '' : Number(e.target.value))}
-                  className="w-full bg-zinc-900 border border-zinc-800 rounded-full px-4 py-2 text-white font-medium focus:outline-none focus:ring-2 focus:ring-rose-500"
+                  className="w-full bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-full px-4 py-2 text-slate-900 dark:text-white font-medium focus:outline-none focus:ring-2 focus:ring-rose-500"
                 />
               </div>
 
               <div>
-                <label className="block font-bold text-zinc-400 mb-1">Customer / Client</label>
+                <label className="block font-bold text-slate-600 dark:text-zinc-400 mb-1">Customer / Client</label>
                 <input
                   type="text"
                   placeholder="e.g. Acme Corp"
                   value={mCustomer}
                   onChange={(e) => setMCustomer(e.target.value)}
-                  className="w-full bg-zinc-900 border border-zinc-800 rounded-full px-4 py-2 text-white font-medium focus:outline-none focus:ring-2 focus:ring-rose-500"
+                  className="w-full bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-full px-4 py-2 text-slate-900 dark:text-white font-medium focus:outline-none focus:ring-2 focus:ring-rose-500"
                 />
               </div>
 
               <div>
-                <label className="block font-bold text-zinc-400 mb-1">Product / Item Name</label>
+                <label className="block font-bold text-slate-600 dark:text-zinc-400 mb-1">Product / Item Name</label>
                 <input
                   type="text"
                   placeholder="e.g. Enterprise Plan"
                   value={mProduct}
                   onChange={(e) => setMProduct(e.target.value)}
-                  className="w-full bg-zinc-900 border border-zinc-800 rounded-full px-4 py-2 text-white font-medium focus:outline-none focus:ring-2 focus:ring-rose-500"
+                  className="w-full bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-full px-4 py-2 text-slate-900 dark:text-white font-medium focus:outline-none focus:ring-2 focus:ring-rose-500"
                 />
               </div>
 
               <div>
-                <label className="block font-bold text-zinc-400 mb-1">Category</label>
+                <label className="block font-bold text-slate-600 dark:text-zinc-400 mb-1">Category</label>
                 <input
                   type="text"
                   placeholder="Software / Advertising / Operations"
                   value={mCategory}
                   onChange={(e) => setMCategory(e.target.value)}
-                  className="w-full bg-zinc-900 border border-zinc-800 rounded-full px-4 py-2 text-white font-medium focus:outline-none focus:ring-2 focus:ring-rose-500"
+                  className="w-full bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-full px-4 py-2 text-slate-900 dark:text-white font-medium focus:outline-none focus:ring-2 focus:ring-rose-500"
                 />
               </div>
 
-              <div className="flex items-center justify-end gap-2 pt-3 border-t border-zinc-900">
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100 dark:border-zinc-900">
                 <button
                   type="button"
                   onClick={() => setShowManualModal(false)}
-                  className="px-4 py-2 text-xs font-bold text-zinc-400 hover:text-white"
+                  className="px-4 py-2 text-xs font-bold text-slate-500 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-6 py-2 bg-rose-600 hover:bg-rose-500 text-white font-extrabold rounded-full shadow-md shadow-rose-600/30"
+                  className="px-6 py-2 bg-rose-600 hover:bg-rose-500 text-white font-extrabold rounded-full shadow-md shadow-rose-600/30 active:scale-95 transition-all"
                 >
                   Save Entry
                 </button>
