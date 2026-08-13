@@ -16,6 +16,7 @@ import { businessService, Business, BusinessMembership } from './services/busine
 import { transactionService } from './services/transactionService';
 import { crmService } from './services/crmService';
 import { auditService } from './services/auditService';
+import { toggleThemeWithRipple } from './utils/themeRipple';
 
 import { SubscriptionModal } from './components/SubscriptionModal';
 
@@ -145,12 +146,14 @@ const InnerDashboardApp: React.FC = () => {
     }
   };
 
-  const handleToggleTheme = () => {
-    const nextTheme = theme === 'dark' ? 'light' : 'dark';
-    setTheme(nextTheme);
-    localStorage.setItem(THEME_KEY, nextTheme);
-    if (nextTheme === 'dark') document.documentElement.classList.add('dark');
-    else document.documentElement.classList.remove('dark');
+  const handleToggleTheme = (e?: React.MouseEvent) => {
+    toggleThemeWithRipple(e, () => {
+      const nextTheme = theme === 'dark' ? 'light' : 'dark';
+      setTheme(nextTheme);
+      localStorage.setItem(THEME_KEY, nextTheme);
+      if (nextTheme === 'dark') document.documentElement.classList.add('dark');
+      else document.documentElement.classList.remove('dark');
+    });
   };
 
   const handleCurrencyChange = (code: CurrencyCode) => {

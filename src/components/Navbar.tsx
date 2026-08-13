@@ -26,7 +26,7 @@ interface NavbarProps {
   currency: CurrencyCode;
   onCurrencyChange: (code: CurrencyCode) => void;
   theme: 'dark' | 'light';
-  onToggleTheme: () => void;
+  onToggleTheme: (e?: React.MouseEvent) => void;
   onOpenUpload: () => void;
   onClearData: () => void;
   currentUser: User | null;
@@ -150,7 +150,7 @@ export const Navbar: React.FC<NavbarProps> = ({
         {/* Bottom Sidebar Controls */}
         <div className="flex flex-col items-center gap-3">
           <button
-            onClick={onToggleTheme}
+            onClick={(e) => onToggleTheme(e)}
             title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
             className="w-10 h-10 rounded-xl flex items-center justify-center text-slate-500 dark:text-zinc-400 hover:bg-slate-100 dark:hover:bg-zinc-900 active:scale-95 transition-all duration-150"
           >
@@ -254,7 +254,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
             {/* Theme Toggle Button on Mobile Header */}
             <button
-              onClick={onToggleTheme}
+              onClick={(e) => onToggleTheme(e)}
               title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
               className="md:hidden p-2 rounded-full text-slate-500 dark:text-zinc-400 hover:bg-slate-100 dark:hover:bg-zinc-900 active:scale-95 transition-all"
             >
