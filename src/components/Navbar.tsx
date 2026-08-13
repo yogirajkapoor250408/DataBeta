@@ -13,6 +13,7 @@ import {
   Globe,
   ChevronDown,
   Search,
+  Calendar,
 } from 'lucide-react';
 import { DatasetMeta, CurrencyCode, CURRENCIES, User } from '../types';
 import { BusinessSelector } from './BusinessSelector';
@@ -259,6 +260,13 @@ export const Navbar: React.FC<NavbarProps> = ({
                 onClick={() => setActiveTab('transactions')}
                 className="bg-transparent text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-zinc-500 text-xs font-medium focus:outline-none w-full"
               />
+            </div>
+
+            {/* Persistent Fiscal Period Selector Pill */}
+            <div className="hidden xl:flex items-center gap-1.5 bg-slate-100 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-full px-3 py-1.5 text-xs font-mono font-bold text-slate-700 dark:text-zinc-300">
+              <Calendar className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400 shrink-0" />
+              <span>FY2026–27</span>
+              <span className="text-[10px] text-slate-400 dark:text-zinc-500 font-sans">| Apr Start</span>
             </div>
           </div>
 
