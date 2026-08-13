@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { NormalizedRecord, CurrencyCode, CRMContact, AICopilotMessage } from '../types';
 import { generateAICopilotResponse } from '../utils/aiEngine';
-import { Sparkles, Send, X, Bot, User, CheckCircle2, AlertTriangle, Info, ArrowUpRight } from 'lucide-react';
+import { Sparkles, Send, X, Bot, User, CheckCircle2, AlertTriangle, Info, ArrowUpRight, Copy, Check } from 'lucide-react';
 
 interface AICopilotModalProps {
   isOpen: boolean;
@@ -13,10 +13,11 @@ interface AICopilotModalProps {
 
 const PROMPT_SUGGESTIONS = [
   'Generate Executive Briefing',
-  'How do I increase net profit by 10%?',
-  'Analyze operational cost risks',
-  'Summarize tax deductions & savings',
-  'Who are my top customer accounts?',
+  'Where are my profit leaks?',
+  'What is my monthly burn rate & runway?',
+  'Calculate quarterly estimated tax',
+  'Who are my VIP customers?',
+  'How do I increase margin by 10%?',
 ];
 
 export const AICopilotModal: React.FC<AICopilotModalProps> = ({
@@ -30,13 +31,13 @@ export const AICopilotModal: React.FC<AICopilotModalProps> = ({
     {
       id: 'msg-init',
       sender: 'ai',
-      text: 'Hello! I am the DataBeta Intelligence Engine. I run 100% deterministically using rule-based algorithms to analyze your transactions, profit margins, tax deductions, and customer pipeline.',
+      text: 'Hello! I am the DataBeta Intelligence Engine. I run 100% deterministically in your browser using statistical algorithms to analyze your transactions, profit leaks, tax deductions, cash runway, and customer pipeline.',
       timestamp: 'Just now',
       cards: [
         {
-          title: 'DataBeta Intelligence Engine',
-          value: 'Deterministic',
-          detail: 'Rule-based analysis from your real transaction data',
+          title: 'Deterministic Intelligence Engine',
+          value: `${records.length} Records Loaded`,
+          detail: 'Zero LLM hallucination • 100% statistical certainty',
           type: 'positive',
         },
       ],
@@ -45,6 +46,7 @@ export const AICopilotModal: React.FC<AICopilotModalProps> = ({
 
   const [inputQuery, setInputQuery] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
 
   if (!isOpen) return null;
 
@@ -76,12 +78,18 @@ export const AICopilotModal: React.FC<AICopilotModalProps> = ({
 
       setMessages((prev) => [...prev, aiMsg]);
       setIsTyping(false);
-    }, 600);
+    }, 450);
+  };
+
+  const handleCopyText = (id: string, text: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedId(id);
+    setTimeout(() => setCopiedId(null), 2000);
   };
 
   return (
     <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-end p-0 sm:p-4 no-print">
-      <div className="bg-white dark:bg-zinc-950 w-full sm:max-w-md h-full sm:h-[90vh] sm:rounded-3xl shadow-2xl border border-slate-200/80 dark:border-zinc-800 flex flex-col justify-between overflow-hidden relative">
+      <div className="bg-white dark:bg-zinc-950 w-full sm:max-w-lg h-full sm:h-[90vh] sm:rounded-3xl shadow-2xl border border-slate-200/80 dark:border-zinc-800 flex flex-col justify-between overflow-hidden relative animate-slideInRight">
         {/* Header */}
         <div className="p-4 bg-zinc-950 text-white border-b border-zinc-800 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -90,26 +98,26 @@ export const AICopilotModal: React.FC<AICopilotModalProps> = ({
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="font-extrabold text-sm text-white">Rule-Based Insight Engine</h3>
+                <h3 className="font-extrabold text-sm text-white">Deterministic Intelligence Engine</h3>
                 <span className="flex h-2 w-2 relative">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                   <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
                 </span>
               </div>
-              <p className="text-[10px] text-zinc-400">High-Level Algorithm Engine • 100% Local</p>
+              <p className="text-[10px] text-zinc-400">Rule-Based Diagnostic Suite • 100% Client-Side</p>
             </div>
           </div>
 
           <button
             onClick={onClose}
-            className="p-1 rounded-full text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors"
+            className="p-1.5 rounded-full text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Suggestion Chips */}
-        <div className="p-3 bg-slate-50 dark:bg-zinc-900 border-b border-slate-200/80 dark:border-zinc-800 flex items-center gap-1.5 overflow-x-auto text-[11px] scrollbar-none">
+        <div className="p-3 bg-slate-50 dark:bg-zinc-900 border-b border-slate-200/80 dark:border-zinc-800 flex items-center gap-1.5 overflow-x-auto text-[11px] custom-scrollbar">
           {PROMPT_SUGGESTIONS.map((s) => (
             <button
               key={s}
@@ -122,7 +130,7 @@ export const AICopilotModal: React.FC<AICopilotModalProps> = ({
         </div>
 
         {/* Message Thread */}
-        <div className="flex-1 p-4 overflow-y-auto space-y-4 text-xs">
+        <div className="flex-1 p-4 overflow-y-auto space-y-4 text-xs custom-scrollbar">
           {messages.map((m) => (
             <div
               key={m.id}
@@ -136,36 +144,46 @@ export const AICopilotModal: React.FC<AICopilotModalProps> = ({
                 {m.sender === 'user' ? <User className="w-4 h-4" /> : <Sparkles className="w-4 h-4" />}
               </div>
 
-              <div className={`space-y-2 max-w-[85%] ${m.sender === 'user' ? 'text-right' : 'text-left'}`}>
+              <div className={`space-y-2 max-w-[88%] ${m.sender === 'user' ? 'text-right' : 'text-left'}`}>
                 <div
-                  className={`p-3.5 rounded-2xl leading-relaxed ${
+                  className={`p-4 rounded-2xl leading-relaxed relative group ${
                     m.sender === 'user'
                       ? 'bg-rose-600 text-white rounded-tr-none font-medium'
-                      : 'bg-slate-100 dark:bg-zinc-900 text-slate-900 dark:text-white rounded-tl-none border border-slate-200/80 dark:border-zinc-800 font-medium'
+                      : 'bg-slate-100 dark:bg-zinc-900 text-slate-900 dark:text-white rounded-tl-none border border-slate-200/80 dark:border-zinc-800 font-medium whitespace-pre-wrap'
                   }`}
                 >
                   {m.text}
+
+                  {m.sender === 'ai' && (
+                    <button
+                      onClick={() => handleCopyText(m.id, m.text)}
+                      title="Copy Answer Text"
+                      className="absolute top-2 right-2 p-1 rounded-lg bg-white/80 dark:bg-zinc-800/80 text-slate-500 dark:text-zinc-400 opacity-0 group-hover:opacity-100 transition-opacity hover:text-slate-900 dark:hover:text-white"
+                    >
+                      {copiedId === m.id ? <Check className="w-3 h-3 text-emerald-500" /> : <Copy className="w-3 h-3" />}
+                    </button>
+                  )}
                 </div>
 
-                {/* Structured Cards */}
+                {/* Structured Diagnostic Cards */}
                 {m.cards && m.cards.length > 0 && (
                   <div className="space-y-2 pt-1">
                     {m.cards.map((card, idx) => (
                       <div
                         key={idx}
-                        className="p-3 rounded-2xl bg-white dark:bg-zinc-950 border border-slate-200/80 dark:border-zinc-800 shadow-sm space-y-1"
+                        className="p-3.5 rounded-2xl bg-white dark:bg-zinc-950 border border-slate-200/80 dark:border-zinc-800 shadow-sm space-y-1"
                       >
-                        <div className="flex items-center justify-between text-[11px]">
+                        <div className="flex items-center justify-between text-xs">
                           <span className="font-bold text-slate-900 dark:text-white">{card.title}</span>
-                          <span className="font-extrabold text-emerald-600 dark:text-emerald-400">{card.value}</span>
+                          <span className="font-extrabold text-rose-600 dark:text-rose-400 font-mono">{card.value}</span>
                         </div>
-                        <p className="text-[10px] text-slate-500 dark:text-zinc-400">{card.detail}</p>
+                        <p className="text-[11px] text-slate-500 dark:text-zinc-400">{card.detail}</p>
                       </div>
                     ))}
                   </div>
                 )}
 
-                <span className="text-[9px] text-slate-400 dark:text-zinc-500 block px-1">
+                <span className="text-[9px] text-slate-400 dark:text-zinc-500 block px-1 font-mono">
                   {m.timestamp}
                 </span>
               </div>
@@ -175,7 +193,7 @@ export const AICopilotModal: React.FC<AICopilotModalProps> = ({
           {isTyping && (
             <div className="flex gap-2 items-center text-xs text-slate-400 dark:text-zinc-500 italic">
               <Bot className="w-4 h-4 text-rose-600 animate-pulse" />
-              <span>Insight Engine is evaluating rules...</span>
+              <span>Analyzing variance across transaction records...</span>
             </div>
           )}
         </div>
@@ -198,13 +216,13 @@ export const AICopilotModal: React.FC<AICopilotModalProps> = ({
             />
             <button
               type="submit"
-              className="w-8 h-8 rounded-full bg-rose-600 hover:bg-rose-500 text-white flex items-center justify-center absolute right-1.5 shadow-md shadow-rose-600/30 transition-all"
+              className="w-8 h-8 rounded-full bg-rose-600 hover:bg-rose-500 text-white flex items-center justify-center absolute right-1.5 shadow-md shadow-rose-600/30 transition-all active:scale-95"
             >
               <Send className="w-3.5 h-3.5" />
             </button>
           </form>
           <div className="text-[9px] text-slate-400 dark:text-zinc-500 text-center mt-1 font-mono">
-            🔒 100% In-Browser Local Decision Tree Logic
+            🔒 100% Client-Side Deterministic Analysis • Zero Cloud LLM Hallucination
           </div>
         </div>
       </div>

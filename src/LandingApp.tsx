@@ -21,6 +21,12 @@ export const LandingApp: React.FC = () => {
       }
     } catch {}
 
+    authService.getCurrentSessionUser().then((user) => {
+      if (user) {
+        window.location.href = '/dashboard.html';
+      }
+    });
+
     const sub = authService.onAuthStateChange((user) => {
       if (user) {
         window.location.href = '/dashboard.html';

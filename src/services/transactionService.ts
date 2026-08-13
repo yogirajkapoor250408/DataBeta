@@ -116,7 +116,7 @@ export const transactionService = {
   },
 
   async syncCustomersAndProducts(businessId: string, records: NormalizedRecord[]) {
-    if (!isSupabaseConfigured()) throw new Error('Supabase is not configured.');
+    if (!isSupabaseConfigured()) return;
 
     // Extract unique customers
     const customerMap: Record<string, { total: number; count: number; date: string }> = {};

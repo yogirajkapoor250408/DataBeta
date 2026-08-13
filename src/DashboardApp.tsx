@@ -5,6 +5,10 @@ import { DataTableView } from './components/DataTableView';
 import { CustomersView } from './components/CustomersView';
 import { CRMView } from './components/CRMView';
 import { InsightsView } from './components/InsightsView';
+import { AnalyticsView } from './components/AnalyticsView';
+import { ReportsView } from './components/ReportsView';
+import { TaxView } from './components/TaxView';
+import { SettingsView } from './components/SettingsView';
 import { EmptyState } from './components/EmptyState';
 import { FileUploadModal } from './components/FileUploadModal';
 import { AuthModal } from './components/AuthModal';
@@ -65,7 +69,15 @@ const InnerDashboardApp: React.FC = () => {
       }
     } catch {}
 
-    // Subscribe to Auth State
+    // Check existing session immediately on startup
+    authService.getCurrentSessionUser().then(async (user) => {
+      if (user) {
+        setCurrentUser(user);
+        await loadUserBusinesses(user);
+      }
+    });
+
+    // Subscribe to Auth State Changes
     const sub = authService.onAuthStateChange(async (user) => {
       setCurrentUser(user);
       if (user) {
@@ -168,20 +180,52 @@ const InnerDashboardApp: React.FC = () => {
     }
   };
 
+  const handleUpdateBusiness = async (updates: Partial<{ name: string; currency: CurrencyCode; country: string; logoUrl: string }>) => {
+    if (!activeBusiness) return;
+    await businessService.updateBusinessSettings(activeBusiness.id, updates);
+    const updatedBiz = { ...activeBusiness, ...updates };
+    setActiveBusiness(updatedBiz);
+    if (updates.currency) {
+      setCurrency(updates.currency);
+    }
+    if (currentUser) {
+      const updatedBizs = await businessService.getUserBusinesses(currentUser.id);
+      setMemberships(updatedBizs);
+    }
+  };
+
   const handleDatasetLoaded = async (newDataset: Dataset) => {
     if (!activeBusiness) {
-      setIsOnboardingOpen(true);
-      return;
+      if (currentUser) {
+        setIsOnboardingOpen(true);
+        return;
+      } else {
+        // Create local guest workspace so demo/unauthenticated users can explore immediately
+        const guestBiz: Business = {
+          id: `guest-${Date.now()}`,
+          name: newDataset.meta.fileName.replace(/\.[^/.]+$/, '') || 'My Business Workspace',
+          type: 'General',
+          country: 'United States',
+          currency: 'USD',
+          createdAt: new Date().toISOString(),
+        };
+        setActiveBusiness(guestBiz);
+        setDataset(newDataset);
+        return;
+      }
     }
 
     setDataset(newDataset);
-    await transactionService.importDataset(activeBusiness.id, newDataset.meta, newDataset.records);
-    const refreshedTxs = await transactionService.getBusinessTransactions(activeBusiness.id);
-
-    setDataset({
-      meta: newDataset.meta,
-      records: refreshedTxs,
-    });
+    if (activeBusiness && !activeBusiness.id.startsWith('guest-')) {
+      await transactionService.importDataset(activeBusiness.id, newDataset.meta, newDataset.records);
+      const refreshedTxs = await transactionService.getBusinessTransactions(activeBusiness.id);
+      if (refreshedTxs.length > 0) {
+        setDataset({
+          meta: newDataset.meta,
+          records: refreshedTxs,
+        });
+      }
+    }
 
     auditService.logEvent(activeBusiness.id, currentUser?.id, 'dataset_imported', {
       rowCount: newDataset.records.length,
@@ -190,11 +234,24 @@ const InnerDashboardApp: React.FC = () => {
   };
 
   const handleAddManualRecord = async (newRec: NormalizedRecord) => {
-    if (!activeBusiness) return;
+    let currentBiz = activeBusiness;
+    if (!currentBiz) {
+      currentBiz = {
+        id: `guest-${Date.now()}`,
+        name: 'My Business Workspace',
+        type: 'General',
+        country: 'United States',
+        currency: 'USD',
+        createdAt: new Date().toISOString(),
+      };
+      setActiveBusiness(currentBiz);
+    }
 
-    await transactionService.addSingleTransaction(activeBusiness.id, newRec);
+    if (!currentBiz.id.startsWith('guest-')) {
+      await transactionService.addSingleTransaction(currentBiz.id, newRec);
+    }
+
     const updatedRecords = [newRec, ...(dataset?.records || [])];
-
     setDataset({
       meta: dataset?.meta || {
         fileName: 'Manual Log',
@@ -207,7 +264,7 @@ const InnerDashboardApp: React.FC = () => {
       records: updatedRecords,
     });
 
-    auditService.logEvent(activeBusiness.id, currentUser?.id, 'manual_transaction_added', { product: newRec.product });
+    auditService.logEvent(currentBiz.id, currentUser?.id, 'manual_transaction_added', { product: newRec.product });
   };
 
   const handleClearData = async () => {
@@ -231,7 +288,17 @@ const InnerDashboardApp: React.FC = () => {
     setCurrentUser(user);
     setIsAuthOpen(false);
     setActiveTab('overview');
+    const guestDataset = dataset;
     await loadUserBusinesses(user);
+
+    // If user loaded data as guest, migrate it into their new cloud business tenant
+    if (guestDataset && guestDataset.records.length > 0 && activeBusiness && !activeBusiness.id.startsWith('guest-')) {
+      await transactionService.importDataset(activeBusiness.id, guestDataset.meta, guestDataset.records);
+      const refreshed = await transactionService.getBusinessTransactions(activeBusiness.id);
+      if (refreshed.length > 0) {
+        setDataset({ meta: guestDataset.meta, records: refreshed });
+      }
+    }
   };
 
   const handleLogout = async () => {
@@ -267,9 +334,35 @@ const InnerDashboardApp: React.FC = () => {
       />
 
       <main className="pl-0 md:pl-16 flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 pb-24 md:pb-8">
-        {!dataset && activeTab === 'overview' ? (
-            <EmptyState onOpenUpload={() => setIsUploadOpen(true)} />
-          ) : (
+        {/* Always-accessible tabs (no data required) */}
+        {activeTab === 'pipeline' ? (
+          <CRMView
+            contacts={crmContacts}
+            onContactsChange={handleContactsChange}
+            currency={currency}
+            records={dataset?.records || []}
+            activeBusinessId={activeBusiness?.id}
+          />
+        ) : activeTab === 'settings' ? (
+          <SettingsView
+            meta={dataset?.meta || null}
+            records={dataset?.records || []}
+            currency={currency}
+            onCurrencyChange={handleCurrencyChange}
+            onClearData={handleClearData}
+            activeBusiness={activeBusiness}
+            onUpdateBusiness={handleUpdateBusiness}
+          />
+        ) : activeTab === 'reports' ? (
+          <ReportsView
+            records={dataset?.records || []}
+            meta={dataset?.meta || null}
+            currency={currency}
+            businessName={activeBusiness?.name}
+          />
+        ) : !dataset && activeTab === 'overview' ? (
+          <EmptyState onOpenUpload={() => setIsUploadOpen(true)} />
+        ) : (
             <>
               {activeTab === 'overview' && (
                 <DashboardView
@@ -298,22 +391,26 @@ const InnerDashboardApp: React.FC = () => {
                 />
               )}
 
-              {activeTab === 'pipeline' && (
-                <CRMView
-                  contacts={crmContacts}
-                  onContactsChange={handleContactsChange}
-                  currency={currency}
-                  records={dataset?.records || []}
-                  activeBusinessId={activeBusiness?.id}
-                />
-              )}
-
               {activeTab === 'insights' && (
                 <InsightsView
                   records={dataset?.records || []}
                   crmDeals={crmContacts}
                   currency={currency}
                   businessId={activeBusiness?.id}
+                />
+              )}
+
+              {activeTab === 'analytics' && (
+                <AnalyticsView
+                  records={dataset?.records || []}
+                  currency={currency}
+                />
+              )}
+
+              {activeTab === 'tax' && (
+                <TaxView
+                  records={dataset?.records || []}
+                  currency={currency}
                 />
               )}
             </>

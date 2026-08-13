@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, LayoutDashboard, BarChart3, Zap, GitPullRequest, Bot, Settings, FileText, ArrowRight, X } from 'lucide-react';
+import { Search, LayoutDashboard, BarChart3, Zap, GitPullRequest, Bot, Settings, FileText, ArrowRight, X, Table, Users, Receipt } from 'lucide-react';
 
 interface CommandPaletteModalProps {
   isOpen: boolean;
@@ -31,12 +31,16 @@ export const CommandPaletteModal: React.FC<CommandPaletteModalProps> = ({
   if (!isOpen) return null;
 
   const commands = [
-    { id: 'dash', title: 'Open Executive Dashboard', category: 'Navigation', icon: LayoutDashboard, action: () => { setActiveTab('dashboard'); onClose(); } },
-    { id: 'trans', title: 'View Financial Transactions & Spreadsheet Data', category: 'Data', icon: BarChart3, action: () => { setActiveTab('transactions'); onClose(); } },
-    { id: 'ins', title: 'Run Executive Strategic Intelligence Audit', category: 'Analytics', icon: Zap, action: () => { setActiveTab('insights'); onClose(); } },
-    { id: 'crm', title: 'Open Sales Pipeline CRM', category: 'Sales', icon: GitPullRequest, action: () => { setActiveTab('crm'); onClose(); } },
+    { id: 'overview', title: 'Executive Overview Dashboard', category: 'Navigation', icon: LayoutDashboard, action: () => { setActiveTab('overview'); onClose(); } },
+    { id: 'trans', title: 'Transaction Ledger & Data', category: 'Data', icon: Table, action: () => { setActiveTab('transactions'); onClose(); } },
+    { id: 'customers', title: 'Customer Intelligence 360', category: 'Customers', icon: Users, action: () => { setActiveTab('customers'); onClose(); } },
+    { id: 'pipeline', title: 'Sales Pipeline CRM', category: 'Sales', icon: GitPullRequest, action: () => { setActiveTab('pipeline'); onClose(); } },
+    { id: 'insights', title: 'Business Intelligence & Insights', category: 'Analytics', icon: Zap, action: () => { setActiveTab('insights'); onClose(); } },
+    { id: 'analytics', title: 'Advanced Financial Analytics', category: 'Analytics', icon: BarChart3, action: () => { setActiveTab('analytics'); onClose(); } },
+    { id: 'tax', title: 'Tax Intelligence & Schedule C', category: 'Tax', icon: Receipt, action: () => { setActiveTab('tax'); onClose(); } },
+    { id: 'reports', title: 'Executive Financial Reports', category: 'Reports', icon: FileText, action: () => { setActiveTab('reports'); onClose(); } },
+    { id: 'settings', title: 'Business Settings & Preferences', category: 'Settings', icon: Settings, action: () => { setActiveTab('settings'); onClose(); } },
     { id: 'ai', title: 'Ask AI Business Copilot', category: 'AI Assistant', icon: Bot, action: () => { onClose(); onOpenAI(); } },
-    { id: 'sett', title: 'Configure Fiscal Year & Business Settings', category: 'Settings', icon: Settings, action: () => { setActiveTab('settings'); onClose(); } },
   ];
 
   const filtered = commands.filter(c =>

@@ -8,6 +8,8 @@ import { generateBusinessSummary } from '../utils/summaryEngine';
 import { calculateFinancialHealthScore } from '../utils/healthCalculator';
 import { classifyExpenses, calculateCashFlowProjections, simulateScenario } from '../utils/forecastingEngine';
 import { GoalTrackerCard } from './GoalTrackerCard';
+import { BusinessDiagnosisCard } from './BusinessDiagnosisCard';
+import { ProfitLeakCard } from './ProfitLeakCard';
 import {
   TrendingUp,
   AlertTriangle,
@@ -180,6 +182,12 @@ export const InsightsView: React.FC<InsightsViewProps> = ({
 
       {records.length > 0 ? (
         <>
+          {/* Automatic Business Diagnosis & Profit Leak Detector Section */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <BusinessDiagnosisCard records={records} currency={currency} />
+            <ProfitLeakCard records={records} currency={currency} />
+          </div>
+
           {/* Executive Diagnostic Scorecard & Cashflow Forecast Grid */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
             {/* 1. Financial Health Scorecard Gauge */}

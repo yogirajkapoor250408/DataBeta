@@ -1,5 +1,5 @@
 import React from 'react';
-import { LayoutDashboard, BarChart3, Zap, GitPullRequest, Bot } from 'lucide-react';
+import { LayoutDashboard, Table, Zap, GitPullRequest, Bot } from 'lucide-react';
 
 interface MobileBottomNavProps {
   activeTab: string;
@@ -13,14 +13,14 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
   onOpenAI,
 }) => {
   const tabs = [
-    { id: 'dashboard', label: 'Home', icon: LayoutDashboard },
-    { id: 'transactions', label: 'Data', icon: BarChart3 },
+    { id: 'overview', label: 'Home', icon: LayoutDashboard },
+    { id: 'transactions', label: 'Data', icon: Table },
     { id: 'insights', label: 'Insights', icon: Zap },
-    { id: 'crm', label: 'CRM', icon: GitPullRequest },
+    { id: 'pipeline', label: 'CRM', icon: GitPullRequest },
   ];
 
   return (
-    <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/90 dark:bg-zinc-950/90 backdrop-blur-xl border-t border-slate-200/80 dark:border-zinc-800/80 px-2 py-2 flex items-center justify-around shadow-2xl no-print">
+    <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 dark:bg-zinc-950/95 backdrop-blur-xl border-t border-slate-200/80 dark:border-zinc-800/80 px-2 py-2 flex items-center justify-around shadow-2xl no-print">
       {tabs.map((tab) => {
         const Icon = tab.icon;
         const isActive = activeTab === tab.id;
@@ -40,16 +40,16 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
         );
       })}
 
-      {/* Dedicated Mobile AI Copilot Trigger */}
+      {/* Mobile AI Copilot Trigger */}
       <button
         onClick={onOpenAI}
-        className="flex flex-col items-center justify-center py-1 px-3 rounded-2xl min-w-[56px] min-h-[48px] text-rose-600 dark:text-rose-500 font-extrabold active:scale-95 transition-all"
+        className="flex flex-col items-center justify-center py-1 px-3 rounded-2xl min-w-[56px] min-h-[48px] active:scale-95 transition-all"
         title="Open AI Business Copilot"
       >
         <div className="w-7 h-7 rounded-full bg-rose-600 text-white flex items-center justify-center shadow-md shadow-rose-600/30">
           <Bot className="w-4 h-4" />
         </div>
-        <span className="text-[10px] mt-0.5 tracking-tight font-extrabold">Copilot</span>
+        <span className="text-[10px] mt-0.5 tracking-tight font-extrabold text-rose-600 dark:text-rose-500">Copilot</span>
       </button>
     </div>
   );

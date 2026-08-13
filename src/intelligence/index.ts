@@ -7,6 +7,8 @@ import { calculateStatisticalSummary, StatisticalSummary } from './statisticalEn
 import { detectAnomalies, DataAnomalyItem } from './anomalyEngine';
 import { calculateCustomerIntelligence, CustomerIntelligenceResult } from './customerIntelligence';
 import { calculateTaxOptimization, TaxOptimizerResult } from './taxIntelligence';
+import { diagnoseBusinessPerformance, BusinessDiagnosisResult } from './diagnosisEngine';
+import { scanProfitLeaks, ProfitLeakSummary } from './profitLeakEngine';
 import { calculateMetrics } from '../utils/metricsCalculator';
 import { calculateFinancialHealthScore } from '../utils/healthCalculator';
 import { classifyExpenses, calculateCashFlowProjections, simulateScenario } from '../utils/forecastingEngine';
@@ -20,6 +22,8 @@ export interface MasterIntelligenceResult {
   anomalies: DataAnomalyItem[];
   customerIntelligence: CustomerIntelligenceResult;
   taxOptimization: TaxOptimizerResult;
+  diagnosis: BusinessDiagnosisResult;
+  profitLeaks: ProfitLeakSummary;
   healthScorecard: ReturnType<typeof calculateFinancialHealthScore>;
   cashForecast: ReturnType<typeof calculateCashFlowProjections>;
   expenseClassification: ReturnType<typeof classifyExpenses>;
@@ -59,6 +63,8 @@ export function runMasterDataBetaIntelligence(
   const anomalies = detectAnomalies(cleanedData.cleanedRecords, currency);
   const customerIntelligence = calculateCustomerIntelligence(cleanedData.cleanedRecords, currency);
   const taxOptimization = calculateTaxOptimization(cleanedData.cleanedRecords, currency);
+  const diagnosis = diagnoseBusinessPerformance(cleanedData.cleanedRecords, currency);
+  const profitLeaks = scanProfitLeaks(cleanedData.cleanedRecords, currency);
   const healthScorecard = calculateFinancialHealthScore(cleanedData.cleanedRecords);
   const cashForecast = calculateCashFlowProjections(cleanedData.cleanedRecords);
   const expenseClassification = classifyExpenses(cleanedData.cleanedRecords);
@@ -77,6 +83,8 @@ export function runMasterDataBetaIntelligence(
     anomalies,
     customerIntelligence,
     taxOptimization,
+    diagnosis,
+    profitLeaks,
     healthScorecard,
     cashForecast,
     expenseClassification,
@@ -92,3 +100,5 @@ export * from './statisticalEngine';
 export * from './anomalyEngine';
 export * from './customerIntelligence';
 export * from './taxIntelligence';
+export * from './diagnosisEngine';
+export * from './profitLeakEngine';

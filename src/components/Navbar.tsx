@@ -5,7 +5,6 @@ import {
   Users,
   GitPullRequest,
   Zap,
-  Home,
   Sun,
   Moon,
   Upload,
@@ -14,12 +13,17 @@ import {
   ChevronDown,
   Search,
   Calendar,
+  BarChart3,
+  Receipt,
+  Settings,
+  FileText,
 } from 'lucide-react';
+import { format } from 'date-fns';
 import { DatasetMeta, CurrencyCode, CURRENCIES, User } from '../types';
 import { BusinessSelector } from './BusinessSelector';
 import { BusinessMembership, Business } from '../services/businessService';
 
-export type CoreTab = 'landing' | 'overview' | 'transactions' | 'customers' | 'pipeline' | 'insights';
+export type CoreTab = 'landing' | 'overview' | 'transactions' | 'customers' | 'pipeline' | 'insights' | 'analytics' | 'reports' | 'tax' | 'settings';
 
 interface NavbarProps {
   activeTab: CoreTab;
@@ -65,10 +69,14 @@ export const Navbar: React.FC<NavbarProps> = ({
   const tabTitles: Record<string, string> = {
     landing: 'Company Overview',
     overview: 'Executive Overview',
-    transactions: 'Transactions Studio',
-    customers: 'Customer Accounts & 360',
+    transactions: 'Transaction Ledger',
+    customers: 'Customer Intelligence',
     pipeline: 'Sales Pipeline CRM',
-    insights: 'Real-Data Business Insights',
+    insights: 'Business Intelligence',
+    analytics: 'Advanced Analytics',
+    reports: 'Executive Reports',
+    tax: 'Tax Intelligence',
+    settings: 'Business Settings',
   };
 
   if (activeTab === 'landing') return null;
@@ -139,7 +147,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
             <button
               onClick={() => setActiveTab('insights')}
-              title="Insights"
+              title="Business Intelligence"
               className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-150 active:scale-95 ${
                 activeTab === 'insights'
                   ? 'bg-rose-600 text-white shadow-xs'
@@ -148,11 +156,59 @@ export const Navbar: React.FC<NavbarProps> = ({
             >
               <Zap className="w-5 h-5" />
             </button>
+
+            <button
+              onClick={() => setActiveTab('analytics')}
+              title="Advanced Analytics"
+              className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-150 active:scale-95 ${
+                activeTab === 'analytics'
+                  ? 'bg-rose-600 text-white shadow-xs'
+                  : 'text-slate-500 dark:text-zinc-400 hover:bg-slate-100 dark:hover:bg-zinc-900 hover:text-slate-900 dark:hover:text-white'
+              }`}
+            >
+              <BarChart3 className="w-5 h-5" />
+            </button>
+
+            <button
+              onClick={() => setActiveTab('tax')}
+              title="Tax Intelligence"
+              className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-150 active:scale-95 ${
+                activeTab === 'tax'
+                  ? 'bg-rose-600 text-white shadow-xs'
+                  : 'text-slate-500 dark:text-zinc-400 hover:bg-slate-100 dark:hover:bg-zinc-900 hover:text-slate-900 dark:hover:text-white'
+              }`}
+            >
+              <Receipt className="w-5 h-5" />
+            </button>
+
+            <button
+              onClick={() => setActiveTab('reports')}
+              title="Executive Reports"
+              className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-150 active:scale-95 ${
+                activeTab === 'reports'
+                  ? 'bg-rose-600 text-white shadow-xs'
+                  : 'text-slate-500 dark:text-zinc-400 hover:bg-slate-100 dark:hover:bg-zinc-900 hover:text-slate-900 dark:hover:text-white'
+              }`}
+            >
+              <FileText className="w-5 h-5" />
+            </button>
           </nav>
         </div>
 
         {/* Bottom Sidebar Controls */}
         <div className="flex flex-col items-center gap-3">
+          <button
+            onClick={() => setActiveTab('settings')}
+            title="Business Settings"
+            className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-150 active:scale-95 ${
+              activeTab === 'settings'
+                ? 'bg-rose-600 text-white shadow-xs'
+                : 'text-slate-500 dark:text-zinc-400 hover:bg-slate-100 dark:hover:bg-zinc-900 hover:text-slate-900 dark:hover:text-white'
+            }`}
+          >
+            <Settings className="w-5 h-5" />
+          </button>
+
           <button
             onClick={(e) => onToggleTheme(e)}
             title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
@@ -160,81 +216,8 @@ export const Navbar: React.FC<NavbarProps> = ({
           >
             {theme === 'dark' ? <Sun className="w-5 h-5 text-amber-400" /> : <Moon className="w-5 h-5 text-slate-700" />}
           </button>
-
-          {datasetMeta && (
-            <button
-              onClick={onClearData}
-              title="Reset Dataset"
-              className="w-10 h-10 rounded-xl flex items-center justify-center text-slate-500 dark:text-zinc-400 hover:text-rose-600 dark:hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 active:scale-95 transition-all duration-150"
-            >
-              <LogOut className="w-5 h-5" />
-            </button>
-          )}
         </div>
       </aside>
-
-      {/* Mobile Bottom Navigation Bar */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-white/95 dark:bg-zinc-950/95 backdrop-blur-lg border-t border-slate-200 dark:border-zinc-800 flex items-center justify-around z-40 px-2 no-print shadow-lg transition-colors duration-200">
-        <button
-          onClick={() => setActiveTab('overview')}
-          className={`flex flex-col items-center gap-1 py-1 px-3 rounded-xl transition-all active:scale-95 ${
-            activeTab === 'overview'
-              ? 'text-rose-600 dark:text-rose-500 font-bold'
-              : 'text-slate-500 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white'
-          }`}
-        >
-          <LayoutDashboard className="w-5 h-5" />
-          <span className="text-[10px]">Overview</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab('transactions')}
-          className={`flex flex-col items-center gap-1 py-1 px-3 rounded-xl transition-all active:scale-95 ${
-            activeTab === 'transactions'
-              ? 'text-rose-600 dark:text-rose-500 font-bold'
-              : 'text-slate-500 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white'
-          }`}
-        >
-          <Table className="w-5 h-5" />
-          <span className="text-[10px]">Data</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab('customers')}
-          className={`flex flex-col items-center gap-1 py-1 px-3 rounded-xl transition-all active:scale-95 ${
-            activeTab === 'customers'
-              ? 'text-rose-600 dark:text-rose-500 font-bold'
-              : 'text-slate-500 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white'
-          }`}
-        >
-          <Users className="w-5 h-5" />
-          <span className="text-[10px]">Clients</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab('pipeline')}
-          className={`flex flex-col items-center gap-1 py-1 px-3 rounded-xl transition-all active:scale-95 ${
-            activeTab === 'pipeline'
-              ? 'text-rose-600 dark:text-rose-500 font-bold'
-              : 'text-slate-500 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white'
-          }`}
-        >
-          <GitPullRequest className="w-5 h-5" />
-          <span className="text-[10px]">CRM</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab('insights')}
-          className={`flex flex-col items-center gap-1 py-1 px-3 rounded-xl transition-all active:scale-95 ${
-            activeTab === 'insights'
-              ? 'text-rose-600 dark:text-rose-500 font-bold'
-              : 'text-slate-500 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white'
-          }`}
-        >
-          <Zap className="w-5 h-5" />
-          <span className="text-[10px]">Insights</span>
-        </button>
-      </div>
 
       {/* Top Header Bar */}
       <header className="pl-0 md:pl-16 bg-white/80 dark:bg-zinc-950/80 backdrop-blur-md border-b border-slate-200 dark:border-zinc-800/80 sticky top-0 z-30 no-print transition-colors duration-200">
@@ -262,11 +245,11 @@ export const Navbar: React.FC<NavbarProps> = ({
               <span className="text-xs font-medium text-slate-400 dark:text-zinc-500">Search platform (⌘K)...</span>
             </div>
 
-            {/* Persistent Fiscal Period Selector Pill */}
+            {/* Persistent Fiscal Period Indicator */}
             <div className="hidden xl:flex items-center gap-1.5 bg-slate-100 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-full px-3 py-1.5 text-xs font-mono font-bold text-slate-700 dark:text-zinc-300">
               <Calendar className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400 shrink-0" />
-              <span>FY2026–27</span>
-              <span className="text-[10px] text-slate-400 dark:text-zinc-500 font-sans">| Apr Start</span>
+              <span>FY{format(new Date(), 'yyyy')}</span>
+              <span className="text-[10px] text-slate-400 dark:text-zinc-500 font-sans">| Active Period</span>
             </div>
           </div>
 
@@ -317,15 +300,31 @@ export const Navbar: React.FC<NavbarProps> = ({
                       <div className="font-bold text-slate-900 dark:text-white truncate">{currentUser.name}</div>
                       <div className="text-[11px] text-slate-500 dark:text-zinc-400 truncate">{currentUser.email}</div>
                       <span className="inline-block mt-1 bg-rose-600 text-white text-[9px] font-extrabold px-2 py-0.5 rounded-full uppercase">
-                        {currentUser.role}
+                        {currentUser.subscriptionStatus === 'paid' ? 'Pro' : 'Free'}
                       </span>
                     </div>
 
                     <button
-                      onClick={() => { onLogout(); setIsUserMenuOpen(false); }}
+                      onClick={() => { setActiveTab('settings'); setIsUserMenuOpen(false); }}
                       className="w-full text-left p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-zinc-900 text-slate-700 dark:text-zinc-300 font-bold flex items-center gap-2 active:scale-95 transition-all duration-150"
                     >
-                      <LogOut className="w-4 h-4 text-slate-500 dark:text-zinc-400" />
+                      <Settings className="w-4 h-4 text-slate-500 dark:text-zinc-400" />
+                      <span>Business Settings</span>
+                    </button>
+
+                    <button
+                      onClick={() => { setActiveTab('reports'); setIsUserMenuOpen(false); }}
+                      className="w-full text-left p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-zinc-900 text-slate-700 dark:text-zinc-300 font-bold flex items-center gap-2 active:scale-95 transition-all duration-150"
+                    >
+                      <FileText className="w-4 h-4 text-slate-500 dark:text-zinc-400" />
+                      <span>Executive Reports</span>
+                    </button>
+
+                    <button
+                      onClick={() => { onLogout(); setIsUserMenuOpen(false); }}
+                      className="w-full text-left p-2 rounded-xl hover:bg-rose-50 dark:hover:bg-rose-950/40 text-rose-600 dark:text-rose-400 font-bold flex items-center gap-2 active:scale-95 transition-all duration-150"
+                    >
+                      <LogOut className="w-4 h-4" />
                       <span>Sign Out</span>
                     </button>
                   </div>
