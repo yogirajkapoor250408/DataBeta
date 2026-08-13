@@ -5,6 +5,8 @@ import { formatCurrency } from '../utils/currencyFormatter';
 import { calculateCustomerAnalytics, calculateProductAnalytics } from '../utils/customerProductAnalytics';
 import { calculatePipelineSummary } from '../utils/crmEngine';
 import { calculateFinancialHealthScore } from '../utils/healthCalculator';
+import { WorkloadWaveCard } from './WorkloadWaveCard';
+import { BusinessPlannerCard } from './BusinessPlannerCard';
 import {
   DollarSign,
   TrendingUp,
@@ -189,11 +191,33 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         </button>
       </div>
 
-      {/* Revenue & Profit Charts Section */}
+      {/* Sleek 2-Column Workload & Operational Planner Grid (Inspired by Modern Minimalist UX) */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <WorkloadWaveCard
+          records={records}
+          currency={currency}
+          onNavigateTab={onNavigateTab}
+        />
+        <BusinessPlannerCard
+          records={records}
+          crmDeals={crmContacts}
+          onNavigateTab={onNavigateTab}
+        />
+      </div>
+
+      {/* Revenue & Profit Charts Section with Minimalist Time-frame Controls */}
       {monthlyChartData.length > 0 ? (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <div className="bg-white dark:bg-zinc-950 p-6 rounded-3xl border border-slate-200/80 dark:border-zinc-800 shadow-xs space-y-4">
-            <h3 className="font-bold text-slate-900 dark:text-white text-base">Revenue & Expense Trend</h3>
+            <div className="flex items-center justify-between">
+              <h3 className="font-bold text-slate-900 dark:text-white text-base">Revenue & Expense Trend</h3>
+              <div className="flex items-center gap-1 bg-slate-100 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 p-1 rounded-full text-[10px] font-bold font-mono">
+                <button className="px-2 py-0.5 rounded-full bg-white dark:bg-zinc-800 text-slate-900 dark:text-white shadow-xs">1M</button>
+                <button className="px-2 py-0.5 rounded-full text-slate-500 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white">3M</button>
+                <button className="px-2 py-0.5 rounded-full text-slate-500 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white">6M</button>
+                <button className="px-2 py-0.5 rounded-full text-slate-500 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white">1Y</button>
+              </div>
+            </div>
             <div className="h-64 w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={monthlyChartData}>

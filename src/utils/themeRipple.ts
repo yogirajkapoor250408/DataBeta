@@ -5,7 +5,7 @@ import React from 'react';
  * directly from the user's click point using the native View Transitions API.
  */
 export function toggleThemeWithRipple(
-  event: React.MouseEvent<HTMLElement> | MouseEvent | undefined,
+  event: React.MouseEvent<any> | MouseEvent | { clientX?: number; clientY?: number } | undefined,
   toggleCallback: () => void
 ) {
   // Fallback if View Transitions API is not supported or user prefers reduced motion
