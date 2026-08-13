@@ -24,6 +24,7 @@ import { MobileBottomNav } from './components/MobileBottomNav';
 import { CommandPaletteModal } from './components/CommandPaletteModal';
 import { AICopilotModal } from './components/AICopilotModal';
 import { ProtectedRoute } from './components/ProtectedRoute';
+import { PresenceToast } from './components/PresenceToast';
 
 const THEME_KEY = 'databeta_theme';
 const ACTIVE_BIZ_KEY = 'databeta_active_biz_id';
@@ -386,6 +387,9 @@ const InnerDashboardApp: React.FC = () => {
       <footer className="pl-0 md:pl-14 bg-white dark:bg-zinc-950 border-t border-slate-200 dark:border-zinc-800/80 py-4 text-center text-xs text-slate-500 dark:text-zinc-500 no-print pb-24 md:pb-4">
         <p>DataBeta Technologies — Business Intelligence & CRM Platform</p>
       </footer>
+
+      {/* Global Live Presence Telemetry Feed (10,000+ Variants) */}
+      <PresenceToast context={activeTab === 'settings' ? 'overview' : activeTab} enabled={true} />
 
       <FileUploadModal
         isOpen={isUploadOpen}
