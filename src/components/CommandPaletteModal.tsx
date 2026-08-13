@@ -31,15 +31,12 @@ export const CommandPaletteModal: React.FC<CommandPaletteModalProps> = ({
   if (!isOpen) return null;
 
   const commands = [
-    { id: 'overview', title: 'Executive Overview Dashboard', category: 'Navigation', icon: LayoutDashboard, action: () => { setActiveTab('overview'); onClose(); } },
-    { id: 'trans', title: 'Transaction Ledger & Data', category: 'Data', icon: Table, action: () => { setActiveTab('transactions'); onClose(); } },
-    { id: 'customers', title: 'Customer Intelligence 360', category: 'Customers', icon: Users, action: () => { setActiveTab('customers'); onClose(); } },
-    { id: 'pipeline', title: 'Sales Pipeline CRM', category: 'Sales', icon: GitPullRequest, action: () => { setActiveTab('pipeline'); onClose(); } },
-    { id: 'insights', title: 'Business Intelligence & Insights', category: 'Analytics', icon: Zap, action: () => { setActiveTab('insights'); onClose(); } },
-    { id: 'analytics', title: 'Advanced Financial Analytics', category: 'Analytics', icon: BarChart3, action: () => { setActiveTab('analytics'); onClose(); } },
-    { id: 'tax', title: 'Tax Intelligence & Schedule C', category: 'Tax', icon: Receipt, action: () => { setActiveTab('tax'); onClose(); } },
-    { id: 'reports', title: 'Executive Financial Reports', category: 'Reports', icon: FileText, action: () => { setActiveTab('reports'); onClose(); } },
-    { id: 'settings', title: 'Business Settings & Preferences', category: 'Settings', icon: Settings, action: () => { setActiveTab('settings'); onClose(); } },
+    { id: 'overview', title: 'Executive Overview Command Center', category: 'Navigation', icon: LayoutDashboard, action: () => { setActiveTab('overview'); onClose(); } },
+    { id: 'crm', title: 'CRM, Pipeline, Contacts & Tasks', category: 'CRM', icon: Users, action: () => { setActiveTab('crm'); onClose(); } },
+    { id: 'finance', title: 'Finance Ledger, P&L, Taxes & Runway', category: 'Finance', icon: DollarSign, action: () => { setActiveTab('finance'); onClose(); } },
+    { id: 'insights', title: 'Business Intelligence, Leaks & Forecaster', category: 'Intelligence', icon: Zap, action: () => { setActiveTab('insights'); onClose(); } },
+    { id: 'reports', title: 'Executive Financial Reports & Statements', category: 'Reports', icon: FileText, action: () => { setActiveTab('reports'); onClose(); } },
+    { id: 'settings', title: 'Business Settings & Data Backup', category: 'Settings', icon: Settings, action: () => { setActiveTab('settings'); onClose(); } },
     { id: 'ai', title: 'Ask AI Business Copilot', category: 'AI Assistant', icon: Bot, action: () => { onClose(); onOpenAI(); } },
   ];
 

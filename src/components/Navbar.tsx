@@ -23,7 +23,7 @@ import { DatasetMeta, CurrencyCode, CURRENCIES, User } from '../types';
 import { BusinessSelector } from './BusinessSelector';
 import { BusinessMembership, Business } from '../services/businessService';
 
-export type CoreTab = 'landing' | 'overview' | 'transactions' | 'customers' | 'pipeline' | 'insights' | 'analytics' | 'reports' | 'tax' | 'settings';
+export type CoreTab = 'overview' | 'crm' | 'finance' | 'insights' | 'reports' | 'settings';
 
 interface NavbarProps {
   activeTab: CoreTab;
@@ -66,20 +66,14 @@ export const Navbar: React.FC<NavbarProps> = ({
 }) => {
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
 
-  const tabTitles: Record<string, string> = {
-    landing: 'Company Overview',
+  const tabTitles: Record<CoreTab, string> = {
     overview: 'Executive Overview',
-    transactions: 'Transaction Ledger',
-    customers: 'Customer Intelligence',
-    pipeline: 'Sales Pipeline CRM',
+    crm: 'CRM & Pipeline',
+    finance: 'Finance & Ledger',
     insights: 'Business Intelligence',
-    analytics: 'Advanced Analytics',
     reports: 'Executive Reports',
-    tax: 'Tax Intelligence',
     settings: 'Business Settings',
   };
-
-  if (activeTab === 'landing') return null;
 
   return (
     <>
@@ -110,22 +104,10 @@ export const Navbar: React.FC<NavbarProps> = ({
             </button>
 
             <button
-              onClick={() => setActiveTab('transactions')}
-              title="Transactions"
+              onClick={() => setActiveTab('crm')}
+              title="CRM & Pipeline"
               className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-150 active:scale-95 ${
-                activeTab === 'transactions'
-                  ? 'bg-rose-600 text-white shadow-xs'
-                  : 'text-slate-500 dark:text-zinc-400 hover:bg-slate-100 dark:hover:bg-zinc-900 hover:text-slate-900 dark:hover:text-white'
-              }`}
-            >
-              <Table className="w-5 h-5" />
-            </button>
-
-            <button
-              onClick={() => setActiveTab('customers')}
-              title="Customers"
-              className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-150 active:scale-95 ${
-                activeTab === 'customers'
+                activeTab === 'crm'
                   ? 'bg-rose-600 text-white shadow-xs'
                   : 'text-slate-500 dark:text-zinc-400 hover:bg-slate-100 dark:hover:bg-zinc-900 hover:text-slate-900 dark:hover:text-white'
               }`}
@@ -134,15 +116,15 @@ export const Navbar: React.FC<NavbarProps> = ({
             </button>
 
             <button
-              onClick={() => setActiveTab('pipeline')}
-              title="Pipeline CRM"
+              onClick={() => setActiveTab('finance')}
+              title="Finance & Ledger"
               className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-150 active:scale-95 ${
-                activeTab === 'pipeline'
+                activeTab === 'finance'
                   ? 'bg-rose-600 text-white shadow-xs'
                   : 'text-slate-500 dark:text-zinc-400 hover:bg-slate-100 dark:hover:bg-zinc-900 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
-              <GitPullRequest className="w-5 h-5" />
+              <DollarSign className="w-5 h-5" />
             </button>
 
             <button
@@ -155,30 +137,6 @@ export const Navbar: React.FC<NavbarProps> = ({
               }`}
             >
               <Zap className="w-5 h-5" />
-            </button>
-
-            <button
-              onClick={() => setActiveTab('analytics')}
-              title="Advanced Analytics"
-              className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-150 active:scale-95 ${
-                activeTab === 'analytics'
-                  ? 'bg-rose-600 text-white shadow-xs'
-                  : 'text-slate-500 dark:text-zinc-400 hover:bg-slate-100 dark:hover:bg-zinc-900 hover:text-slate-900 dark:hover:text-white'
-              }`}
-            >
-              <BarChart3 className="w-5 h-5" />
-            </button>
-
-            <button
-              onClick={() => setActiveTab('tax')}
-              title="Tax Intelligence"
-              className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-150 active:scale-95 ${
-                activeTab === 'tax'
-                  ? 'bg-rose-600 text-white shadow-xs'
-                  : 'text-slate-500 dark:text-zinc-400 hover:bg-slate-100 dark:hover:bg-zinc-900 hover:text-slate-900 dark:hover:text-white'
-              }`}
-            >
-              <Receipt className="w-5 h-5" />
             </button>
 
             <button

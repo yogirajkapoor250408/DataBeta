@@ -1,5 +1,5 @@
 import React from 'react';
-import { LayoutDashboard, Table, Zap, GitPullRequest, Bot } from 'lucide-react';
+import { LayoutDashboard, Users, DollarSign, Zap, FileText, Bot } from 'lucide-react';
 
 interface MobileBottomNavProps {
   activeTab: string;
@@ -13,10 +13,11 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
   onOpenAI,
 }) => {
   const tabs = [
-    { id: 'overview', label: 'Home', icon: LayoutDashboard },
-    { id: 'transactions', label: 'Data', icon: Table },
+    { id: 'overview', label: 'Overview', icon: LayoutDashboard },
+    { id: 'crm', label: 'CRM', icon: Users },
+    { id: 'finance', label: 'Finance', icon: DollarSign },
     { id: 'insights', label: 'Insights', icon: Zap },
-    { id: 'pipeline', label: 'CRM', icon: GitPullRequest },
+    { id: 'reports', label: 'Reports', icon: FileText },
   ];
 
   return (

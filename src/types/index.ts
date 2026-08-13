@@ -217,13 +217,15 @@ export interface CohortSummary {
   overallRepeatRatePct?: number;
 }
 
-// CRM TYPES
+// CRM RELATIONAL TYPES
 export type CRMStage = 'lead' | 'qualified' | 'proposal' | 'negotiation' | 'closed_won' | 'closed_lost' | 'in_touch' | 'offer_sent' | 'discussion';
 
 export interface CRMContact {
   id: string;
   name: string;
   company: string;
+  companyId?: string;
+  role?: string;
   email: string;
   phone?: string;
   location?: string;
@@ -238,6 +240,32 @@ export interface CRMContact {
   orderCount: number;
   commentsCount?: number;
   attachmentsCount?: number;
+}
+
+export interface CRMCompany {
+  id: string;
+  name: string;
+  domain?: string;
+  industry?: string;
+  tier?: 'Enterprise' | 'Mid-Market' | 'SMB';
+  contactsCount: number;
+  dealsCount: number;
+  openPipelineValue: number;
+  lifetimeRevenue: number;
+  createdAt: string;
+}
+
+export interface CRMTask {
+  id: string;
+  title: string;
+  dueDate: string; // YYYY-MM-DD
+  priority: 'urgent' | 'high' | 'normal';
+  status: 'pending' | 'completed';
+  contactId?: string;
+  contactName?: string;
+  dealId?: string;
+  dealTitle?: string;
+  createdAt: string;
 }
 
 export interface CRMActivity {

@@ -5,34 +5,20 @@ import { formatCurrency } from '../utils/currencyFormatter';
 import { calculateCustomerAnalytics } from '../utils/customerProductAnalytics';
 import { calculatePipelineSummary } from '../utils/crmEngine';
 import { calculateFinancialHealthScore } from '../utils/healthCalculator';
-import { CashRunwayCard } from './CashRunwayCard';
-import { BusinessPlannerCard } from './BusinessPlannerCard';
-import { TaxSavingsWidget } from './TaxSavingsWidget';
-import { BusinessDiagnosisCard } from './BusinessDiagnosisCard';
-import { ProfitLeakCard } from './ProfitLeakCard';
+import { scanProfitLeaks } from '../intelligence/profitLeakEngine';
+import { calculateCashRunway } from '../intelligence/cashRunwayEngine';
 import { ShopifyAnalyticsChart } from './ShopifyAnalyticsChart';
 import { CoreTab } from './Navbar';
 import {
   DollarSign,
   TrendingUp,
   TrendingDown,
-  Users,
   GitPullRequest,
   Plus,
   ArrowRight,
-  ShieldCheck,
-  Zap,
-  BarChart3,
-  Receipt,
-  FileText,
-  Settings,
-  Calendar,
-  Layers,
-  ArrowUpRight,
-  Sparkles,
-  Download,
-  Clock,
+  AlertTriangle,
   CheckCircle2,
+  Clock,
   X,
 } from 'lucide-react';
 
@@ -57,6 +43,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const customerStats = useMemo(() => calculateCustomerAnalytics(records), [records]);
   const pipelineStats = useMemo(() => calculatePipelineSummary(crmContacts), [crmContacts]);
   const healthScore = useMemo(() => calculateFinancialHealthScore(records), [records]);
+  const profitLeaks = useMemo(() => scanProfitLeaks(records, currency), [records, currency]);
+  const runway = useMemo(() => calculateCashRunway(records), [records]);
 
   // Quick Manual Transaction Modal State
   const [showQuickModal, setShowQuickModal] = useState(false);
@@ -92,251 +80,296 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     setQProduct('');
   };
 
-  const primaryInsightText = useMemo(() => {
-    if (records.length === 0) return 'Import your first transaction dataset to generate automatic operational insights.';
-    if (metrics.profitMargin && metrics.profitMargin >= 25) {
-      return `Strong financial performance: Net profit margin of ${metrics.profitMargin.toFixed(1)}% across ${metrics.transactionCount} transactions.`;
+  // Top critical attention items
+  const attentionItems = useMemo(() => {
+    const items: {
+      id: string;
+      type: 'leak' | 'deal' | 'risk' | 'opportunity';
+      title: string;
+      subtitle: string;
+      actionText: string;
+      actionTab: CoreTab;
+      severity: 'critical' | 'warning' | 'opportunity';
+    }[] = [];
+
+    // 1. Critical profit leaks
+    if (profitLeaks.leaks.length > 0) {
+      const topLeak = profitLeaks.leaks[0];
+      items.push({
+        id: 'top-leak',
+        type: 'leak',
+        title: `Profit Leak: ${topLeak.title}`,
+        subtitle: `${topLeak.description} (Annualized drain: ${formatCurrency(topLeak.monthlyLeakAmount * 12, currency)})`,
+        actionText: 'Review Leak Fix',
+        actionTab: 'insights',
+        severity: 'critical',
+      });
     }
-    if (customerStats.topCustomerSharePct > 30) {
-      return `Concentration notice: Your top client generates ${customerStats.topCustomerSharePct.toFixed(1)}% of total revenue.`;
+
+    // 2. High-value closing opportunities
+    const hotDeals = crmContacts.filter((c) => c.stage === 'proposal' || c.stage === 'negotiation');
+    if (hotDeals.length > 0) {
+      const deal = hotDeals[0];
+      items.push({
+        id: 'hot-deal',
+        type: 'deal',
+        title: `Pending Close: ${deal.company || deal.name}`,
+        subtitle: `Deal value ${formatCurrency(deal.dealValue, currency)} in ${deal.stage.toUpperCase()} stage. Follow-up required.`,
+        actionText: 'Open CRM Pipeline',
+        actionTab: 'pipeline',
+        severity: 'opportunity',
+      });
     }
-    return `Operational overview: Total revenue stands at ${formatCurrency(metrics.totalRevenue || 0, currency)}.`;
-  }, [records, metrics, customerStats, currency]);
+
+    // 3. Customer Concentration Risk
+    if (customerStats.topCustomerSharePct > 25 && customerStats.topCustomerName) {
+      items.push({
+        id: 'customer-risk',
+        type: 'risk',
+        title: `Customer Concentration: ${customerStats.topCustomerSharePct.toFixed(1)}% Revenue Share`,
+        subtitle: `${customerStats.topCustomerName} generates over a quarter of total revenue. Diversify client acquisition.`,
+        actionText: 'View Customer 360',
+        actionTab: 'customers',
+        severity: 'warning',
+      });
+    }
+
+    // 4. Working Capital / Runway Alert
+    if (runway.runwayMonths < 4 && runway.runwayMonths > 0) {
+      items.push({
+        id: 'runway-alert',
+        type: 'risk',
+        title: `Cash Runway: ${runway.runwayMonths.toFixed(1)} Months Remaining`,
+        subtitle: `Based on trailing 30-day burn rate of ${formatCurrency(runway.monthlyBurnRate, currency)}/mo.`,
+        actionText: 'Inspect Runway',
+        actionTab: 'insights',
+        severity: 'critical',
+      });
+    }
+
+    return items.slice(0, 3);
+  }, [profitLeaks, crmContacts, customerStats, runway, currency]);
 
   return (
-    <div className="space-y-6 animate-fadeIn">
-      {/* Platform Navigation Pills - Quick Jump to All 8 Feature Modules */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-1.5 pt-0.5 custom-scrollbar text-xs font-bold no-print">
-        <button
-          onClick={() => onNavigateTab('insights')}
-          className="shrink-0 flex items-center gap-1.5 px-3.5 py-1.5 bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 rounded-full border border-rose-200 dark:border-rose-900/60 hover:bg-rose-100 active:scale-95 transition-all"
-        >
-          <Zap className="w-3.5 h-3.5" />
-          <span>Intelligence Insights</span>
-        </button>
-
-        <button
-          onClick={() => onNavigateTab('analytics')}
-          className="shrink-0 flex items-center gap-1.5 px-3.5 py-1.5 bg-slate-100 dark:bg-zinc-900 text-slate-700 dark:text-zinc-300 rounded-full border border-slate-200 dark:border-zinc-800 hover:border-slate-300 active:scale-95 transition-all"
-        >
-          <BarChart3 className="w-3.5 h-3.5 text-blue-500" />
-          <span>Advanced Analytics</span>
-        </button>
-
-        <button
-          onClick={() => onNavigateTab('tax')}
-          className="shrink-0 flex items-center gap-1.5 px-3.5 py-1.5 bg-slate-100 dark:bg-zinc-900 text-slate-700 dark:text-zinc-300 rounded-full border border-slate-200 dark:border-zinc-800 hover:border-slate-300 active:scale-95 transition-all"
-        >
-          <Receipt className="w-3.5 h-3.5 text-amber-500" />
-          <span>Tax & Schedule C</span>
-        </button>
-
-        <button
-          onClick={() => onNavigateTab('reports')}
-          className="shrink-0 flex items-center gap-1.5 px-3.5 py-1.5 bg-slate-100 dark:bg-zinc-900 text-slate-700 dark:text-zinc-300 rounded-full border border-slate-200 dark:border-zinc-800 hover:border-slate-300 active:scale-95 transition-all"
-        >
-          <FileText className="w-3.5 h-3.5 text-emerald-500" />
-          <span>Executive Reports (PDF)</span>
-        </button>
-
-        <button
-          onClick={() => onNavigateTab('customers')}
-          className="shrink-0 flex items-center gap-1.5 px-3.5 py-1.5 bg-slate-100 dark:bg-zinc-900 text-slate-700 dark:text-zinc-300 rounded-full border border-slate-200 dark:border-zinc-800 hover:border-slate-300 active:scale-95 transition-all"
-        >
-          <Users className="w-3.5 h-3.5 text-indigo-500" />
-          <span>Customer 360</span>
-        </button>
-
-        <button
-          onClick={() => onNavigateTab('pipeline')}
-          className="shrink-0 flex items-center gap-1.5 px-3.5 py-1.5 bg-slate-100 dark:bg-zinc-900 text-slate-700 dark:text-zinc-300 rounded-full border border-slate-200 dark:border-zinc-800 hover:border-slate-300 active:scale-95 transition-all"
-        >
-          <GitPullRequest className="w-3.5 h-3.5 text-purple-500" />
-          <span>Pipeline CRM</span>
-        </button>
-
-        <button
-          onClick={() => onNavigateTab('transactions')}
-          className="shrink-0 flex items-center gap-1.5 px-3.5 py-1.5 bg-slate-100 dark:bg-zinc-900 text-slate-700 dark:text-zinc-300 rounded-full border border-slate-200 dark:border-zinc-800 hover:border-slate-300 active:scale-95 transition-all"
-        >
-          <DollarSign className="w-3.5 h-3.5 text-emerald-500" />
-          <span>Transaction Ledger</span>
-        </button>
-
-        <button
-          onClick={() => onNavigateTab('settings')}
-          className="shrink-0 flex items-center gap-1.5 px-3.5 py-1.5 bg-slate-100 dark:bg-zinc-900 text-slate-700 dark:text-zinc-300 rounded-full border border-slate-200 dark:border-zinc-800 hover:border-slate-300 active:scale-95 transition-all"
-        >
-          <Settings className="w-3.5 h-3.5 text-slate-400" />
-          <span>Settings</span>
-        </button>
-      </div>
-
+    <div className="space-y-6">
       {/* Executive Command Header */}
-      <div className="bg-white dark:bg-zinc-950 text-slate-900 dark:text-white p-7 rounded-3xl border border-slate-200/80 dark:border-zinc-800 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+      <div className="bg-white dark:bg-zinc-950 p-6 sm:p-7 rounded-3xl border border-slate-200/80 dark:border-zinc-800 shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2 text-xs font-bold text-rose-600 dark:text-rose-500 uppercase tracking-widest mb-1">
-            <Zap className="w-4 h-4 text-rose-600" />
-            <span>Business Command Center</span>
+          <div className="flex items-center gap-2 mb-1">
+            <span className="text-[10px] font-extrabold uppercase tracking-widest text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-900/60 px-2.5 py-0.5 rounded-full">
+              Live Business Health Grade: {healthScore.grade} ({healthScore.score}/100)
+            </span>
+            <span className="text-xs text-slate-400 dark:text-zinc-500 font-mono">
+              • {metrics.transactionCount} records synchronized
+            </span>
           </div>
-          <h2 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
-            Strategic Advisory Briefing
+          <h2 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight">
+            Executive Command Center
           </h2>
           <p className="text-xs text-slate-500 dark:text-zinc-400 mt-1 max-w-xl">
-            {primaryInsightText}
+            Continuous deterministic briefing on operational health, revenue trajectory, and immediate daily priorities.
           </p>
         </div>
 
         <div className="flex items-center gap-3 flex-wrap">
           <button
             onClick={() => setShowQuickModal(true)}
-            className="px-4 py-2.5 bg-slate-100 dark:bg-zinc-900 hover:bg-slate-200 dark:hover:bg-zinc-800 text-slate-800 dark:text-zinc-200 text-xs font-extrabold rounded-full transition-all flex items-center gap-2 border border-slate-200 dark:border-zinc-800 active:scale-95"
+            className="px-4 py-2.5 bg-slate-100 dark:bg-zinc-900 hover:bg-slate-200 dark:hover:bg-zinc-800 text-slate-800 dark:text-zinc-200 text-xs font-extrabold rounded-full transition-all flex items-center gap-2 border border-slate-200 dark:border-zinc-800 active:scale-[0.98]"
           >
             <Plus className="w-3.5 h-3.5 text-rose-600" />
             <span>Quick Entry</span>
           </button>
-          <button
-            onClick={() => onNavigateTab('insights')}
-            className="px-4 py-2.5 bg-slate-100 dark:bg-zinc-900 hover:bg-slate-200 dark:hover:bg-zinc-800 text-slate-800 dark:text-zinc-200 text-xs font-extrabold rounded-full transition-all flex items-center gap-2 border border-slate-200 dark:border-zinc-800"
-          >
-            <span>Deep Insights</span>
-            <ArrowRight className="w-3.5 h-3.5" />
-          </button>
+
           <button
             onClick={onOpenUpload}
-            className="px-5 py-2.5 bg-rose-600 hover:bg-rose-500 text-white text-xs font-extrabold rounded-full shadow-md shadow-rose-600/30 transition-all flex items-center gap-2 active:scale-95"
+            className="px-5 py-2.5 bg-rose-600 hover:bg-rose-500 text-white text-xs font-extrabold rounded-full shadow-md shadow-rose-600/30 transition-all flex items-center gap-2 active:scale-[0.98]"
           >
             <Plus className="w-4 h-4" />
-            <span>Upload Spreadsheet</span>
+            <span>Import Data</span>
           </button>
         </div>
       </div>
 
-      {/* 6 Executive Key Metric Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3">
-        <div className="bg-white dark:bg-zinc-950 p-5 rounded-3xl border border-slate-200/80 dark:border-zinc-800 shadow-xs space-y-1 hover-card-subtle transition-all">
-          <div className="text-[10px] font-bold text-slate-500 dark:text-zinc-400 uppercase tracking-wider">Total Revenue</div>
-          <div className="text-xl font-black text-slate-900 dark:text-white">
-            {metrics.totalRevenue !== null ? formatCurrency(metrics.totalRevenue, currency) : <span className="text-slate-400 dark:text-zinc-600 text-sm font-medium">No data</span>}
+      {/* 4 Essential Pulse Metric Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Total Revenue */}
+        <div className="bg-white dark:bg-zinc-950 p-5 rounded-3xl border border-slate-200/80 dark:border-zinc-800 shadow-xs space-y-1 hover-card-subtle">
+          <div className="flex items-center justify-between text-slate-500 dark:text-zinc-400">
+            <span className="text-[10px] font-bold uppercase tracking-wider">Total Revenue</span>
+            <DollarSign className="w-4 h-4 text-emerald-500" />
           </div>
-          <p className="text-[10px] text-slate-400 dark:text-zinc-500 font-mono">{metrics.transactionCount} transactions</p>
-        </div>
-
-        <div className="bg-white dark:bg-zinc-950 p-5 rounded-3xl border border-slate-200/80 dark:border-zinc-800 shadow-xs space-y-1 hover-card-subtle transition-all">
-          <div className="text-[10px] font-bold text-slate-500 dark:text-zinc-400 uppercase tracking-wider">Total Expenses</div>
-          <div className="text-xl font-black text-slate-700 dark:text-zinc-300">
-            {metrics.totalExpenses !== null ? formatCurrency(metrics.totalExpenses, currency) : <span className="text-slate-400 dark:text-zinc-600 text-sm font-medium">No data</span>}
+          <div className="text-2xl font-black text-slate-900 dark:text-white tabular-nums font-mono">
+            {metrics.totalRevenue !== null ? formatCurrency(metrics.totalRevenue, currency) : '—'}
           </div>
-          <p className="text-[10px] text-slate-400 dark:text-zinc-500 font-mono">Operational costs</p>
+          <p className="text-[11px] text-slate-400 dark:text-zinc-500">
+            {metrics.transactionCount} gross transactions logged
+          </p>
         </div>
 
-        <div className="bg-white dark:bg-zinc-950 p-5 rounded-3xl border border-slate-200/80 dark:border-zinc-800 shadow-xs space-y-1 hover-card-subtle transition-all">
-          <div className="text-[10px] font-bold text-slate-500 dark:text-zinc-400 uppercase tracking-wider">Net Profit</div>
-          <div className="text-xl font-black text-rose-600 dark:text-rose-500">
-            {metrics.estimatedProfit !== null ? formatCurrency(metrics.estimatedProfit, currency) : <span className="text-slate-400 dark:text-zinc-600 text-sm font-medium">No data</span>}
+        {/* Operating Costs */}
+        <div className="bg-white dark:bg-zinc-950 p-5 rounded-3xl border border-slate-200/80 dark:border-zinc-800 shadow-xs space-y-1 hover-card-subtle">
+          <div className="flex items-center justify-between text-slate-500 dark:text-zinc-400">
+            <span className="text-[10px] font-bold uppercase tracking-wider">Operating Expenses</span>
+            <TrendingDown className="w-4 h-4 text-slate-400" />
           </div>
-          <p className="text-[10px] text-slate-400 dark:text-zinc-500 font-mono">Bottom line income</p>
-        </div>
-
-        <div className="bg-white dark:bg-zinc-950 p-5 rounded-3xl border border-slate-200/80 dark:border-zinc-800 shadow-xs space-y-1 hover-card-subtle transition-all">
-          <div className="text-[10px] font-bold text-slate-500 dark:text-zinc-400 uppercase tracking-wider">Profit Margin</div>
-          <div className="text-xl font-black text-emerald-600 dark:text-emerald-400">
-            {metrics.profitMargin !== null ? `${metrics.profitMargin.toFixed(1)}%` : 'N/A'}
+          <div className="text-2xl font-black text-slate-700 dark:text-zinc-300 tabular-nums font-mono">
+            {metrics.totalExpenses !== null ? formatCurrency(metrics.totalExpenses, currency) : '—'}
           </div>
-          <p className="text-[10px] text-slate-400 dark:text-zinc-500 font-mono">Margin strength</p>
+          <p className="text-[11px] text-slate-400 dark:text-zinc-500">
+            {metrics.totalRevenue && metrics.totalExpenses ? `${((metrics.totalExpenses / metrics.totalRevenue) * 100).toFixed(1)}% of gross revenue` : 'Operational overhead'}
+          </p>
         </div>
 
-        <div className="bg-white dark:bg-zinc-950 p-5 rounded-3xl border border-slate-200/80 dark:border-zinc-800 shadow-xs space-y-1 hover-card-subtle transition-all">
-          <div className="text-[10px] font-bold text-slate-500 dark:text-zinc-400 uppercase tracking-wider">Unique Customers</div>
-          <div className="text-xl font-black text-slate-900 dark:text-white">{customerStats.totalUniqueCustomers}</div>
-          <p className="text-[10px] text-slate-400 dark:text-zinc-500 font-mono">Buyer accounts</p>
+        {/* Net Profit & Margin */}
+        <div className="bg-white dark:bg-zinc-950 p-5 rounded-3xl border border-slate-200/80 dark:border-zinc-800 shadow-xs space-y-1 hover-card-subtle">
+          <div className="flex items-center justify-between text-slate-500 dark:text-zinc-400">
+            <span className="text-[10px] font-bold uppercase tracking-wider">Net Profit</span>
+            <TrendingUp className="w-4 h-4 text-rose-600 dark:text-rose-500" />
+          </div>
+          <div className="text-2xl font-black text-rose-600 dark:text-rose-500 tabular-nums font-mono">
+            {metrics.estimatedProfit !== null ? formatCurrency(metrics.estimatedProfit, currency) : '—'}
+          </div>
+          <p className="text-[11px] text-slate-400 dark:text-zinc-500">
+            {metrics.profitMargin !== null ? `${metrics.profitMargin.toFixed(1)}% net margin` : 'Bottom-line margin'}
+          </p>
         </div>
 
-        <div className="bg-white dark:bg-zinc-950 p-5 rounded-3xl border border-slate-200/80 dark:border-zinc-800 shadow-xs space-y-1 hover-card-subtle transition-all">
-          <div className="text-[10px] font-bold text-slate-500 dark:text-zinc-400 uppercase tracking-wider">Open Pipeline</div>
-          <div className="text-xl font-black text-slate-900 dark:text-white">
+        {/* Pipeline Value */}
+        <div className="bg-white dark:bg-zinc-950 p-5 rounded-3xl border border-slate-200/80 dark:border-zinc-800 shadow-xs space-y-1 hover-card-subtle">
+          <div className="flex items-center justify-between text-slate-500 dark:text-zinc-400">
+            <span className="text-[10px] font-bold uppercase tracking-wider">Open Pipeline CRM</span>
+            <GitPullRequest className="w-4 h-4 text-indigo-500" />
+          </div>
+          <div className="text-2xl font-black text-slate-900 dark:text-white tabular-nums font-mono">
             {formatCurrency(pipelineStats.totalPipelineValue, currency)}
           </div>
-          <p className="text-[10px] text-slate-400 dark:text-zinc-500 font-mono">{pipelineStats.totalDeals} active deals</p>
+          <p className="text-[11px] text-slate-400 dark:text-zinc-500">
+            {pipelineStats.totalDeals} active sales opportunities
+          </p>
         </div>
       </div>
 
-      {/* Primary Highlighted Insight Banner */}
-      <div className="p-5 rounded-3xl bg-white dark:bg-zinc-950 border border-slate-200/80 dark:border-zinc-800 flex items-center justify-between gap-4 shadow-xs">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-500 border border-rose-200 dark:border-rose-900/60 flex items-center justify-center font-bold shrink-0">
-            <Zap className="w-5 h-5" />
+      {/* Daily Attention & Immediate Action Feed */}
+      <div className="bg-white dark:bg-zinc-950 p-6 rounded-3xl border border-slate-200/80 dark:border-zinc-800 shadow-xs space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Clock className="w-4 h-4 text-rose-600 dark:text-rose-500" />
+            <h3 className="font-extrabold text-slate-900 dark:text-white text-base">
+              Immediate Attention & Action Feed
+            </h3>
           </div>
-          <div>
-            <div className="text-[10px] font-bold uppercase tracking-wider text-rose-600 dark:text-rose-400">Deterministic Engine Insight</div>
-            <p className="text-xs text-slate-900 dark:text-white font-medium mt-0.5">{primaryInsightText}</p>
+          <span className="text-[11px] text-slate-400 dark:text-zinc-500 font-mono">
+            {attentionItems.length} active priority alerts
+          </span>
+        </div>
+
+        {attentionItems.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            {attentionItems.map((item) => (
+              <div
+                key={item.id}
+                className="p-4 rounded-2xl bg-slate-50 dark:bg-zinc-900 border border-slate-200/80 dark:border-zinc-800 flex flex-col justify-between space-y-3"
+              >
+                <div>
+                  <div className="flex items-center gap-2 mb-1">
+                    {item.severity === 'critical' && <span className="w-2 h-2 rounded-full bg-rose-600 shrink-0" />}
+                    {item.severity === 'warning' && <span className="w-2 h-2 rounded-full bg-amber-500 shrink-0" />}
+                    {item.severity === 'opportunity' && <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />}
+                    <span className="font-extrabold text-xs text-slate-900 dark:text-white line-clamp-1">{item.title}</span>
+                  </div>
+                  <p className="text-xs text-slate-500 dark:text-zinc-400 leading-snug line-clamp-2">{item.subtitle}</p>
+                </div>
+
+                <button
+                  onClick={() => onNavigateTab(item.actionTab)}
+                  className="w-full py-2 bg-white dark:bg-zinc-950 hover:bg-slate-100 dark:hover:bg-zinc-800 text-slate-900 dark:text-white text-xs font-bold rounded-xl border border-slate-200 dark:border-zinc-800 flex items-center justify-center gap-1.5 transition-all active:scale-[0.98]"
+                >
+                  <span>{item.actionText}</span>
+                  <ArrowRight className="w-3.5 h-3.5 text-rose-600" />
+                </button>
+              </div>
+            ))}
           </div>
-        </div>
-
-        <button
-          onClick={() => onNavigateTab('insights')}
-          className="text-xs font-bold text-rose-600 dark:text-rose-400 hover:underline flex items-center gap-1 shrink-0 active:scale-95 transition-all"
-        >
-          <span>Explore All Insights</span>
-          <ArrowRight className="w-4 h-4" />
-        </button>
+        ) : (
+          <div className="p-4 rounded-2xl bg-slate-50 dark:bg-zinc-900 text-center text-xs text-slate-500 dark:text-zinc-400">
+            <CheckCircle2 className="w-5 h-5 text-emerald-500 mx-auto mb-1" />
+            All business vectors normal. No critical anomalies or overdue tasks detected.
+          </div>
+        )}
       </div>
 
-      {/* Automatic Business Diagnosis & Continuous Profit Leak Detector Grid */}
+      {/* Visual Revenue & Cash Trend Curve */}
       {records.length > 0 && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          <BusinessDiagnosisCard records={records} currency={currency} onNavigateTab={onNavigateTab as any} />
-          <ProfitLeakCard records={records} currency={currency} onNavigateTab={onNavigateTab as any} />
-        </div>
-      )}
-
-      {/* 3-Column Action Grid for SMBs: Runway, Action Center, Tax Savings */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <CashRunwayCard
-          records={records}
-          currency={currency}
-          onNavigateTab={onNavigateTab as any}
-        />
-        <BusinessPlannerCard
-          records={records}
-          crmDeals={crmContacts}
-          currency={currency}
-          onNavigateTab={onNavigateTab as any}
-        />
-        <TaxSavingsWidget
-          records={records}
-          currency={currency}
-          onNavigateTab={onNavigateTab as any}
-        />
-      </div>
-
-      {/* Shopify / Stripe Grade Analytics Chart Section */}
-      {records.length > 0 && (
-        <ShopifyAnalyticsChart records={records} currency={currency} />
-      )}
-
-      {/* Top Customers & Recent Transactions Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {/* Recent Transactions Table */}
         <div className="bg-white dark:bg-zinc-950 p-6 rounded-3xl border border-slate-200/80 dark:border-zinc-800 shadow-xs space-y-4">
           <div className="flex items-center justify-between">
-            <h3 className="font-bold text-slate-900 dark:text-white text-base">Recent Transactions</h3>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setShowQuickModal(true)}
-                className="text-xs font-bold text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white flex items-center gap-1"
-              >
-                <Plus className="w-3.5 h-3.5" />
-                <span>Add</span>
-              </button>
-              <button
-                onClick={() => onNavigateTab('transactions')}
-                className="text-xs font-bold text-rose-600 dark:text-rose-500 hover:underline flex items-center gap-1 active:scale-95 transition-all"
-              >
-                <span>View All ({records.length})</span>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </button>
+            <div>
+              <h3 className="font-extrabold text-slate-900 dark:text-white text-base">Financial Trajectory</h3>
+              <p className="text-xs text-slate-500 dark:text-zinc-400 mt-0.5">Historical revenue vs. operational costs performance</p>
             </div>
+            <button
+              onClick={() => onNavigateTab('insights')}
+              className="text-xs font-bold text-rose-600 dark:text-rose-500 hover:underline flex items-center gap-1 active:scale-[0.98]"
+            >
+              <span>View Financial Ledger</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
+          <ShopifyAnalyticsChart records={records} currency={currency} />
+        </div>
+      )}
+
+      {/* 2-Column Split: Sales Pipeline Snapshot + Recent Transactions */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {/* Sales Pipeline Snapshot */}
+        <div className="bg-white dark:bg-zinc-950 p-6 rounded-3xl border border-slate-200/80 dark:border-zinc-800 shadow-xs space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="font-extrabold text-slate-900 dark:text-white text-base">Sales Pipeline Status</h3>
+              <p className="text-xs text-slate-500 dark:text-zinc-400 mt-0.5">{crmContacts.length} total client opportunities</p>
+            </div>
+            <button
+              onClick={() => onNavigateTab('pipeline')}
+              className="text-xs font-bold text-rose-600 dark:text-rose-500 hover:underline flex items-center gap-1 active:scale-[0.98]"
+            >
+              <span>Open CRM ({pipelineStats.totalDeals})</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
+
+          <div className="space-y-2">
+            {crmContacts.slice(0, 4).map((c) => (
+              <div
+                key={c.id}
+                onClick={() => onNavigateTab('pipeline')}
+                className="p-3.5 rounded-2xl bg-slate-50 dark:bg-zinc-900 border border-slate-200/80 dark:border-zinc-800 flex items-center justify-between hover:border-rose-500/40 cursor-pointer transition-all active:scale-[0.98]"
+              >
+                <div>
+                  <div className="font-extrabold text-xs text-slate-900 dark:text-white">{c.company || c.name}</div>
+                  <div className="text-[11px] text-slate-500 dark:text-zinc-400 mt-0.5">{c.name} • {c.email}</div>
+                </div>
+                <div className="text-right">
+                  <div className="font-black text-xs text-slate-900 dark:text-white font-mono">{formatCurrency(c.dealValue, currency)}</div>
+                  <span className="text-[10px] uppercase font-extrabold text-rose-600 dark:text-rose-400">{c.stage.replace('_', ' ')}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Recent Financial Transactions */}
+        <div className="bg-white dark:bg-zinc-950 p-6 rounded-3xl border border-slate-200/80 dark:border-zinc-800 shadow-xs space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="font-extrabold text-slate-900 dark:text-white text-base">Recent Ledger Entries</h3>
+              <p className="text-xs text-slate-500 dark:text-zinc-400 mt-0.5">{records.length} total entries</p>
+            </div>
+            <button
+              onClick={() => onNavigateTab('transactions')}
+              className="text-xs font-bold text-rose-600 dark:text-rose-500 hover:underline flex items-center gap-1 active:scale-[0.98]"
+            >
+              <span>View All ({records.length})</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </button>
           </div>
 
           <div className="overflow-x-auto border border-slate-200 dark:border-zinc-800 rounded-2xl">
@@ -349,12 +382,15 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-zinc-900">
-                {records.slice(0, 5).map((r) => (
-                  <tr key={r.id} className="hover:bg-slate-50 dark:hover:bg-zinc-900/50">
-                    <td className="p-3 text-slate-500 dark:text-zinc-400 font-mono">{r.dateString}</td>
-                    <td className="p-3 font-medium text-slate-900 dark:text-white">{r.customer || r.product || 'Sale'}</td>
-                    <td className="p-3 text-right font-extrabold text-emerald-600 dark:text-emerald-400">
-                      {formatCurrency(r.revenue || 0, currency)}
+                {records.slice(0, 4).map((r) => (
+                  <tr key={r.id} className="hover:bg-slate-50 dark:hover:bg-zinc-900/50 transition-colors">
+                    <td className="p-3 font-mono text-slate-600 dark:text-zinc-400">{r.dateString || '—'}</td>
+                    <td className="p-3">
+                      <span className="font-bold text-slate-900 dark:text-white block">{r.customer || r.product || 'General Transaction'}</span>
+                      <span className="text-[10px] text-slate-400 dark:text-zinc-500">{r.category || 'General'}</span>
+                    </td>
+                    <td className="p-3 text-right font-black text-slate-900 dark:text-white font-mono">
+                      {r.revenue ? formatCurrency(r.revenue, currency) : '—'}
                     </td>
                   </tr>
                 ))}
@@ -367,48 +403,6 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 )}
               </tbody>
             </table>
-          </div>
-        </div>
-
-        {/* Top Customers Leaderboard */}
-        <div className="bg-white dark:bg-zinc-950 p-6 rounded-3xl border border-slate-200/80 dark:border-zinc-800 shadow-xs space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="font-bold text-slate-900 dark:text-white text-base">Top Customer Accounts</h3>
-            <button
-              onClick={() => onNavigateTab('customers')}
-              className="text-xs font-bold text-rose-600 dark:text-rose-500 hover:underline flex items-center gap-1 active:scale-95 transition-all"
-            >
-              <span>Directory</span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </button>
-          </div>
-
-          <div className="space-y-2">
-            {customerStats.topCustomersList.slice(0, 5).map((c) => (
-              <div
-                key={c.name}
-                className="p-3 rounded-2xl bg-slate-50 dark:bg-zinc-900/60 border border-slate-200/80 dark:border-zinc-800 flex items-center justify-between text-xs"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-500 font-bold flex items-center justify-center border border-rose-200 dark:border-rose-900/60">
-                    {c.name.charAt(0).toUpperCase()}
-                  </div>
-                  <div>
-                    <div className="font-bold text-slate-900 dark:text-white">{c.name}</div>
-                    <div className="text-[10px] text-slate-400 dark:text-zinc-400 font-mono">{c.orderCount} orders</div>
-                  </div>
-                </div>
-
-                <div className="text-right font-extrabold text-rose-600 dark:text-rose-500">
-                  {formatCurrency(c.totalRevenue, currency)}
-                </div>
-              </div>
-            ))}
-            {customerStats.topCustomersList.length === 0 && (
-              <div className="p-6 text-center text-slate-400 dark:text-zinc-500 text-xs">
-                No customer transactions recorded yet.
-              </div>
-            )}
           </div>
         </div>
       </div>

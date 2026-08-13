@@ -1,13 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Navbar, CoreTab } from './components/Navbar';
 import { DashboardView } from './components/DashboardView';
-import { DataTableView } from './components/DataTableView';
-import { CustomersView } from './components/CustomersView';
+import { FinanceView } from './components/FinanceView';
 import { CRMView } from './components/CRMView';
 import { InsightsView } from './components/InsightsView';
-import { AnalyticsView } from './components/AnalyticsView';
 import { ReportsView } from './components/ReportsView';
-import { TaxView } from './components/TaxView';
 import { SettingsView } from './components/SettingsView';
 import { EmptyState } from './components/EmptyState';
 import { FileUploadModal } from './components/FileUploadModal';
@@ -335,14 +332,42 @@ const InnerDashboardApp: React.FC = () => {
 
       <main className="pl-0 md:pl-16 flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 pb-24 md:pb-8">
         <div key={activeTab} className="animate-tabFade">
-          {/* Always-accessible tabs (no data required) */}
-          {activeTab === 'pipeline' ? (
+          {activeTab === 'overview' ? (
+            <DashboardView
+              records={dataset?.records || []}
+              currency={currency}
+              onOpenUpload={() => setIsUploadOpen(true)}
+              crmContacts={crmContacts}
+              onNavigateTab={(tab) => setActiveTab(tab)}
+              onAddManualRecord={handleAddManualRecord}
+            />
+          ) : activeTab === 'crm' ? (
             <CRMView
               contacts={crmContacts}
               onContactsChange={handleContactsChange}
               currency={currency}
               records={dataset?.records || []}
               activeBusinessId={activeBusiness?.id}
+            />
+          ) : activeTab === 'finance' ? (
+            <FinanceView
+              records={dataset?.records || []}
+              currency={currency}
+              onAddManualRecord={handleAddManualRecord}
+            />
+          ) : activeTab === 'insights' ? (
+            <InsightsView
+              records={dataset?.records || []}
+              crmDeals={crmContacts}
+              currency={currency}
+              businessId={activeBusiness?.id}
+            />
+          ) : activeTab === 'reports' ? (
+            <ReportsView
+              records={dataset?.records || []}
+              meta={dataset?.meta || null}
+              currency={currency}
+              businessName={activeBusiness?.name}
             />
           ) : activeTab === 'settings' ? (
             <SettingsView
@@ -354,68 +379,7 @@ const InnerDashboardApp: React.FC = () => {
               activeBusiness={activeBusiness}
               onUpdateBusiness={handleUpdateBusiness}
             />
-          ) : activeTab === 'reports' ? (
-            <ReportsView
-              records={dataset?.records || []}
-              meta={dataset?.meta || null}
-              currency={currency}
-              businessName={activeBusiness?.name}
-            />
-          ) : !dataset && activeTab === 'overview' ? (
-            <EmptyState onOpenUpload={() => setIsUploadOpen(true)} />
-          ) : (
-            <>
-              {activeTab === 'overview' && (
-                <DashboardView
-                  records={dataset?.records || []}
-                  currency={currency}
-                  onOpenUpload={() => setIsUploadOpen(true)}
-                  crmContacts={crmContacts}
-                  onNavigateTab={(tab) => setActiveTab(tab)}
-                  onAddManualRecord={handleAddManualRecord}
-                />
-              )}
-
-              {activeTab === 'transactions' && (
-                <DataTableView
-                  records={dataset?.records || []}
-                  currency={currency}
-                  onAddManualRecord={handleAddManualRecord}
-                />
-              )}
-
-              {activeTab === 'customers' && (
-                <CustomersView
-                  records={dataset?.records || []}
-                  crmDeals={crmContacts}
-                  currency={currency}
-                />
-              )}
-
-              {activeTab === 'insights' && (
-                <InsightsView
-                  records={dataset?.records || []}
-                  crmDeals={crmContacts}
-                  currency={currency}
-                  businessId={activeBusiness?.id}
-                />
-              )}
-
-              {activeTab === 'analytics' && (
-                <AnalyticsView
-                  records={dataset?.records || []}
-                  currency={currency}
-                />
-              )}
-
-              {activeTab === 'tax' && (
-                <TaxView
-                  records={dataset?.records || []}
-                  currency={currency}
-                />
-              )}
-            </>
-          )}
+          ) : null}
         </div>
       </main>
 
