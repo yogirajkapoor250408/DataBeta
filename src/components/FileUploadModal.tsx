@@ -2,7 +2,7 @@ import React, { useState, useRef } from 'react';
 import { Upload, AlertCircle, X, ShoppingBag, CreditCard, ShoppingCart, Square, BookOpen, DollarSign } from 'lucide-react';
 import { parseFile, normalizeRows } from '../utils/dataParser';
 import { validateMapping } from '../utils/columnMatcher';
-import { ColumnMapping, Dataset, DatasetMeta } from '../types';
+import { ColumnMapping, Dataset, DatasetMeta, NormalizedRecord } from '../types';
 import { ColumnMapperModal } from './ColumnMapperModal';
 
 interface FileUploadModalProps {

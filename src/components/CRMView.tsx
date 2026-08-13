@@ -171,7 +171,7 @@ export const CRMView: React.FC<CRMViewProps> = ({
       name,
       domain: `${name.toLowerCase().replace(/[^a-z0-9]/g, '')}.com`,
       industry: 'Software & Technology',
-      tier: data.totalSpent >= 25000 ? 'Enterprise' : data.totalSpent >= 5000 ? 'Mid-Market' : 'SMB',
+      tier: (data.totalSpent >= 25000 ? 'Enterprise' : data.totalSpent >= 5000 ? 'Mid-Market' : 'SMB') as 'Enterprise' | 'Mid-Market' | 'SMB',
       contactsCount: Math.max(1, data.contacts),
       dealsCount: data.deals,
       openPipelineValue: data.openPipeline,
@@ -739,6 +739,7 @@ export const CRMView: React.FC<CRMViewProps> = ({
       {/* Customer 360 Slide-in Drawer */}
       {isDrawerOpen && selectedDrawerCustomer && (
         <Customer360Drawer
+          isOpen={isDrawerOpen}
           customer={selectedDrawerCustomer}
           currency={currency}
           records={records}

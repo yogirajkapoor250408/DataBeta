@@ -136,11 +136,11 @@ export const FinanceView: React.FC<FinanceViewProps> = ({
     if (taxSummary.breakdown.length === 0) return;
     const headers = ['Category Name', 'Schedule C Tax Line', 'Deductibility %', 'Gross Total Expense', 'Deductible Amount'];
     const rows = taxSummary.breakdown.map((b) => [
-      `"${b.category}"`,
-      `"${b.taxLine}"`,
-      `"${b.deductiblePercent}%"`,
-      b.grossAmount.toFixed(2),
-      b.deductibleAmount.toFixed(2),
+      `"${b.categoryName}"`,
+      `"${b.taxScheduleCategory}"`,
+      `"${b.deductiblePct}%"`,
+      b.totalExpense.toFixed(2),
+      b.estimatedDeduction.toFixed(2),
     ]);
     const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map((e) => e.join(','))].join('\n');
     const encodedUri = encodeURI(csvContent);
@@ -409,7 +409,7 @@ export const FinanceView: React.FC<FinanceViewProps> = ({
                   <span className="text-[10px] text-slate-400">{quarter.due}</span>
                 </div>
                 <div className="text-xl font-black text-slate-900 dark:text-white font-mono">
-                  {formatCurrency(quarterInstallment, currency)}
+                  {formatCurrency(quarterlyInstallment, currency)}
                 </div>
                 <p className="text-[10px] text-slate-400">{quarter.desc} income</p>
               </div>
@@ -434,12 +434,12 @@ export const FinanceView: React.FC<FinanceViewProps> = ({
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-zinc-900">
                   {taxSummary.breakdown.map((item) => (
-                    <tr key={item.category} className="hover:bg-slate-50 dark:hover:bg-zinc-900/50">
-                      <td className="p-4 font-bold text-slate-900 dark:text-white">{item.category}</td>
-                      <td className="p-4 text-slate-600 dark:text-zinc-400">{item.taxLine}</td>
-                      <td className="p-4 text-center font-mono font-bold text-emerald-600 dark:text-emerald-400">{item.deductiblePercent}%</td>
-                      <td className="p-4 text-right font-mono text-slate-700 dark:text-zinc-300">{formatCurrency(item.grossAmount, currency)}</td>
-                      <td className="p-4 text-right font-mono font-black text-rose-600 dark:text-rose-500">{formatCurrency(item.deductibleAmount, currency)}</td>
+                    <tr key={item.categoryName} className="hover:bg-slate-50 dark:hover:bg-zinc-900/50">
+                      <td className="p-4 font-bold text-slate-900 dark:text-white">{item.categoryName}</td>
+                      <td className="p-4 text-slate-600 dark:text-zinc-400">{item.taxScheduleCategory}</td>
+                      <td className="p-4 text-center font-mono font-bold text-emerald-600 dark:text-emerald-400">{item.deductiblePct}%</td>
+                      <td className="p-4 text-right font-mono text-slate-700 dark:text-zinc-300">{formatCurrency(item.totalExpense, currency)}</td>
+                      <td className="p-4 text-right font-mono font-black text-rose-600 dark:text-rose-500">{formatCurrency(item.estimatedDeduction, currency)}</td>
                     </tr>
                   ))}
                   {taxSummary.breakdown.length === 0 && (

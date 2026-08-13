@@ -334,7 +334,7 @@ export const InsightsView: React.FC<InsightsViewProps> = ({
                     {formatCurrency(scenarioResult.projectedRevenue, currency)}
                   </div>
                   <div className="text-[11px] text-emerald-600 font-mono mt-0.5">
-                    +{formatCurrency(scenarioResult.projectedRevenue - (metrics.totalRevenue || 0), currency)} lift
+                    +{formatCurrency((scenarioResult.projectedRevenue || 0) - (metrics.totalRevenue || 0), currency)} lift
                   </div>
                 </div>
 
@@ -351,7 +351,7 @@ export const InsightsView: React.FC<InsightsViewProps> = ({
                 <div>
                   <span className="text-[10px] font-bold text-slate-400 uppercase">Projected Net Margin</span>
                   <div className="text-2xl font-black text-slate-900 dark:text-white font-mono mt-1">
-                    {scenarioResult.projectedMargin.toFixed(1)}%
+                    {scenarioResult.projectedMargin !== null ? `${scenarioResult.projectedMargin.toFixed(1)}%` : '0.0%'}
                   </div>
                   <div className="text-[11px] text-slate-400 font-mono mt-0.5">
                     vs {(metrics.profitMargin || 0).toFixed(1)}% current

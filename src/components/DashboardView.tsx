@@ -116,7 +116,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         title: `Pending Close: ${deal.company || deal.name}`,
         subtitle: `Deal value ${formatCurrency(deal.dealValue, currency)} in ${deal.stage.toUpperCase()} stage. Follow-up required.`,
         actionText: 'Open CRM Pipeline',
-        actionTab: 'pipeline',
+        actionTab: 'crm',
         severity: 'opportunity',
       });
     }
@@ -128,8 +128,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         type: 'risk',
         title: `Customer Concentration: ${customerStats.topCustomerSharePct.toFixed(1)}% Revenue Share`,
         subtitle: `${customerStats.topCustomerName} generates over a quarter of total revenue. Diversify client acquisition.`,
-        actionText: 'View Customer 360',
-        actionTab: 'customers',
+        actionText: 'View CRM Contacts',
+        actionTab: 'crm',
         severity: 'warning',
       });
     }
@@ -328,7 +328,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               <p className="text-xs text-slate-500 dark:text-zinc-400 mt-0.5">{crmContacts.length} total client opportunities</p>
             </div>
             <button
-              onClick={() => onNavigateTab('pipeline')}
+              onClick={() => onNavigateTab('crm')}
               className="text-xs font-bold text-rose-600 dark:text-rose-500 hover:underline flex items-center gap-1 active:scale-[0.98]"
             >
               <span>Open CRM ({pipelineStats.totalDeals})</span>
@@ -340,7 +340,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             {crmContacts.slice(0, 4).map((c) => (
               <div
                 key={c.id}
-                onClick={() => onNavigateTab('pipeline')}
+                onClick={() => onNavigateTab('crm')}
                 className="p-3.5 rounded-2xl bg-slate-50 dark:bg-zinc-900 border border-slate-200/80 dark:border-zinc-800 flex items-center justify-between hover:border-rose-500/40 cursor-pointer transition-all active:scale-[0.98]"
               >
                 <div>
@@ -364,7 +364,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               <p className="text-xs text-slate-500 dark:text-zinc-400 mt-0.5">{records.length} total entries</p>
             </div>
             <button
-              onClick={() => onNavigateTab('transactions')}
+              onClick={() => onNavigateTab('finance')}
               className="text-xs font-bold text-rose-600 dark:text-rose-500 hover:underline flex items-center gap-1 active:scale-[0.98]"
             >
               <span>View All ({records.length})</span>

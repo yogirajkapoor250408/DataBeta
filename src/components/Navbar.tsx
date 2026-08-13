@@ -14,9 +14,9 @@ import {
   Search,
   Calendar,
   BarChart3,
-  Receipt,
   Settings,
   FileText,
+  DollarSign,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { DatasetMeta, CurrencyCode, CURRENCIES, User } from '../types';

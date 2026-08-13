@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, LayoutDashboard, BarChart3, Zap, GitPullRequest, Bot, Settings, FileText, ArrowRight, X, Table, Users, Receipt } from 'lucide-react';
+import { Search, LayoutDashboard, BarChart3, Zap, GitPullRequest, Bot, Settings, FileText, ArrowRight, X, Table, Users, Receipt, DollarSign } from 'lucide-react';
 
 interface CommandPaletteModalProps {
   isOpen: boolean;
