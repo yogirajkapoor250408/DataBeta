@@ -1,15 +1,17 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { NormalizedRecord, CurrencyCode, KPIGoals } from '../types';
 import { calculateMetrics } from '../utils/metricsCalculator';
 import { formatCurrency } from '../utils/currencyFormatter';
-import { Target, TrendingUp, Edit3 } from 'lucide-react';
+import { goalService } from '../services/goalService';
+import { Target, TrendingUp, Edit3, Loader2 } from 'lucide-react';
 
 interface GoalTrackerCardProps {
   records: NormalizedRecord[];
   currency: CurrencyCode;
+  businessId?: string;
 }
 
-export const GoalTrackerCard: React.FC<GoalTrackerCardProps> = ({ records, currency }) => {
+export const GoalTrackerCard: React.FC<GoalTrackerCardProps> = ({ records, currency, businessId }) => {
   const metrics = calculateMetrics(records);
 
   const [goals, setGoals] = useState<KPIGoals>({
@@ -17,28 +19,61 @@ export const GoalTrackerCard: React.FC<GoalTrackerCardProps> = ({ records, curre
     targetProfitMarginPct: 25,
     maxExpenseCap: 25000,
   });
-
   const [isEditing, setIsEditing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isLoadingGoals, setIsLoadingGoals] = useState(false);
 
-  const currentRev = metrics.totalRevenue || 0;
-  const currentExp = metrics.totalExpenses || 0;
-  const currentMargin = metrics.profitMargin || 0;
+  // Load goals from Supabase on mount
+  useEffect(() => {
+    if (!businessId) return;
+    setIsLoadingGoals(true);
+    goalService.getBusinessGoals(businessId)
+      .then((loadedGoals) => setGoals(loadedGoals))
+      .catch((err) => console.error('Failed to load goals:', err))
+      .finally(() => setIsLoadingGoals(false));
+  }, [businessId]);
+
+  const handleSaveGoals = useCallback(async () => {
+    if (!businessId) {
+      setIsEditing(false);
+      return;
+    }
+    setIsSaving(true);
+    const { error } = await goalService.updateBusinessGoals(businessId, goals);
+    if (error) {
+      console.error('Failed to save goals:', error);
+    }
+    setIsSaving(false);
+    setIsEditing(false);
+  }, [businessId, goals]);
+
+  const currentRev = metrics.totalRevenue ?? 0;
+  const currentExp = metrics.totalExpenses ?? 0;
+  const currentMargin = metrics.profitMargin ?? 0;
 
   const revProgressPct = goals.targetRevenue > 0 ? Math.min(100, (currentRev / goals.targetRevenue) * 100) : 0;
   const marginProgressPct = goals.targetProfitMarginPct > 0 ? Math.min(100, (currentMargin / goals.targetProfitMarginPct) * 100) : 0;
   const expenseCapPct = goals.maxExpenseCap > 0 ? Math.min(100, (currentExp / goals.maxExpenseCap) * 100) : 0;
 
-  const dates = records.map(r => r.date).filter(Boolean) as Date[];
+  const dates = records.filter((r) => r.date).map((r) => r.date as Date);
   let daysCount = 30;
   if (dates.length >= 2) {
-    const minDate = new Date(Math.min(...dates.map(d => d.getTime())));
-    const maxDate = new Date(Math.max(...dates.map(d => d.getTime())));
+    const minDate = new Date(Math.min(...dates.map((d) => d.getTime())));
+    const maxDate = new Date(Math.max(...dates.map((d) => d.getTime())));
     daysCount = Math.max(1, Math.ceil((maxDate.getTime() - minDate.getTime()) / (1000 * 60 * 60 * 24)));
   }
 
-  const dailyRevPace = currentRev / daysCount;
+  const dailyRevPace = daysCount > 0 ? currentRev / daysCount : 0;
   const revRemaining = Math.max(0, goals.targetRevenue - currentRev);
   const daysToTarget = dailyRevPace > 0 ? Math.ceil(revRemaining / dailyRevPace) : null;
+
+  if (isLoadingGoals) {
+    return (
+      <div className="bg-white dark:bg-zinc-950 p-6 rounded-3xl border border-slate-200/80 dark:border-zinc-800 shadow-sm flex items-center justify-center h-32">
+        <Loader2 className="w-5 h-5 text-rose-600 animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="bg-white dark:bg-zinc-950 p-6 rounded-3xl border border-slate-200/80 dark:border-zinc-800 shadow-sm space-y-4">
@@ -48,17 +83,24 @@ export const GoalTrackerCard: React.FC<GoalTrackerCardProps> = ({ records, curre
             <Target className="w-5 h-5 text-slate-900 dark:text-white" />
           </div>
           <div>
-            <h3 className="font-bold text-slate-900 dark:text-white text-lg">Target Goals & Milestone Pace Tracker</h3>
-            <p className="text-xs text-slate-500 dark:text-zinc-400">Track progress towards key business financial targets</p>
+            <h3 className="font-bold text-slate-900 dark:text-white text-lg">Target Goals & Milestone Tracker</h3>
+            <p className="text-xs text-slate-500 dark:text-zinc-400">
+              {businessId ? 'Goals saved to your business account.' : 'Track progress towards key financial targets.'}
+            </p>
           </div>
         </div>
 
         <button
-          onClick={() => setIsEditing(!isEditing)}
+          onClick={isEditing ? handleSaveGoals : () => setIsEditing(true)}
+          disabled={isSaving}
           className="flex items-center gap-1.5 px-4 py-1.5 bg-slate-100 dark:bg-zinc-900 hover:bg-slate-200 dark:hover:bg-zinc-800 text-slate-700 dark:text-zinc-200 border border-slate-200 dark:border-zinc-800 rounded-full text-xs font-bold transition-colors"
         >
-          <Edit3 className="w-3.5 h-3.5" />
-          <span>{isEditing ? 'Save Goals' : 'Set Targets'}</span>
+          {isSaving ? (
+            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+          ) : (
+            <Edit3 className="w-3.5 h-3.5" />
+          )}
+          <span>{isEditing ? (isSaving ? 'Saving...' : 'Save Goals') : 'Set Targets'}</span>
         </button>
       </div>
 
@@ -145,9 +187,7 @@ export const GoalTrackerCard: React.FC<GoalTrackerCardProps> = ({ records, curre
           </div>
           <div className="w-full h-2.5 bg-slate-200 dark:bg-zinc-800 rounded-full overflow-hidden">
             <div
-              className={`h-full rounded-full transition-all duration-500 ${
-                expenseCapPct > 90 ? 'bg-rose-600' : 'bg-amber-500'
-              }`}
+              className={`h-full rounded-full transition-all duration-500 ${expenseCapPct > 90 ? 'bg-rose-600' : 'bg-amber-500'}`}
               style={{ width: `${expenseCapPct}%` }}
             />
           </div>
@@ -164,11 +204,11 @@ export const GoalTrackerCard: React.FC<GoalTrackerCardProps> = ({ records, curre
           <div className="flex items-center gap-2">
             <TrendingUp className="w-4 h-4 text-rose-600 shrink-0" />
             <span>
-              At your current daily sales rate of <strong className="font-bold">{formatCurrency(dailyRevPace, currency)}/day</strong>:
+              At your current daily revenue rate of <strong className="font-bold">{formatCurrency(dailyRevPace, currency)}/day</strong>:
             </span>
           </div>
           <span className="font-extrabold text-slate-900 dark:text-white bg-white dark:bg-black px-3 py-1 rounded-full border border-slate-200 dark:border-zinc-800 shadow-xs">
-            ~{daysToTarget} days to reach target
+            ~{daysToTarget} days to target
           </span>
         </div>
       )}

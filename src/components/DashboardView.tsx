@@ -85,42 +85,46 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
   return (
     <div className="space-y-6 animate-fadeIn">
-      {/* Overview Top Header Banner */}
+      {/* Counselor Executive Header Banner */}
       <div className="bg-white dark:bg-zinc-950 text-slate-900 dark:text-white p-7 rounded-3xl border border-slate-200/80 dark:border-zinc-800 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2 text-xs font-bold text-rose-600 dark:text-rose-500 uppercase tracking-widest mb-1">
-            Executive Command Center
+            <Zap className="w-4 h-4 text-rose-600" />
+            <span>Business Command Center</span>
           </div>
-          <h2 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">Business Overview</h2>
+          <h2 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
+            Strategic Advisory Briefing
+          </h2>
           <p className="text-xs text-slate-500 dark:text-zinc-400 mt-1 max-w-xl">
-            Real-time financial performance metrics, customer count, pipeline revenue, and operational insights.
+            {primaryInsightText}
           </p>
         </div>
 
         <div className="flex items-center gap-3">
           <button
             onClick={() => onNavigateTab('insights')}
-            className="flex items-center gap-2 px-4 py-2 bg-slate-100 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 hover:border-slate-300 dark:hover:border-zinc-700 text-slate-900 dark:text-white font-extrabold text-xs rounded-full active:scale-95 transition-all"
+            className="px-4 py-2.5 bg-slate-100 dark:bg-zinc-900 hover:bg-slate-200 dark:hover:bg-zinc-800 text-slate-800 dark:text-zinc-200 text-xs font-extrabold rounded-full transition-all flex items-center gap-2 border border-slate-200 dark:border-zinc-800"
           >
-            <Zap className="w-4 h-4 text-rose-600 dark:text-rose-500" />
-            <span>View Insights</span>
+            <span>Deep Insights</span>
+            <ArrowRight className="w-3.5 h-3.5" />
           </button>
           <button
             onClick={onOpenUpload}
-            className="flex items-center gap-2 px-5 py-2 bg-rose-600 hover:bg-rose-500 text-white font-extrabold text-xs rounded-full shadow-md shadow-rose-600/30 active:scale-95 transition-all"
+            className="px-5 py-2.5 bg-rose-600 hover:bg-rose-500 text-white text-xs font-extrabold rounded-full shadow-md shadow-rose-600/30 transition-all flex items-center gap-2 active:scale-95"
           >
             <Plus className="w-4 h-4" />
-            <span>Import Data</span>
+            <span>Upload Spreadsheet</span>
           </button>
         </div>
       </div>
+
 
       {/* 6 Executive Key Metric Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3">
         <div className="bg-white dark:bg-zinc-950 p-5 rounded-3xl border border-slate-200/80 dark:border-zinc-800 shadow-xs space-y-1">
           <div className="text-[10px] font-bold text-slate-500 dark:text-zinc-400 uppercase tracking-wider">Total Revenue</div>
           <div className="text-xl font-black text-slate-900 dark:text-white">
-            {formatCurrency(metrics.totalRevenue || 0, currency)}
+            {metrics.totalRevenue !== null ? formatCurrency(metrics.totalRevenue, currency) : <span className="text-slate-400 dark:text-zinc-600 text-sm font-medium">No data</span>}
           </div>
           <p className="text-[10px] text-slate-400 dark:text-zinc-500 font-mono">{metrics.transactionCount} transactions</p>
         </div>
@@ -128,7 +132,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         <div className="bg-white dark:bg-zinc-950 p-5 rounded-3xl border border-slate-200/80 dark:border-zinc-800 shadow-xs space-y-1">
           <div className="text-[10px] font-bold text-slate-500 dark:text-zinc-400 uppercase tracking-wider">Total Expenses</div>
           <div className="text-xl font-black text-slate-700 dark:text-zinc-300">
-            {formatCurrency(metrics.totalExpenses || 0, currency)}
+            {metrics.totalExpenses !== null ? formatCurrency(metrics.totalExpenses, currency) : <span className="text-slate-400 dark:text-zinc-600 text-sm font-medium">No data</span>}
           </div>
           <p className="text-[10px] text-slate-400 dark:text-zinc-500 font-mono">Operational costs</p>
         </div>
@@ -136,7 +140,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         <div className="bg-white dark:bg-zinc-950 p-5 rounded-3xl border border-slate-200/80 dark:border-zinc-800 shadow-xs space-y-1">
           <div className="text-[10px] font-bold text-slate-500 dark:text-zinc-400 uppercase tracking-wider">Net Profit</div>
           <div className="text-xl font-black text-rose-600 dark:text-rose-500">
-            {formatCurrency(metrics.estimatedProfit || 0, currency)}
+            {metrics.estimatedProfit !== null ? formatCurrency(metrics.estimatedProfit, currency) : <span className="text-slate-400 dark:text-zinc-600 text-sm font-medium">No data</span>}
           </div>
           <p className="text-[10px] text-slate-400 dark:text-zinc-500 font-mono">Bottom line income</p>
         </div>

@@ -41,6 +41,8 @@ export const authService = {
       createdAt: data.user.created_at || new Date().toISOString(),
       lastLogin: new Date().toLocaleString(),
       isFirstTimeUser: true,
+      isAdmin: false,
+      subscriptionStatus: 'free',
     };
 
     return { user: appUser, error: null };
@@ -61,7 +63,7 @@ export const authService = {
 
     const { data: profile } = await supabase
       .from('profiles')
-      .select('full_name')
+      .select('full_name, is_admin, subscription_status')
       .eq('id', data.user.id)
       .maybeSingle();
 
@@ -74,6 +76,8 @@ export const authService = {
       createdAt: data.user.created_at || new Date().toISOString(),
       lastLogin: new Date().toLocaleString(),
       isFirstTimeUser: false,
+      isAdmin: profile?.is_admin || false,
+      subscriptionStatus: profile?.subscription_status || 'free',
     };
 
     return { user: appUser, error: null };
@@ -114,7 +118,7 @@ export const authService = {
 
     const { data: profile } = await supabase
       .from('profiles')
-      .select('full_name')
+      .select('full_name, is_admin, subscription_status')
       .eq('id', session.user.id)
       .maybeSingle();
 
@@ -127,6 +131,8 @@ export const authService = {
       createdAt: session.user.created_at || new Date().toISOString(),
       lastLogin: new Date().toLocaleString(),
       isFirstTimeUser: false,
+      isAdmin: profile?.is_admin || false,
+      subscriptionStatus: profile?.subscription_status || 'free',
     };
   },
 
@@ -137,7 +143,7 @@ export const authService = {
       if (session?.user) {
         const { data: profile } = await supabase
           .from('profiles')
-          .select('full_name')
+          .select('full_name, is_admin, subscription_status')
           .eq('id', session.user.id)
           .maybeSingle();
 
@@ -150,6 +156,8 @@ export const authService = {
           createdAt: session.user.created_at || new Date().toISOString(),
           lastLogin: new Date().toLocaleString(),
           isFirstTimeUser: false,
+          isAdmin: profile?.is_admin || false,
+          subscriptionStatus: profile?.subscription_status || 'free',
         });
       } else {
         callback(null);

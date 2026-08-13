@@ -284,6 +284,8 @@ export interface User {
   createdAt: string;
   lastLogin: string;
   isFirstTimeUser: boolean;
+  subscriptionStatus: 'free' | 'paid';
+  isAdmin: boolean;
 }
 
 export interface LoginSessionLog {

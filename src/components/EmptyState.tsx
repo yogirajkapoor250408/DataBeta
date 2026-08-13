@@ -51,8 +51,8 @@ export const EmptyState: React.FC<EmptyStateProps> = ({ onOpenUpload }) => {
         <div className="flex items-start gap-2.5">
           <ShieldCheck className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
           <div>
-            <span className="font-bold text-slate-800 dark:text-zinc-200 block">100% Private</span>
-            Runs entirely inside your browser. No server uploads or AI tracking.
+            <span className="font-bold text-slate-800 dark:text-zinc-200 block">Supabase-Backed Storage</span>
+            All transaction data is stored securely in your private PostgreSQL database.
           </div>
         </div>
       </div>

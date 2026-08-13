@@ -10,13 +10,14 @@ interface ReportsViewProps {
   records: NormalizedRecord[];
   meta: DatasetMeta | null;
   currency: CurrencyCode;
+  businessName?: string;
 }
 
-export const ReportsView: React.FC<ReportsViewProps> = ({ records, meta, currency }) => {
+export const ReportsView: React.FC<ReportsViewProps> = ({ records, meta, currency, businessName }) => {
   const metrics = calculateMetrics(records);
   const observations = generateBusinessSummary(records);
 
-  const [companyName, setCompanyName] = useState('My Online Business');
+  const [companyName, setCompanyName] = useState(businessName || 'My Business');
   const [executiveNotes, setExecutiveNotes] = useState(
     'This financial summary report was generated directly from operational transaction data using DataBeta local analytics.'
   );

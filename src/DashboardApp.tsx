@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { Navbar, CoreTab } from './components/Navbar';
-import { LandingPage } from './components/LandingPage';
 import { DashboardView } from './components/DashboardView';
 import { DataTableView } from './components/DataTableView';
 import { CustomersView } from './components/CustomersView';
@@ -18,17 +17,22 @@ import { transactionService } from './services/transactionService';
 import { crmService } from './services/crmService';
 import { auditService } from './services/auditService';
 
+import { SubscriptionModal } from './components/SubscriptionModal';
+
+import { ProtectedRoute } from './components/ProtectedRoute';
+
 const THEME_KEY = 'databeta_theme';
 const ACTIVE_BIZ_KEY = 'databeta_active_biz_id';
 
-export const App: React.FC = () => {
+const InnerDashboardApp: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [activeTab, setActiveTab] = useState<CoreTab>('landing');
+  const [activeTab, setActiveTab] = useState<CoreTab>('overview');
 
   // Business & Multi-Tenant State
   const [memberships, setMemberships] = useState<BusinessMembership[]>([]);
   const [activeBusiness, setActiveBusiness] = useState<Business | null>(null);
   const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
+  const [isSubscriptionOpen, setIsSubscriptionOpen] = useState(false);
 
   // Data State for Active Business
   const [dataset, setDataset] = useState<Dataset | null>(null);
@@ -60,8 +64,8 @@ export const App: React.FC = () => {
     const sub = authService.onAuthStateChange(async (user) => {
       setCurrentUser(user);
       if (user) {
-        if (activeTab === 'landing') setActiveTab('overview');
-        await loadUserBusinesses(user.id);
+        setActiveTab('overview');
+        await loadUserBusinesses(user);
       } else {
         setMemberships([]);
         setActiveBusiness(null);
@@ -76,14 +80,19 @@ export const App: React.FC = () => {
   }, []);
 
   // 2. Load User Businesses
-  const loadUserBusinesses = async (userId: string) => {
-    const userBizs = await businessService.getUserBusinesses(userId);
+  const loadUserBusinesses = async (user: User) => {
+    const userBizs = await businessService.getUserBusinesses(user.id);
     setMemberships(userBizs);
 
     if (userBizs.length > 0) {
       const lastActiveId = localStorage.getItem(ACTIVE_BIZ_KEY);
       const matched = userBizs.find((m) => m.business.id === lastActiveId) || userBizs[0];
-      handleSwitchBusiness(matched.business);
+      await handleSwitchBusiness(matched.business);
+      
+      // If non-admin and not paid -> ask subscription AFTER loading business
+      if (!user.isAdmin && user.subscriptionStatus !== 'paid') {
+        setIsSubscriptionOpen(true);
+      }
     } else {
       setIsOnboardingOpen(true);
     }
@@ -126,7 +135,11 @@ export const App: React.FC = () => {
       const updatedBizs = await businessService.getUserBusinesses(currentUser.id);
       setMemberships(updatedBizs);
       await handleSwitchBusiness(newBiz);
-      if (currentUser.isFirstTimeUser) {
+
+      // Ask subscription after onboarding if user is non-admin and not paid
+      if (!currentUser.isAdmin && currentUser.subscriptionStatus !== 'paid') {
+        setIsSubscriptionOpen(true);
+      } else if (currentUser.isFirstTimeUser) {
         setIsTourOpen(true);
       }
     }
@@ -211,7 +224,7 @@ export const App: React.FC = () => {
     setCurrentUser(user);
     setIsAuthOpen(false);
     setActiveTab('overview');
-    await loadUserBusinesses(user.id);
+    await loadUserBusinesses(user);
   };
 
   const handleLogout = async () => {
@@ -221,7 +234,7 @@ export const App: React.FC = () => {
     setActiveBusiness(null);
     setDataset(null);
     setCrmContacts([]);
-    setActiveTab('landing');
+    window.location.href = '/';
   };
 
   return (
@@ -245,14 +258,8 @@ export const App: React.FC = () => {
         onOpenCreateBusiness={() => setIsOnboardingOpen(true)}
       />
 
-      {activeTab === 'landing' ? (
-        <LandingPage
-          onOpenAuth={handleOpenAuth}
-          onExploreDemo={() => setActiveTab('overview')}
-        />
-      ) : (
-        <main className="pl-0 md:pl-16 flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 pb-24 md:pb-8">
-          {!dataset && activeTab === 'overview' ? (
+      <main className="pl-0 md:pl-16 flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 pb-24 md:pb-8">
+        {!dataset && activeTab === 'overview' ? (
             <EmptyState onOpenUpload={() => setIsUploadOpen(true)} />
           ) : (
             <>
@@ -298,18 +305,16 @@ export const App: React.FC = () => {
                   records={dataset?.records || []}
                   crmDeals={crmContacts}
                   currency={currency}
+                  businessId={activeBusiness?.id}
                 />
               )}
             </>
           )}
         </main>
-      )}
 
-      {activeTab !== 'landing' && (
-        <footer className="pl-0 md:pl-16 bg-white dark:bg-zinc-950 border-t border-slate-200 dark:border-zinc-800/80 py-4 text-center text-xs text-slate-500 dark:text-zinc-500 no-print pb-24 md:pb-4">
-          <p>DataBeta — High-Performance Business Intelligence & CRM MVP</p>
-        </footer>
-      )}
+      <footer className="pl-0 md:pl-16 bg-white dark:bg-zinc-950 border-t border-slate-200 dark:border-zinc-800/80 py-4 text-center text-xs text-slate-500 dark:text-zinc-500 no-print pb-24 md:pb-4">
+        <p>DataBeta Technologies — Business Intelligence & CRM Platform</p>
+      </footer>
 
       <FileUploadModal
         isOpen={isUploadOpen}
@@ -334,6 +339,21 @@ export const App: React.FC = () => {
       )}
 
       {currentUser && (
+        <SubscriptionModal
+          isOpen={isSubscriptionOpen}
+          user={currentUser}
+          businessName={activeBusiness?.name}
+          onSuccess={() => {
+            setIsSubscriptionOpen(false);
+            setCurrentUser({ ...currentUser, subscriptionStatus: 'paid' });
+            if (currentUser.isFirstTimeUser) {
+              setIsTourOpen(true);
+            }
+          }}
+        />
+      )}
+
+      {currentUser && (
         <GuidedTourModal
           isOpen={isTourOpen}
           user={currentUser}
@@ -349,4 +369,11 @@ export const App: React.FC = () => {
   );
 };
 
-export default App;
+export const DashboardApp: React.FC = () => {
+  return (
+    <ProtectedRoute>
+      <InnerDashboardApp />
+    </ProtectedRoute>
+  );
+};
+

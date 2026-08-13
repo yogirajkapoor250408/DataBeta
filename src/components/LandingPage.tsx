@@ -36,7 +36,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onOpenAuth, onExploreD
       <header className="bg-white/80 dark:bg-zinc-950/80 backdrop-blur-md sticky top-0 z-40 border-b border-slate-200/80 dark:border-zinc-800">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <img src="/logo.png" alt="DataBeta Logo" className="w-10 h-10 object-contain rounded-xl shadow-xs" />
+            <img src="/icon.png" alt="DataBeta Icon" className="w-9 h-9 object-contain rounded-xl shadow-xs" />
             <div>
               <span className="text-lg font-black tracking-tight text-slate-900 dark:text-white block leading-none">
                 DataBeta
@@ -77,7 +77,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onOpenAuth, onExploreD
       <section className="py-16 md:py-24 px-6 max-w-7xl mx-auto text-center space-y-8 relative overflow-hidden">
         <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-900 text-rose-700 dark:text-rose-300 text-xs font-extrabold shadow-xs mx-auto">
           <ShieldCheck className="w-4 h-4 text-rose-600" />
-          <span>100% In-Browser Privacy Guarantee • Zero Cloud Uploads</span>
+          <span>Supabase Cloud Database • Enterprise-Grade Encrypted Storage</span>
         </div>
 
         <h1 className="text-4xl md:text-6xl font-black text-slate-900 dark:text-white tracking-tight max-w-4xl mx-auto leading-tight">
@@ -85,7 +85,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onOpenAuth, onExploreD
         </h1>
 
         <p className="text-base md:text-lg text-slate-600 dark:text-zinc-400 max-w-2xl mx-auto leading-relaxed">
-          Upload any CSV or Excel sales spreadsheet to calculate profit margins, track customer pipeline deals, estimate IRS Schedule C tax savings, and consult your private Local AI Advisor.
+          Connect your business data via CSV or Excel to calculate profit margins, track customer pipeline deals, estimate tax savings, and get deterministic intelligence insights — all from your real transaction records.
         </p>
 
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
@@ -98,11 +98,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onOpenAuth, onExploreD
           </button>
 
           <button
-            onClick={onExploreDemo}
+            onClick={() => onOpenAuth('signin')}
             className="w-full sm:w-auto flex items-center justify-center gap-2 px-8 py-3.5 bg-zinc-950 dark:bg-white text-white dark:text-black font-extrabold text-sm rounded-full shadow-lg transition-all hover:scale-105"
           >
-            <Sparkles className="w-4 h-4 text-rose-500" />
-            <span>Explore Interactive Demo</span>
+            <span>Sign In to Dashboard</span>
           </button>
         </div>
 
@@ -356,13 +355,13 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onOpenAuth, onExploreD
               DB
             </div>
             <div>
-              <span className="font-extrabold text-white block">DataBeta Inc.</span>
-              <span>100% In-Browser Privacy Financial Intelligence Platform</span>
+              <span className="font-extrabold text-white block">DataBeta Technologies</span>
+              <span>Enterprise Business Intelligence &amp; CRM Platform</span>
             </div>
           </div>
 
           <div className="flex items-center gap-6 font-medium">
-            <button onClick={onExploreDemo} className="hover:text-white">Live Platform Demo</button>
+            <button onClick={() => onOpenAuth('signin')} className="hover:text-white">Sign In</button>
             <button onClick={() => onOpenAuth('signin')} className="hover:text-white">Sign In</button>
             <button onClick={() => onOpenAuth('signup')} className="hover:text-white">Sign Up</button>
           </div>

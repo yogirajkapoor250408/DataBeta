@@ -5,15 +5,17 @@ import { calculateCustomerAnalytics, calculateProductAnalytics } from '../utils/
 import { calculatePipelineSummary } from '../utils/crmEngine';
 import { formatCurrency } from '../utils/currencyFormatter';
 import { generateBusinessSummary } from '../utils/summaryEngine';
-import { Sparkles, TrendingUp, AlertTriangle, CheckCircle2, Info, Target, Users, Zap, ShieldCheck } from 'lucide-react';
+import { GoalTrackerCard } from './GoalTrackerCard';
+import { TrendingUp, AlertTriangle, CheckCircle2, Info, Zap, ShieldCheck } from 'lucide-react';
 
 interface InsightsViewProps {
   records: NormalizedRecord[];
   crmDeals: CRMContact[];
   currency: CurrencyCode;
+  businessId?: string;
 }
 
-export const InsightsView: React.FC<InsightsViewProps> = ({ records, crmDeals, currency }) => {
+export const InsightsView: React.FC<InsightsViewProps> = ({ records, crmDeals, currency, businessId }) => {
   const metrics = useMemo(() => calculateMetrics(records), [records]);
   const customerStats = useMemo(() => calculateCustomerAnalytics(records), [records]);
   const productStats = useMemo(() => calculateProductAnalytics(records), [records]);
@@ -155,6 +157,8 @@ export const InsightsView: React.FC<InsightsViewProps> = ({ records, crmDeals, c
               ))}
             </div>
           </div>
+          {/* Goal Tracker integrated at bottom of Insights */}
+          <GoalTrackerCard records={records} currency={currency} businessId={businessId} />
         </>
       ) : (
         <div className="bg-white dark:bg-zinc-950 p-12 rounded-3xl border border-slate-200/80 dark:border-zinc-800 text-center space-y-3 shadow-xs">

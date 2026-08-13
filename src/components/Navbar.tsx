@@ -76,11 +76,11 @@ export const Navbar: React.FC<NavbarProps> = ({
         <div className="flex flex-col items-center gap-6">
           {/* Home Icon */}
           <div
-            onClick={() => setActiveTab('landing')}
+            onClick={() => window.location.href = '/'}
             className="w-10 h-10 rounded-2xl bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 p-1 flex items-center justify-center cursor-pointer shadow-xs hover:scale-105 active:scale-95 transition-all duration-150"
             title="DataBeta Home"
           >
-            <img src="/logo.png" alt="DataBeta Logo" className="w-full h-full object-contain rounded-xl" />
+            <img src="/icon.png" alt="DataBeta Icon" className="w-full h-full object-contain rounded-xl" />
           </div>
 
           {/* 5 Core Navigation Icons */}

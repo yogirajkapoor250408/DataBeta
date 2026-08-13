@@ -30,13 +30,13 @@ export const AICopilotModal: React.FC<AICopilotModalProps> = ({
     {
       id: 'msg-init',
       sender: 'ai',
-      text: 'Hello! I am the DataBeta Insight Engine. I run 100% locally in your browser memory using rule-based algorithms to analyze your transactions, profit margins, tax deductions, and customer pipeline.',
+      text: 'Hello! I am the DataBeta Intelligence Engine. I run 100% deterministically using rule-based algorithms to analyze your transactions, profit margins, tax deductions, and customer pipeline.',
       timestamp: 'Just now',
       cards: [
         {
-          title: 'Local Algorithm Engine Active',
-          value: '100% Private',
-          detail: 'No external cloud APIs or paid keys used',
+          title: 'DataBeta Intelligence Engine',
+          value: 'Deterministic',
+          detail: 'Rule-based analysis from your real transaction data',
           type: 'positive',
         },
       ],
