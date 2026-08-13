@@ -13,6 +13,8 @@ export const authService = {
       return { user: null, error: new Error('Supabase is not configured. Please set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.') };
     }
 
+    const redirectUrl = typeof window !== 'undefined' ? `${window.location.origin}/dashboard.html` : undefined;
+
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
@@ -20,6 +22,7 @@ export const authService = {
         data: {
           full_name: fullName,
         },
+        emailRedirectTo: redirectUrl,
       },
     });
 
@@ -87,10 +90,11 @@ export const authService = {
     if (!isSupabaseConfigured()) {
       return { error: new Error('Supabase is not configured. Please set environment variables.') };
     }
+    const redirectUrl = typeof window !== 'undefined' ? `${window.location.origin}/dashboard.html` : undefined;
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${window.location.origin}`,
+        redirectTo: redirectUrl,
       },
     });
     return { error };
@@ -106,7 +110,10 @@ export const authService = {
     if (!isSupabaseConfigured()) {
       return { error: new Error('Supabase is not configured.') };
     }
-    const { error } = await supabase.auth.resetPasswordForEmail(email);
+    const redirectUrl = typeof window !== 'undefined' ? `${window.location.origin}/dashboard.html` : undefined;
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: redirectUrl,
+    });
     return { error };
   },
 
