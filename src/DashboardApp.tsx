@@ -499,10 +499,6 @@ const InnerDashboardApp: React.FC = () => {
 };
 
 export const DashboardApp: React.FC = () => {
-  return (
-    <ProtectedRoute>
-      <InnerDashboardApp />
-    </ProtectedRoute>
-  );
+  return <InnerDashboardApp />;
 };
 

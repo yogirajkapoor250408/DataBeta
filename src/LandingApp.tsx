@@ -21,40 +21,31 @@ export const LandingApp: React.FC = () => {
       }
     } catch {}
 
-    authService.getCurrentSessionUser().then((user) => {
-      if (user) {
-        window.location.href = '/dashboard.html';
-      }
-    });
-
-    const sub = authService.onAuthStateChange((user) => {
-      if (user) {
-        window.location.href = '/dashboard.html';
-      }
-    });
-
-    return () => {
-      if (sub && typeof sub.unsubscribe === 'function') sub.unsubscribe();
-    };
+    // Check if OAuth callback landed on the root page with access_token tokens
+    if (typeof window !== 'undefined' && window.location.hash && (window.location.hash.includes('access_token') || window.location.hash.includes('error='))) {
+      window.location.href = `/dashboard.html${window.location.hash}`;
+    }
   }, []);
 
   return (
-    <>
+    <div className="min-h-screen bg-slate-50 text-slate-900 dark:bg-[#09090b] dark:text-zinc-100 transition-colors duration-300">
       <LandingPage
         onOpenAuth={(mode) => {
           setAuthMode(mode);
           setIsAuthOpen(true);
         }}
         onExploreDemo={() => {
-          window.location.href = '/dashboard.html'; // In a real app this would go to a sandbox
+          window.location.href = '/dashboard.html';
         }}
       />
       <AuthModal
         isOpen={isAuthOpen}
         initialMode={authMode}
         onClose={() => setIsAuthOpen(false)}
-        onAuthSuccess={(user) => window.location.href = '/dashboard.html'}
+        onAuthSuccess={() => {
+          window.location.href = '/dashboard.html';
+        }}
       />
-    </>
+    </div>
   );
 };
