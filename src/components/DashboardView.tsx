@@ -7,6 +7,7 @@ import { calculatePipelineSummary } from '../utils/crmEngine';
 import { calculateFinancialHealthScore } from '../utils/healthCalculator';
 import { WorkloadWaveCard } from './WorkloadWaveCard';
 import { BusinessPlannerCard } from './BusinessPlannerCard';
+import { ShopifyAnalyticsChart } from './ShopifyAnalyticsChart';
 import {
   DollarSign,
   TrendingUp,
@@ -205,62 +206,10 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         />
       </div>
 
-      {/* Revenue & Profit Charts Section with Minimalist Time-frame Controls */}
-      {monthlyChartData.length > 0 ? (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          <div className="bg-white dark:bg-zinc-950 p-6 rounded-3xl border border-slate-200/80 dark:border-zinc-800 shadow-xs space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="font-bold text-slate-900 dark:text-white text-base">Revenue & Expense Trend</h3>
-              <div className="flex items-center gap-1 bg-slate-100 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 p-1 rounded-full text-[10px] font-bold font-mono">
-                <button className="px-2 py-0.5 rounded-full bg-white dark:bg-zinc-800 text-slate-900 dark:text-white shadow-xs">1M</button>
-                <button className="px-2 py-0.5 rounded-full text-slate-500 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white">3M</button>
-                <button className="px-2 py-0.5 rounded-full text-slate-500 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white">6M</button>
-                <button className="px-2 py-0.5 rounded-full text-slate-500 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white">1Y</button>
-              </div>
-            </div>
-            <div className="h-64 w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={monthlyChartData}>
-                  <defs>
-                    <linearGradient id="colorRev" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#e11d48" stopOpacity={0.4} />
-                      <stop offset="95%" stopColor="#e11d48" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <XAxis dataKey="month" stroke="#71717a" fontSize={11} />
-                  <YAxis stroke="#71717a" fontSize={11} />
-                  <Tooltip
-                    contentStyle={{ backgroundColor: '#09090b', borderColor: '#27272a', borderRadius: '16px', color: '#fff', fontSize: '12px' }}
-                  />
-                  <Area type="monotone" dataKey="Revenue" stroke="#e11d48" fillOpacity={1} fill="url(#colorRev)" strokeWidth={2} />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-
-          <div className="bg-white dark:bg-zinc-950 p-6 rounded-3xl border border-slate-200/80 dark:border-zinc-800 shadow-xs space-y-4">
-            <h3 className="font-bold text-slate-900 dark:text-white text-base">Net Profit Trajectory</h3>
-            <div className="h-64 w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={monthlyChartData}>
-                  <defs>
-                    <linearGradient id="colorProfit" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#10b981" stopOpacity={0.4} />
-                      <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <XAxis dataKey="month" stroke="#71717a" fontSize={11} />
-                  <YAxis stroke="#71717a" fontSize={11} />
-                  <Tooltip
-                    contentStyle={{ backgroundColor: '#09090b', borderColor: '#27272a', borderRadius: '16px', color: '#fff', fontSize: '12px' }}
-                  />
-                  <Area type="monotone" dataKey="Profit" stroke="#10b981" fillOpacity={1} fill="url(#colorProfit)" strokeWidth={2} />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-        </div>
-      ) : null}
+      {/* Shopify / Stripe Grade Analytics Chart Section */}
+      {records.length > 0 && (
+        <ShopifyAnalyticsChart records={records} currency={currency} />
+      )}
 
       {/* Top Customers & Recent Transactions Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
