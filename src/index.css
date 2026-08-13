@@ -3,9 +3,14 @@
 @tailwind utilities;
 
 @layer base {
+  html {
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+
   body {
     font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    @apply antialiased bg-slate-50 text-slate-900 dark:bg-[#09090b] dark:text-zinc-100 transition-colors duration-200 selection:bg-rose-600 selection:text-white;
+    @apply antialiased bg-slate-50 text-slate-900 dark:bg-[#09090b] dark:text-zinc-100 transition-colors duration-200 selection:bg-rose-600 selection:text-white min-h-screen;
     font-feature-settings: "cv02", "cv03", "cv04", "cv11", "tnum" 1;
   }
 }
@@ -21,38 +26,34 @@
     font-variant-numeric: tabular-nums;
   }
 
-  /* Reusable Typographic Scale Tokens */
-  .type-display {
-    @apply text-2xl sm:text-3xl font-black tracking-tight text-slate-900 dark:text-white;
+  /* Safe Area Insets for iOS & Android Mobile Navigation */
+  .pb-safe {
+    padding-bottom: max(env(safe-area-inset-bottom, 0px), 12px);
   }
 
-  .type-heading {
-    @apply text-lg sm:text-xl font-extrabold tracking-tight text-slate-900 dark:text-white;
+  .pt-safe {
+    padding-top: env(safe-area-inset-top, 0px);
   }
 
-  .type-subheading {
-    @apply text-sm sm:text-base font-bold text-slate-900 dark:text-white;
+  /* Instant Touch Responsiveness */
+  .touch-target {
+    min-height: 44px;
+    min-width: 44px;
   }
 
-  .type-body {
-    @apply text-xs sm:text-sm font-medium leading-relaxed text-slate-600 dark:text-zinc-400;
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 5px;
+    height: 5px;
   }
-
-  .type-caption {
-    @apply text-[10px] sm:text-[11px] font-semibold text-slate-500 dark:text-zinc-500 tracking-wider uppercase;
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
   }
-
-  .type-metric {
-    font-family: 'JetBrains Mono', monospace;
-    @apply font-extrabold tracking-tight tabular-nums;
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(100, 116, 139, 0.25);
+    border-radius: 9999px;
   }
-
-  .glass-panel {
-    @apply bg-white/80 dark:bg-zinc-950/80 backdrop-blur-xl border border-slate-200/80 dark:border-zinc-800/80;
-  }
-  
-  .glass-card {
-    @apply bg-white/90 dark:bg-zinc-950/90 backdrop-blur-xl border border-slate-200/80 dark:border-zinc-800/80 hover:border-rose-500/30 dark:hover:border-rose-500/30 transition-all duration-300;
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: rgba(100, 116, 139, 0.45);
   }
 
   .scrollbar-none::-webkit-scrollbar {
@@ -65,16 +66,16 @@
 
   /* Executive Motion System: Serene, Smooth Fade & Slide */
   .ios-btn {
-    @apply active:scale-[0.98] active:opacity-90 transition-all duration-150 ease-[cubic-bezier(0.16,1,0.3,1)] select-none;
+    @apply active:scale-[0.97] transition-all duration-150 ease-[cubic-bezier(0.16,1,0.3,1)] select-none;
   }
 
   .hover-card-subtle {
-    transition: transform 200ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 200ms cubic-bezier(0.16, 1, 0.3, 1), border-color 150ms ease;
+    transition: transform 180ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 180ms cubic-bezier(0.16, 1, 0.3, 1), border-color 150ms ease;
   }
 
   .hover-card-subtle:hover {
     transform: translateY(-2px);
-    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.04), 0 8px 10px -6px rgba(0, 0, 0, 0.02);
+    box-shadow: 0 8px 20px -4px rgba(0, 0, 0, 0.04), 0 4px 8px -4px rgba(0, 0, 0, 0.02);
   }
 }
 
@@ -137,13 +138,19 @@
   animation: smoothSlideInRight 240ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-@keyframes gentleFloat {
-  0%, 100% { transform: translateY(0px); }
-  50% { transform: translateY(-4px); }
+@keyframes smoothSlideUp {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
 }
 
-.animate-float {
-  animation: gentleFloat 5s ease-in-out infinite;
+.animate-slideUpMobile {
+  animation: smoothSlideUp 260ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 /* Accessibility: Prefers Reduced Motion */
@@ -182,68 +189,4 @@
 
 ::view-transition-new(root) {
   z-index: 99999;
-}
-
-/* High-Performance Micro-Animations */
-@keyframes waveMotion {
-  0% { transform: translateX(0) scaleY(1); }
-  50% { transform: translateX(-15%) scaleY(1.08); }
-  100% { transform: translateX(0) scaleY(1); }
-}
-
-.animate-wave {
-  animation: waveMotion 10s ease-in-out infinite;
-}
-
-@keyframes shimmerSweep {
-  0% { transform: translateX(-100%); }
-  100% { transform: translateX(100%); }
-}
-
-.animate-shimmer {
-  position: relative;
-  overflow: hidden;
-}
-
-.animate-shimmer::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  transform: translateX(-100%);
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.15), transparent);
-  animation: shimmerSweep 3s infinite;
-}
-
-@keyframes slideUpFade {
-  from {
-    opacity: 0;
-    transform: translateY(12px) scale(0.98);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-}
-
-.animate-slideUp {
-  animation: slideUpFade 320ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-
-@keyframes glowPulse {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(225, 29, 72, 0.4); }
-  50% { box-shadow: 0 0 0 8px rgba(225, 29, 72, 0); }
-}
-
-.animate-glowPulse {
-  animation: glowPulse 2.5s infinite;
-}
-
-/* Minimalist Card Hover Elevation */
-.hover-card-lift {
-  transition: transform 220ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 220ms cubic-bezier(0.16, 1, 0.3, 1), border-color 220ms ease;
-}
-
-.hover-card-lift:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 12px 30px -10px rgba(225, 29, 72, 0.12);
 }
