@@ -144,6 +144,53 @@ export const FileUploadModal: React.FC<FileUploadModalProps> = ({
 
 
 
+          {/* Sample Dataset Quick Loader */}
+          <div className="mb-4 p-3.5 bg-slate-50 dark:bg-zinc-900/80 rounded-2xl border border-slate-200 dark:border-zinc-800 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-xl bg-rose-50 dark:bg-rose-950/60 text-rose-600 border border-rose-200 dark:border-rose-900 flex items-center justify-center font-bold text-xs">
+                ⚡
+              </div>
+              <div>
+                <p className="text-xs font-bold text-slate-900 dark:text-white">Don't have a CSV handy?</p>
+                <p className="text-[11px] text-slate-500 dark:text-zinc-400">Load a verified SMB e-commerce & SaaS sample dataset.</p>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => {
+                const sampleRecords: NormalizedRecord[] = [
+                  { id: 'tx-1', date: new Date('2026-01-05'), dateString: '2026-01-05', revenue: 14500, expense: 3200, profit: 11300, category: 'Enterprise SaaS', product: 'Annual Platform License', customer: 'Acme Global Corp', quantity: 1 },
+                  { id: 'tx-2', date: new Date('2026-01-12'), dateString: '2026-01-12', revenue: 8200, expense: 1900, profit: 6300, category: 'Consulting', product: 'Architecture Audit', customer: 'Vertex Logistics', quantity: 1 },
+                  { id: 'tx-3', date: new Date('2026-01-18'), dateString: '2026-01-18', revenue: 0, expense: 2450, profit: -2450, category: 'Infrastructure', product: 'AWS Cloud Hosting', customer: undefined, quantity: 1 },
+                  { id: 'tx-4', date: new Date('2026-01-25'), dateString: '2026-01-25', revenue: 9800, expense: 2100, profit: 7700, category: 'Enterprise SaaS', product: 'Tier 3 Seat Expansion', customer: 'Nordic Health Systems', quantity: 1 },
+                  { id: 'tx-5', date: new Date('2026-02-02'), dateString: '2026-02-02', revenue: 12000, expense: 2800, profit: 9200, category: 'Enterprise SaaS', product: 'Annual Platform License', customer: 'Starlight Financial', quantity: 1 },
+                  { id: 'tx-6', date: new Date('2026-02-10'), dateString: '2026-02-10', revenue: 0, expense: 1800, profit: -1800, category: 'Software Tools', product: 'Linear & GitHub Enterprise', customer: undefined, quantity: 1 },
+                  { id: 'tx-7', date: new Date('2026-02-15'), dateString: '2026-02-15', revenue: 16500, expense: 3900, profit: 12600, category: 'Enterprise SaaS', product: 'Enterprise SLA & Support', customer: 'Acme Global Corp', quantity: 1 },
+                  { id: 'tx-8', date: new Date('2026-02-22'), dateString: '2026-02-22', revenue: 7400, expense: 1600, profit: 5800, category: 'Consulting', product: 'Security Review', customer: 'Horizon Media Group', quantity: 1 },
+                  { id: 'tx-9', date: new Date('2026-03-01'), dateString: '2026-03-01', revenue: 18900, expense: 4200, profit: 14700, category: 'Enterprise SaaS', product: 'Custom Integration Pack', customer: 'Pinnacle Capital Partners', quantity: 1 },
+                  { id: 'tx-10', date: new Date('2026-03-05'), dateString: '2026-03-05', revenue: 0, expense: 3500, profit: -3500, category: 'Marketing', product: 'Paid Growth Campaigns', customer: undefined, quantity: 1 },
+                  { id: 'tx-11', date: new Date('2026-03-10'), dateString: '2026-03-10', revenue: 11200, expense: 2400, profit: 8800, category: 'Enterprise SaaS', product: 'Annual Platform License', customer: 'BlueShift Technologies', quantity: 1 },
+                ];
+
+                const meta: DatasetMeta = {
+                  fileName: 'Sample Business Ledger.csv',
+                  fileSize: 4096,
+                  rowCount: sampleRecords.length,
+                  headers: ['Date', 'Revenue', 'Expense', 'Profit', 'Category', 'Product', 'Customer', 'Quantity'],
+                  uploadedAt: new Date(),
+                  mapping: { date: 'Date', revenue: 'Revenue', expense: 'Expense', profit: 'Profit', category: 'Category', product: 'Product', customer: 'Customer', quantity: 'Quantity' },
+                };
+
+                onDatasetLoaded({ meta, records: sampleRecords });
+                onClose();
+              }}
+              className="px-3.5 py-1.5 bg-rose-600 hover:bg-rose-500 text-white text-xs font-extrabold rounded-full shadow-sm transition-all shrink-0 active:scale-[0.98]"
+            >
+              Load Sample Demo
+            </button>
+          </div>
+
           {/* Dropzone */}
           <div
             onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
