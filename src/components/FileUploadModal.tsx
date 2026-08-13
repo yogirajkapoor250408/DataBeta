@@ -142,35 +142,7 @@ export const FileUploadModal: React.FC<FileUploadModalProps> = ({
             </div>
           )}
 
-          {/* Platform Presets */}
-          <div className="mb-4 space-y-2">
-            <span className="text-[11px] font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-wider block">
-              1-Click E-Commerce Presets
-            </span>
-            <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 text-xs">
-              {[
-                { name: 'Shopify', icon: ShoppingBag },
-                { name: 'Stripe', icon: CreditCard },
-                { name: 'WooCommerce', icon: ShoppingCart },
-                { name: 'Square', icon: Square },
-                { name: 'QuickBooks', icon: BookOpen },
-                { name: 'PayPal', icon: DollarSign },
-              ].map((p) => {
-                const IconComp = p.icon;
-                return (
-                  <button
-                    key={p.name}
-                    type="button"
-                    onClick={() => fileInputRef.current?.click()}
-                    className="p-2 rounded-2xl bg-slate-50 dark:bg-zinc-900 text-slate-800 dark:text-zinc-200 border border-slate-200/80 dark:border-zinc-800 hover:bg-slate-100 dark:hover:bg-zinc-800 flex flex-col items-center gap-1 font-bold text-[11px] transition-all"
-                  >
-                    <IconComp className="w-4 h-4 text-rose-600" />
-                    <span>{p.name}</span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
+
 
           {/* Dropzone */}
           <div

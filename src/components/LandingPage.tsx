@@ -36,9 +36,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onOpenAuth, onExploreD
       <header className="bg-white/80 dark:bg-zinc-950/80 backdrop-blur-md sticky top-0 z-40 border-b border-slate-200/80 dark:border-zinc-800">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-rose-600 text-white flex items-center justify-center font-black shadow-md shadow-rose-600/30">
-              DB
-            </div>
+            <img src="/logo.png" alt="DataBeta Logo" className="w-10 h-10 object-contain rounded-xl shadow-xs" />
             <div>
               <span className="text-lg font-black tracking-tight text-slate-900 dark:text-white block leading-none">
                 DataBeta
