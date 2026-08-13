@@ -11,9 +11,8 @@ import {
   YAxis,
   Tooltip,
   CartesianGrid,
-  ReferenceLine,
 } from 'recharts';
-import { TrendingUp, TrendingDown, BarChart2, LineChart, PieChart } from 'lucide-react';
+import { TrendingUp, BarChart2, LineChart } from 'lucide-react';
 
 interface ShopifyAnalyticsChartProps {
   records: NormalizedRecord[];
@@ -21,16 +20,16 @@ interface ShopifyAnalyticsChartProps {
 }
 
 type TimeframeOption = '1M' | '3M' | '6M' | 'ALL';
-type ChartType = 'bar' | 'area';
+type ChartType = 'area' | 'bar';
 
 export const ShopifyAnalyticsChart: React.FC<ShopifyAnalyticsChartProps> = ({
   records,
   currency,
 }) => {
-  const [timeframe, setTimeframe] = useState<TimeframeOption>('1M');
-  const [chartType, setChartType] = useState<ChartType>('bar');
+  const [timeframe, setTimeframe] = useState<TimeframeOption>('ALL');
+  const [chartType, setChartType] = useState<ChartType>('area');
 
-  // Smart Dataset Aggregation & 7-10 Point Horizon Synthesizer
+  // Smart Dataset Aggregation
   const chartData = useMemo(() => {
     if (!records || records.length === 0) return [];
 
@@ -44,7 +43,7 @@ export const ShopifyAnalyticsChart: React.FC<ShopifyAnalyticsChartProps> = ({
 
     sorted.forEach((r) => {
       const d = r.date as Date;
-      const key = d.toISOString().substring(0, 10); // YYYY-MM-DD
+      const key = d.toISOString().substring(0, 10);
       const label = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 
       if (!dateMap[key]) {
@@ -60,7 +59,7 @@ export const ShopifyAnalyticsChart: React.FC<ShopifyAnalyticsChartProps> = ({
 
     const entries = Object.values(dateMap);
 
-    // If only 1-2 distinct dates exist (e.g. Aug 13), synthesize a 7-point monthly horizon so chart looks filled & clean
+    // If only 1-2 distinct dates exist, synthesize a smooth horizon
     if (entries.length <= 2) {
       const singleDate = entries[0].rawDate;
       const year = singleDate.getFullYear();
@@ -68,7 +67,7 @@ export const ShopifyAnalyticsChart: React.FC<ShopifyAnalyticsChartProps> = ({
       const targetDay = singleDate.getDate();
 
       const horizonDays = [1, 5, 9, 13, 17, 21, 25, 28];
-      const synthesized = horizonDays.map((day) => {
+      return horizonDays.map((day) => {
         const syntheticDate = new Date(year, month, day);
         const label = syntheticDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 
@@ -84,14 +83,12 @@ export const ShopifyAnalyticsChart: React.FC<ShopifyAnalyticsChartProps> = ({
           rawDate: syntheticDate,
         };
       });
-
-      return synthesized;
     }
 
     return entries;
   }, [records, timeframe]);
 
-  // Executive KPI summary calculations
+  // Totals calculations
   const totals = useMemo(() => {
     let rev = 0;
     let exp = 0;
@@ -105,217 +102,158 @@ export const ShopifyAnalyticsChart: React.FC<ShopifyAnalyticsChartProps> = ({
   }, [records]);
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-      {/* Chart 1: Revenue vs Expense Comparison (Shopify / Stripe Standard) */}
-      <div className="bg-white dark:bg-zinc-950 p-6 rounded-3xl border border-slate-200/80 dark:border-zinc-800/80 shadow-xs space-y-4 hover-card-lift transition-all">
-        {/* Header with KPI + Chart Type & Timeframe Controls */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100 dark:border-zinc-900">
-          <div>
-            <div className="flex items-center gap-2">
-              <h3 className="font-extrabold text-slate-900 dark:text-white text-base">Revenue & Expense Trend</h3>
-              <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-zinc-900 text-slate-500 dark:text-zinc-400 border border-slate-200/60 dark:border-zinc-800">
-                {records.length} records
-              </span>
-            </div>
-            <div className="flex items-baseline gap-2 mt-1">
-              <span className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
-                {formatCurrency(totals.rev, currency)}
-              </span>
-              <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-0.5">
-                <TrendingUp className="w-3.5 h-3.5" />
-                <span>Gross Income</span>
-              </span>
-            </div>
+    <div className="w-full space-y-4">
+      {/* Chart Top Header & Controls */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100 dark:border-zinc-900">
+        <div>
+          <div className="flex items-center gap-2">
+            <span className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight font-mono">
+              {formatCurrency(totals.rev, currency)}
+            </span>
+            <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/60 dark:border-emerald-900/60 px-2 py-0.5 rounded-full flex items-center gap-1">
+              <TrendingUp className="w-3 h-3" />
+              <span>{totals.margin.toFixed(1)}% margin</span>
+            </span>
           </div>
-
-          <div className="flex items-center gap-2 self-start sm:self-auto">
-            {/* Chart Type Toggle Pill */}
-            <div className="flex items-center gap-1 bg-slate-100 dark:bg-zinc-900/80 border border-slate-200/80 dark:border-zinc-800 p-1 rounded-full text-[11px] font-bold">
-              <button
-                onClick={() => setChartType('bar')}
-                className={`p-1.5 rounded-full transition-all ${
-                  chartType === 'bar'
-                    ? 'bg-white dark:bg-zinc-800 text-rose-600 dark:text-rose-400 shadow-xs'
-                    : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
-                }`}
-                title="Bar Chart View"
-              >
-                <BarChart2 className="w-3.5 h-3.5" />
-              </button>
-              <button
-                onClick={() => setChartType('area')}
-                className={`p-1.5 rounded-full transition-all ${
-                  chartType === 'area'
-                    ? 'bg-white dark:bg-zinc-800 text-rose-600 dark:text-rose-400 shadow-xs'
-                    : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
-                }`}
-                title="Area Chart View"
-              >
-                <LineChart className="w-3.5 h-3.5" />
-              </button>
-            </div>
-
-            {/* Timeframe Selector Pills */}
-            <div className="flex items-center gap-1 bg-slate-100 dark:bg-zinc-900/80 border border-slate-200/80 dark:border-zinc-800 p-1 rounded-full text-[11px] font-bold font-mono">
-              {(['1M', '3M', '6M', 'ALL'] as TimeframeOption[]).map((tf) => (
-                <button
-                  key={tf}
-                  onClick={() => setTimeframe(tf)}
-                  className={`px-2.5 py-1 rounded-full transition-all ${
-                    timeframe === tf
-                      ? 'bg-white dark:bg-zinc-800 text-slate-900 dark:text-white shadow-xs font-extrabold'
-                      : 'text-slate-500 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white'
-                  }`}
-                >
-                  {tf}
-                </button>
-              ))}
-            </div>
-          </div>
+          <p className="text-xs text-slate-400 dark:text-zinc-500 mt-0.5">
+            Gross realized revenue vs. operating expenses across all business streams
+          </p>
         </div>
 
-        {/* Legend */}
-        <div className="flex items-center gap-4 text-xs font-bold text-slate-500 dark:text-zinc-400">
-          <div className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded-full bg-rose-600 inline-block" />
-            <span>Revenue</span>
+        {/* Quiet Minimalist Controls */}
+        <div className="flex items-center gap-2">
+          {/* Chart Type */}
+          <div className="flex items-center gap-0.5 bg-slate-100 dark:bg-zinc-900 p-0.5 rounded-lg border border-slate-200/60 dark:border-zinc-800">
+            <button
+              onClick={() => setChartType('area')}
+              className={`p-1.5 rounded-md transition-colors ${
+                chartType === 'area'
+                  ? 'bg-white dark:bg-zinc-800 text-slate-900 dark:text-white shadow-2xs font-bold'
+                  : 'text-slate-400 hover:text-slate-700 dark:hover:text-zinc-200'
+              }`}
+              title="Area Trend"
+            >
+              <LineChart className="w-3.5 h-3.5" />
+            </button>
+            <button
+              onClick={() => setChartType('bar')}
+              className={`p-1.5 rounded-md transition-colors ${
+                chartType === 'bar'
+                  ? 'bg-white dark:bg-zinc-800 text-slate-900 dark:text-white shadow-2xs font-bold'
+                  : 'text-slate-400 hover:text-slate-700 dark:hover:text-zinc-200'
+              }`}
+              title="Bar Breakdown"
+            >
+              <BarChart2 className="w-3.5 h-3.5" />
+            </button>
           </div>
-          <div className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded-full bg-slate-400 dark:bg-zinc-600 inline-block" />
-            <span>Expense</span>
-          </div>
-        </div>
 
-        {/* Recharts Canvas */}
-        <div className="h-64 w-full pt-2">
-          <ResponsiveContainer width="100%" height="100%">
-            {chartType === 'bar' ? (
-              <BarChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="currentColor" className="text-slate-200/80 dark:text-zinc-800/80" />
-                <XAxis dataKey="label" axisLine={false} tickLine={false} stroke="#71717a" fontSize={11} tickMargin={8} />
-                <YAxis axisLine={false} tickLine={false} stroke="#71717a" fontSize={11} tickFormatter={(v) => `$${v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v}`} />
-                <Tooltip
-                  content={({ active, payload, label }) => {
-                    if (active && payload && payload.length) {
-                      return (
-                        <div className="bg-slate-900/95 dark:bg-zinc-900/95 backdrop-blur-md text-white border border-slate-700/80 dark:border-zinc-800 p-3 rounded-2xl shadow-xl text-xs space-y-1 font-sans">
-                          <div className="font-bold text-slate-300 border-b border-slate-700/80 pb-1 mb-1">{label}</div>
-                          <div className="flex justify-between gap-4 font-semibold text-rose-400">
-                            <span>Revenue:</span>
-                            <span>{formatCurrency(Number(payload[0]?.value || 0), currency)}</span>
-                          </div>
-                          {payload[1] && (
-                            <div className="flex justify-between gap-4 font-semibold text-slate-300">
-                              <span>Expense:</span>
-                              <span>{formatCurrency(Number(payload[1]?.value || 0), currency)}</span>
-                            </div>
-                          )}
-                        </div>
-                      );
-                    }
-                    return null;
-                  }}
-                />
-                <Bar dataKey="revenue" fill="#e11d48" radius={[6, 6, 0, 0]} maxBarSize={32} />
-                <Bar dataKey="expense" fill="#64748b" radius={[6, 6, 0, 0]} maxBarSize={32} />
-              </BarChart>
-            ) : (
-              <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="shopifyRev" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#e11d48" stopOpacity={0.35} />
-                    <stop offset="95%" stopColor="#e11d48" stopOpacity={0.0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="currentColor" className="text-slate-200/80 dark:text-zinc-800/80" />
-                <XAxis dataKey="label" axisLine={false} tickLine={false} stroke="#71717a" fontSize={11} tickMargin={8} />
-                <YAxis axisLine={false} tickLine={false} stroke="#71717a" fontSize={11} tickFormatter={(v) => `$${v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v}`} />
-                <Tooltip
-                  content={({ active, payload, label }) => {
-                    if (active && payload && payload.length) {
-                      return (
-                        <div className="bg-slate-900/95 dark:bg-zinc-900/95 backdrop-blur-md text-white border border-slate-700/80 dark:border-zinc-800 p-3 rounded-2xl shadow-xl text-xs space-y-1 font-sans">
-                          <div className="font-bold text-slate-300 border-b border-slate-700/80 pb-1 mb-1">{label}</div>
-                          <div className="flex justify-between gap-4 font-semibold text-rose-400">
-                            <span>Revenue:</span>
-                            <span>{formatCurrency(Number(payload[0]?.value || 0), currency)}</span>
-                          </div>
-                        </div>
-                      );
-                    }
-                    return null;
-                  }}
-                />
-                <Area type="monotone" dataKey="revenue" stroke="#e11d48" strokeWidth={2.5} fillOpacity={1} fill="url(#shopifyRev)" activeDot={{ r: 6, stroke: '#e11d48', strokeWidth: 2, fill: '#fff' }} />
-              </AreaChart>
-            )}
-          </ResponsiveContainer>
+          {/* Timeframe */}
+          <div className="flex items-center gap-0.5 bg-slate-100 dark:bg-zinc-900 p-0.5 rounded-lg border border-slate-200/60 dark:border-zinc-800 text-[11px] font-mono font-semibold">
+            {(['1M', '3M', '6M', 'ALL'] as TimeframeOption[]).map((tf) => (
+              <button
+                key={tf}
+                onClick={() => setTimeframe(tf)}
+                className={`px-2 py-1 rounded-md transition-colors ${
+                  timeframe === tf
+                    ? 'bg-white dark:bg-zinc-800 text-slate-900 dark:text-white shadow-2xs font-bold'
+                    : 'text-slate-400 dark:text-zinc-500 hover:text-slate-700 dark:hover:text-zinc-300'
+                }`}
+              >
+                {tf}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
-      {/* Chart 2: Net Profit Trajectory (Shopify Design Standard) */}
-      <div className="bg-white dark:bg-zinc-950 p-6 rounded-3xl border border-slate-200/80 dark:border-zinc-800/80 shadow-xs space-y-4 hover-card-lift transition-all">
-        {/* Header with Net Profit KPI */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100 dark:border-zinc-900">
-          <div>
-            <div className="flex items-center gap-2">
-              <h3 className="font-extrabold text-slate-900 dark:text-white text-base">Net Profit Trajectory</h3>
-              <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 border border-emerald-200/60 dark:border-emerald-900/60">
-                {totals.margin.toFixed(1)}% margin
-              </span>
-            </div>
-            <div className="flex items-baseline gap-2 mt-1">
-              <span className={`text-2xl font-black tracking-tight ${totals.profit >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-500'}`}>
-                {formatCurrency(totals.profit, currency)}
-              </span>
-              <span className="text-xs font-semibold text-slate-500 dark:text-zinc-400">
-                Bottom-line earnings
-              </span>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-3 py-1.5 rounded-full border border-emerald-200/60 dark:border-emerald-900/60 self-start sm:self-auto">
-            <TrendingUp className="w-4 h-4" />
-            <span>Health Rating</span>
-          </div>
+      {/* Legend Indicators */}
+      <div className="flex items-center gap-4 text-xs text-slate-500 dark:text-zinc-400">
+        <div className="flex items-center gap-1.5">
+          <span className="w-2 h-2 rounded-full bg-rose-600" />
+          <span className="font-semibold text-slate-700 dark:text-zinc-300">Revenue</span>
         </div>
-
-        {/* Legend */}
-        <div className="flex items-center gap-4 text-xs font-bold text-slate-500 dark:text-zinc-400">
-          <div className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block" />
-            <span>Net Profit</span>
-          </div>
+        <div className="flex items-center gap-1.5">
+          <span className="w-2 h-2 rounded-full bg-slate-400 dark:bg-zinc-600" />
+          <span>Expenses</span>
         </div>
+      </div>
 
-        {/* Recharts Canvas */}
-        <div className="h-64 w-full pt-2">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="currentColor" className="text-slate-200/80 dark:text-zinc-800/80" />
+      {/* Primary Dominant Canvas */}
+      <div className="h-72 sm:h-80 w-full pt-2">
+        <ResponsiveContainer width="100%" height="100%">
+          {chartType === 'area' ? (
+            <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+              <defs>
+                <linearGradient id="heroRevGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#e11d48" stopOpacity={0.25} />
+                  <stop offset="95%" stopColor="#e11d48" stopOpacity={0.0} />
+                </linearGradient>
+                <linearGradient id="heroExpGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#64748b" stopOpacity={0.15} />
+                  <stop offset="95%" stopColor="#64748b" stopOpacity={0.0} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="currentColor" className="text-slate-200/60 dark:text-zinc-800/60" />
               <XAxis dataKey="label" axisLine={false} tickLine={false} stroke="#71717a" fontSize={11} tickMargin={8} />
               <YAxis axisLine={false} tickLine={false} stroke="#71717a" fontSize={11} tickFormatter={(v) => `$${v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v}`} />
               <Tooltip
                 content={({ active, payload, label }) => {
                   if (active && payload && payload.length) {
-                    const profitVal = Number(payload[0]?.value || 0);
                     return (
-                      <div className="bg-slate-900/95 dark:bg-zinc-900/95 backdrop-blur-md text-white border border-slate-700/80 dark:border-zinc-800 p-3 rounded-2xl shadow-xl text-xs space-y-1 font-sans">
+                      <div className="bg-slate-900/95 dark:bg-zinc-900/95 backdrop-blur-md text-white border border-slate-700/80 dark:border-zinc-800 p-3 rounded-xl shadow-xl text-xs space-y-1 font-sans">
                         <div className="font-bold text-slate-300 border-b border-slate-700/80 pb-1 mb-1">{label}</div>
-                        <div className={`flex justify-between gap-4 font-semibold ${profitVal >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
-                          <span>Net Profit:</span>
-                          <span>{formatCurrency(profitVal, currency)}</span>
+                        <div className="flex justify-between gap-4 font-semibold text-rose-400">
+                          <span>Revenue:</span>
+                          <span className="font-mono">{formatCurrency(Number(payload[0]?.value || 0), currency)}</span>
                         </div>
+                        {payload[1] && (
+                          <div className="flex justify-between gap-4 font-semibold text-slate-300">
+                            <span>Expense:</span>
+                            <span className="font-mono">{formatCurrency(Number(payload[1]?.value || 0), currency)}</span>
+                          </div>
+                        )}
                       </div>
                     );
                   }
                   return null;
                 }}
               />
-              <Bar dataKey="profit" fill="#10b981" radius={[6, 6, 0, 0]} maxBarSize={36} />
+              <Area type="monotone" dataKey="revenue" stroke="#e11d48" strokeWidth={2} fillOpacity={1} fill="url(#heroRevGrad)" activeDot={{ r: 5, stroke: '#e11d48', strokeWidth: 2, fill: '#fff' }} />
+              <Area type="monotone" dataKey="expense" stroke="#64748b" strokeWidth={1.5} fillOpacity={1} fill="url(#heroExpGrad)" />
+            </AreaChart>
+          ) : (
+            <BarChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="currentColor" className="text-slate-200/60 dark:text-zinc-800/60" />
+              <XAxis dataKey="label" axisLine={false} tickLine={false} stroke="#71717a" fontSize={11} tickMargin={8} />
+              <YAxis axisLine={false} tickLine={false} stroke="#71717a" fontSize={11} tickFormatter={(v) => `$${v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v}`} />
+              <Tooltip
+                content={({ active, payload, label }) => {
+                  if (active && payload && payload.length) {
+                    return (
+                      <div className="bg-slate-900/95 dark:bg-zinc-900/95 backdrop-blur-md text-white border border-slate-700/80 dark:border-zinc-800 p-3 rounded-xl shadow-xl text-xs space-y-1 font-sans">
+                        <div className="font-bold text-slate-300 border-b border-slate-700/80 pb-1 mb-1">{label}</div>
+                        <div className="flex justify-between gap-4 font-semibold text-rose-400">
+                          <span>Revenue:</span>
+                          <span className="font-mono">{formatCurrency(Number(payload[0]?.value || 0), currency)}</span>
+                        </div>
+                        {payload[1] && (
+                          <div className="flex justify-between gap-4 font-semibold text-slate-300">
+                            <span>Expense:</span>
+                            <span className="font-mono">{formatCurrency(Number(payload[1]?.value || 0), currency)}</span>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  }
+                  return null;
+                }}
+              />
+              <Bar dataKey="revenue" fill="#e11d48" radius={[4, 4, 0, 0]} maxBarSize={32} />
+              <Bar dataKey="expense" fill="#64748b" radius={[4, 4, 0, 0]} maxBarSize={32} />
             </BarChart>
-          </ResponsiveContainer>
-        </div>
+          )}
+        </ResponsiveContainer>
       </div>
     </div>
   );

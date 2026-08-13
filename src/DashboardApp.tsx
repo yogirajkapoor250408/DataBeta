@@ -330,7 +330,7 @@ const InnerDashboardApp: React.FC = () => {
         onOpenCommandPalette={() => setIsCommandPaletteOpen(true)}
       />
 
-      <main className="pl-0 md:pl-16 flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 pb-24 md:pb-8">
+      <main className="pl-0 md:pl-14 flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 pb-24 md:pb-8">
         <div key={activeTab} className="animate-tabFade">
           {activeTab === 'overview' ? (
             <DashboardView
@@ -383,7 +383,7 @@ const InnerDashboardApp: React.FC = () => {
         </div>
       </main>
 
-      <footer className="pl-0 md:pl-16 bg-white dark:bg-zinc-950 border-t border-slate-200 dark:border-zinc-800/80 py-4 text-center text-xs text-slate-500 dark:text-zinc-500 no-print pb-24 md:pb-4">
+      <footer className="pl-0 md:pl-14 bg-white dark:bg-zinc-950 border-t border-slate-200 dark:border-zinc-800/80 py-4 text-center text-xs text-slate-500 dark:text-zinc-500 no-print pb-24 md:pb-4">
         <p>DataBeta Technologies — Business Intelligence & CRM Platform</p>
       </footer>
 
