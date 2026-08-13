@@ -4,13 +4,49 @@
 
 @layer base {
   body {
+    font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     @apply antialiased bg-slate-50 text-slate-900 dark:bg-[#09090b] dark:text-zinc-100 transition-colors duration-200 selection:bg-rose-600 selection:text-white;
-    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11", "tnum" 1;
   }
 }
 
-/* Custom Utilities for High Performance & Apple-like Interaction Design */
+/* Custom Utilities for High Performance & Industry-Level Fintech Typography */
 @layer utilities {
+  .font-mono {
+    font-family: 'JetBrains Mono', monospace;
+    font-feature-settings: "tnum" 1, "zero" 1;
+  }
+
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Reusable Typographic Scale Tokens */
+  .type-display {
+    @apply text-2xl sm:text-3xl font-black tracking-tight text-slate-900 dark:text-white;
+  }
+
+  .type-heading {
+    @apply text-lg sm:text-xl font-extrabold tracking-tight text-slate-900 dark:text-white;
+  }
+
+  .type-subheading {
+    @apply text-sm sm:text-base font-bold text-slate-900 dark:text-white;
+  }
+
+  .type-body {
+    @apply text-xs sm:text-sm font-medium leading-relaxed text-slate-600 dark:text-zinc-400;
+  }
+
+  .type-caption {
+    @apply text-[10px] sm:text-[11px] font-semibold text-slate-500 dark:text-zinc-500 tracking-wider uppercase;
+  }
+
+  .type-metric {
+    font-family: 'JetBrains Mono', monospace;
+    @apply font-extrabold tracking-tight tabular-nums;
+  }
+
   .glass-panel {
     @apply bg-white/80 dark:bg-zinc-950/80 backdrop-blur-md border border-slate-200/80 dark:border-zinc-800/80;
   }
@@ -181,6 +217,3 @@
   transform: translateY(-3px);
   box-shadow: 0 12px 30px -10px rgba(225, 29, 72, 0.12);
 }
-
-
-
