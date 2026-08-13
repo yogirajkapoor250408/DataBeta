@@ -20,6 +20,7 @@ CREATE TABLE IF NOT EXISTS public.businesses (
   country TEXT,
   currency TEXT DEFAULT 'USD',
   logo_url TEXT,
+  created_by UUID REFERENCES auth.users(id) DEFAULT auth.uid(),
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -196,7 +197,7 @@ CREATE POLICY "Users can insert own profile" ON public.profiles
 
 -- Businesses Policies
 CREATE POLICY "Members can view their business" ON public.businesses
-  FOR SELECT USING (id IN (SELECT get_user_business_ids()));
+  FOR SELECT USING (id IN (SELECT get_user_business_ids()) OR (auth.uid() IS NOT NULL AND created_by = auth.uid()));
 CREATE POLICY "Owners and Admins can update business" ON public.businesses
   FOR UPDATE USING (
     id IN (
