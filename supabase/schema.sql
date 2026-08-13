@@ -184,8 +184,11 @@ ALTER TABLE public.audit_logs ENABLE ROW LEVEL SECURITY;
 -- Helper Security Function: Get user's authorized business IDs
 CREATE OR REPLACE FUNCTION public.get_user_business_ids()
 RETURNS TABLE (b_id UUID) AS $$
+BEGIN
+  RETURN QUERY
   SELECT business_id FROM public.business_members WHERE user_id = auth.uid();
-$$ LANGUAGE sql SECURITY DEFINER STABLE;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER STABLE;
 
 -- Profiles Policies
 CREATE POLICY "Users can view own profile" ON public.profiles
