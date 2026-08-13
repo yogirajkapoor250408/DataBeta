@@ -19,7 +19,9 @@ import { auditService } from './services/auditService';
 import { toggleThemeWithRipple } from './utils/themeRipple';
 
 import { SubscriptionModal } from './components/SubscriptionModal';
-
+import { MobileBottomNav } from './components/MobileBottomNav';
+import { CommandPaletteModal } from './components/CommandPaletteModal';
+import { AICopilotModal } from './components/AICopilotModal';
 import { ProtectedRoute } from './components/ProtectedRoute';
 
 const THEME_KEY = 'databeta_theme';
@@ -46,6 +48,8 @@ const InnerDashboardApp: React.FC = () => {
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [authMode, setAuthMode] = useState<'signin' | 'signup'>('signin');
   const [isTourOpen, setIsTourOpen] = useState(false);
+  const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
+  const [isAIOpen, setIsAIOpen] = useState(false);
 
   // 1. Theme & Initial Session Restoration
   useEffect(() => {
@@ -259,6 +263,7 @@ const InnerDashboardApp: React.FC = () => {
         activeBusiness={activeBusiness}
         onSelectBusiness={handleSwitchBusiness}
         onOpenCreateBusiness={() => setIsOnboardingOpen(true)}
+        onOpenCommandPalette={() => setIsCommandPaletteOpen(true)}
       />
 
       <main className="pl-0 md:pl-16 flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 pb-24 md:pb-8">
@@ -368,6 +373,30 @@ const InnerDashboardApp: React.FC = () => {
           }}
         />
       )}
+
+      {/* Mobile-First Fixed Bottom Navigation Bar */}
+      <MobileBottomNav
+        activeTab={activeTab}
+        setActiveTab={(t) => setActiveTab(t as CoreTab)}
+        onOpenAI={() => setIsAIOpen(true)}
+      />
+
+      {/* Global Cmd+K Command Palette */}
+      <CommandPaletteModal
+        isOpen={isCommandPaletteOpen}
+        onClose={() => setIsCommandPaletteOpen(false)}
+        setActiveTab={(t) => setActiveTab(t as CoreTab)}
+        onOpenAI={() => setIsAIOpen(true)}
+      />
+
+      {/* Full-Screen Mobile Business Copilot Assistant */}
+      <AICopilotModal
+        isOpen={isAIOpen}
+        onClose={() => setIsAIOpen(false)}
+        records={dataset?.records || []}
+        currency={currency}
+        contacts={crmContacts}
+      />
     </div>
   );
 };

@@ -38,6 +38,7 @@ interface NavbarProps {
   activeBusiness?: Business | null;
   onSelectBusiness?: (business: Business) => void;
   onOpenCreateBusiness?: () => void;
+  onOpenCommandPalette?: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -57,6 +58,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   activeBusiness = null,
   onSelectBusiness,
   onOpenCreateBusiness,
+  onOpenCommandPalette,
 }) => {
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
 
@@ -252,14 +254,12 @@ export const Navbar: React.FC<NavbarProps> = ({
             )}
 
             {/* Minimalist Header Search Bar (Inspired by High-End Minimal Dashboards) */}
-            <div className="hidden lg:flex items-center gap-2 bg-slate-100 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-full px-3 py-1.5 text-xs text-slate-400 dark:text-zinc-500 max-w-xs w-48 focus-within:w-64 focus-within:border-rose-500 transition-all duration-200">
+            <div
+              onClick={onOpenCommandPalette}
+              className="hidden lg:flex items-center gap-2 bg-slate-100 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-full px-3 py-1.5 text-xs text-slate-400 dark:text-zinc-500 max-w-xs w-48 hover:border-rose-500/50 cursor-pointer transition-all duration-200"
+            >
               <Search className="w-3.5 h-3.5 text-slate-400 dark:text-zinc-500 shrink-0" />
-              <input
-                type="text"
-                placeholder="Search platform..."
-                onClick={() => setActiveTab('transactions')}
-                className="bg-transparent text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-zinc-500 text-xs font-medium focus:outline-none w-full"
-              />
+              <span className="text-xs font-medium text-slate-400 dark:text-zinc-500">Search platform (⌘K)...</span>
             </div>
 
             {/* Persistent Fiscal Period Selector Pill */}
