@@ -190,6 +190,19 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER STABLE;
 
+-- Helper Security Function: Check if user is owner or admin of a business
+CREATE OR REPLACE FUNCTION public.is_business_owner_or_admin(b_id UUID)
+RETURNS BOOLEAN AS $$
+BEGIN
+  RETURN EXISTS (
+    SELECT 1 FROM public.business_members
+    WHERE business_id = b_id 
+      AND user_id = auth.uid() 
+      AND role IN ('owner', 'admin')
+  );
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER STABLE;
+
 -- Profiles Policies
 CREATE POLICY "Users can view own profile" ON public.profiles
   FOR SELECT USING (auth.uid() = id);
@@ -202,12 +215,7 @@ CREATE POLICY "Users can insert own profile" ON public.profiles
 CREATE POLICY "Members can view their business" ON public.businesses
   FOR SELECT USING (id IN (SELECT get_user_business_ids()) OR (auth.uid() IS NOT NULL AND created_by = auth.uid()));
 CREATE POLICY "Owners and Admins can update business" ON public.businesses
-  FOR UPDATE USING (
-    id IN (
-      SELECT business_id FROM public.business_members
-      WHERE user_id = auth.uid() AND role IN ('owner', 'admin')
-    )
-  );
+  FOR UPDATE USING (is_business_owner_or_admin(id));
 CREATE POLICY "Authenticated users can create businesses" ON public.businesses
   FOR INSERT TO authenticated WITH CHECK (true);
 
@@ -217,12 +225,7 @@ CREATE POLICY "Members can view team members" ON public.business_members
 CREATE POLICY "Users can insert their own membership" ON public.business_members
   FOR INSERT TO authenticated WITH CHECK (user_id = auth.uid());
 CREATE POLICY "Owners and Admins can manage members" ON public.business_members
-  FOR ALL USING (
-    business_id IN (
-      SELECT business_id FROM public.business_members
-      WHERE user_id = auth.uid() AND role IN ('owner', 'admin')
-    )
-  );
+  FOR ALL USING (is_business_owner_or_admin(business_id));
 
 -- Multi-Tenant RLS Policies for Business-Owned Entities
 CREATE POLICY "Multi-tenant transactions access" ON public.transactions
