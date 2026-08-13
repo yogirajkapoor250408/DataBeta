@@ -25,41 +25,41 @@ const TOUR_STEPS: TourStep[] = [
     step: 1,
     title: 'Executive Overview Dashboard',
     tab: 'overview',
-    description: 'This is your company control center. It computes real-time margins, revenue trends, and operational summaries derived from your database.',
+    description: 'This is your company control center. It computes real-time margins, revenue trends, and daily priority attention items.',
     targetSelector: 'main',
-    highlightText: 'Overview Canvas'
+    highlightText: 'Executive Command Center'
   },
   {
     step: 2,
-    title: 'Transactions Ledger & Logging',
-    tab: 'transactions',
-    description: 'Track and review every transaction row. You can manually log single items or audit the imported general ledger from here.',
+    title: 'Connected CRM & Pipeline Studio',
+    tab: 'crm',
+    description: 'Manage active deals across the 6-stage Kanban board, search contacts & companies, and track follow-up tasks.',
     targetSelector: 'main',
-    highlightText: 'Data Ledger'
+    highlightText: 'CRM & Pipeline'
   },
   {
     step: 3,
-    title: 'Client Intelligence & 360 Dossiers',
-    tab: 'customers',
-    description: 'Monitor buyer retention, search accounts, and click on any customer to open their Customer 360 intelligence dossier.',
+    title: 'Financial Intelligence & Ledger',
+    tab: 'finance',
+    description: 'Track double-entry transactions, calculate IRS Schedule C quarterly tax liabilities, and monitor cash runway.',
     targetSelector: 'main',
-    highlightText: 'Client Index'
+    highlightText: 'Financial Intelligence'
   },
   {
     step: 4,
-    title: 'Sales Pipeline CRM',
-    tab: 'pipeline',
-    description: 'Manage active deals across our 6-stage Kanban board. Move deals to visually update deal statuses and track conversion value.',
+    title: 'Root-Cause Intelligence & Leaks',
+    tab: 'insights',
+    description: 'Explore root-cause performance diagnosis, 5-vector profit leak scanners, and mathematical what-if growth simulators.',
     targetSelector: 'main',
-    highlightText: 'Kanban Board'
+    highlightText: 'Intelligence Studio'
   },
   {
     step: 5,
-    title: 'AI-Free Analytical Insights',
-    tab: 'insights',
-    description: 'Read cost risk reports, marketing insights, and margin metrics computed directly from real numbers with absolute local privacy.',
+    title: 'Publication-Grade Reports',
+    tab: 'reports',
+    description: 'Generate customized executive PDF reports with company logos, custom titles, and P&L statements.',
     targetSelector: 'main',
-    highlightText: 'Insight Engine'
+    highlightText: 'Reports Publisher'
   },
   {
     step: 6,
