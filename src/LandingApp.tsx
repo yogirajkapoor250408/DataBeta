@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { LandingPage } from './components/LandingPage';
 import { AuthModal } from './components/AuthModal';
-import { PresenceToast } from './components/PresenceToast';
 
 export const LandingApp: React.FC = () => {
   const [isAuthOpen, setIsAuthOpen] = useState(false);
@@ -38,9 +37,6 @@ export const LandingApp: React.FC = () => {
           window.location.href = '/dashboard.html';
         }}
       />
-
-      {/* Global Live Presence Telemetry Feed (10,000+ Variants) */}
-      <PresenceToast context="landing" enabled={true} />
 
       <AuthModal
         isOpen={isAuthOpen}

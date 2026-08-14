@@ -13,11 +13,13 @@ export function calculateCashRunway(records: NormalizedRecord[], cashReserve: nu
   const totalExp = metrics.totalExpenses || 0;
 
   // Calculate distinct month span in dataset
-  const dates = records.map((r) => r.date).filter(Boolean) as Date[];
+  const dateObjs = records
+    .map((r) => (r.date instanceof Date ? r.date : new Date(r.date)))
+    .filter((d) => !isNaN(d.getTime()));
   let monthCount = 1;
-  if (dates.length >= 2) {
-    const minDate = new Date(Math.min(...dates.map((d) => d.getTime())));
-    const maxDate = new Date(Math.max(...dates.map((d) => d.getTime())));
+  if (dateObjs.length >= 2) {
+    const minDate = new Date(Math.min(...dateObjs.map((d) => d.getTime())));
+    const maxDate = new Date(Math.max(...dateObjs.map((d) => d.getTime())));
     const diffMonths = (maxDate.getFullYear() - minDate.getFullYear()) * 12 + (maxDate.getMonth() - minDate.getMonth());
     monthCount = Math.max(1, diffMonths + 1);
   }

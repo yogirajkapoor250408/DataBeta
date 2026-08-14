@@ -1,59 +1,91 @@
 import React, { useState, useEffect } from 'react';
 import { Navbar, CoreTab } from './components/Navbar';
 import { DashboardView } from './components/DashboardView';
-import { FinanceView } from './components/FinanceView';
 import { CRMView } from './components/CRMView';
+import { FinanceView } from './components/FinanceView';
 import { InsightsView } from './components/InsightsView';
 import { ReportsView } from './components/ReportsView';
 import { SettingsView } from './components/SettingsView';
-import { EmptyState } from './components/EmptyState';
+import { DemoBanner } from './components/DemoBanner';
 import { FileUploadModal } from './components/FileUploadModal';
 import { AuthModal } from './components/AuthModal';
-import { GuidedTourModal } from './components/GuidedTourModal';
-import { OnboardingModal } from './components/OnboardingModal';
-import { Dataset, CurrencyCode, CRMContact, User, NormalizedRecord } from './types';
+import { CommandPaletteModal } from './components/CommandPaletteModal';
+import { ProtectedRoute } from './components/ProtectedRoute';
+import {
+  Deal,
+  Contact,
+  Task,
+  Invoice,
+  NormalizedRecord,
+  CurrencyCode,
+  User,
+  Dataset,
+  DealStage,
+} from './types';
+import {
+  DEMO_DEALS,
+  DEMO_CONTACTS,
+  DEMO_TASKS,
+  DEMO_INVOICES,
+  DEMO_TRANSACTIONS,
+} from './utils/demoData';
 import { authService } from './services/authService';
 import { businessService, Business, BusinessMembership } from './services/businessService';
-import { transactionService } from './services/transactionService';
 import { crmService } from './services/crmService';
 import { auditService } from './services/auditService';
 import { toggleThemeWithRipple } from './utils/themeRipple';
-
-import { SubscriptionModal } from './components/SubscriptionModal';
-import { MobileBottomNav } from './components/MobileBottomNav';
-import { CommandPaletteModal } from './components/CommandPaletteModal';
-import { AICopilotModal } from './components/AICopilotModal';
-import { ProtectedRoute } from './components/ProtectedRoute';
-import { PresenceToast } from './components/PresenceToast';
+import { X, Plus, Calendar, DollarSign, Users, Receipt } from 'lucide-react';
 
 const THEME_KEY = 'databeta_theme';
 const ACTIVE_BIZ_KEY = 'databeta_active_biz_id';
 
-const InnerDashboardApp: React.FC = () => {
+export const DashboardApp: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [activeTab, setActiveTab] = useState<CoreTab>('overview');
+  const [isDemoMode, setIsDemoMode] = useState<boolean>(true); // Defaults to safe labeled demo mode until user signs in/switches
 
-  // Business & Multi-Tenant State
-  const [memberships, setMemberships] = useState<BusinessMembership[]>([]);
-  const [activeBusiness, setActiveBusiness] = useState<Business | null>(null);
-  const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
-  const [isSubscriptionOpen, setIsSubscriptionOpen] = useState(false);
-
-  // Data State for Active Business
-  const [dataset, setDataset] = useState<Dataset | null>(null);
-  const [crmContacts, setCrmContacts] = useState<CRMContact[]>([]);
+  // Workspace Data State
+  const [deals, setDeals] = useState<Deal[]>(DEMO_DEALS);
+  const [contacts, setContacts] = useState<Contact[]>(DEMO_CONTACTS);
+  const [tasks, setTasks] = useState<Task[]>(DEMO_TASKS);
+  const [invoices, setInvoices] = useState<Invoice[]>(DEMO_INVOICES);
+  const [records, setRecords] = useState<NormalizedRecord[]>(DEMO_TRANSACTIONS);
   const [currency, setCurrency] = useState<CurrencyCode>('USD');
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
 
-  // Modals State
+  // Business Multi-Tenancy
+  const [memberships, setMemberships] = useState<BusinessMembership[]>([]);
+  const [activeBusiness, setActiveBusiness] = useState<Business | null>(null);
+
+  // Modals
   const [isUploadOpen, setIsUploadOpen] = useState(false);
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [authMode, setAuthMode] = useState<'signin' | 'signup'>('signin');
-  const [isTourOpen, setIsTourOpen] = useState(false);
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
-  const [isAIOpen, setIsAIOpen] = useState(false);
 
-  // 1. Theme & Initial Session Restoration
+  // Quick Creation Modals State
+  const [showAddDealModal, setShowAddDealModal] = useState(false);
+  const [dealTitle, setDealTitle] = useState('');
+  const [dealCompany, setDealCompany] = useState('');
+  const [dealContact, setDealContact] = useState('');
+  const [dealAmount, setDealAmount] = useState('15000');
+  const [dealStage, setDealStage] = useState<DealStage>('lead');
+  const [dealCloseDate, setDealCloseDate] = useState(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]);
+  const [dealNextStep, setDealNextStep] = useState('');
+
+  const [showAddTaskModal, setShowAddTaskModal] = useState(false);
+  const [taskTitle, setTaskTitle] = useState('');
+  const [taskContact, setTaskContact] = useState('');
+  const [taskDueDate, setTaskDueDate] = useState(new Date().toISOString().split('T')[0]);
+  const [taskPriority, setTaskPriority] = useState<'urgent' | 'high' | 'normal'>('high');
+
+  const [showAddInvoiceModal, setShowAddInvoiceModal] = useState(false);
+  const [invoiceNumber, setInvoiceNumber] = useState(`INV-${Date.now().toString().slice(-4)}`);
+  const [invoiceCustomer, setInvoiceCustomer] = useState('');
+  const [invoiceAmount, setInvoiceAmount] = useState('12000');
+  const [invoiceDueDate, setInvoiceDueDate] = useState(new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]);
+
+  // Initial Theme & Session
   useEffect(() => {
     try {
       const storedTheme = localStorage.getItem(THEME_KEY) as 'dark' | 'light' | null;
@@ -67,25 +99,19 @@ const InnerDashboardApp: React.FC = () => {
       }
     } catch {}
 
-    // Check existing session immediately on startup
-    authService.getCurrentSessionUser().then(async (user) => {
+    authService.getCurrentSessionUser().then((user) => {
       if (user) {
         setCurrentUser(user);
-        await loadUserBusinesses(user);
+        setIsDemoMode(false);
+        loadUserWorkspace(user);
       }
     });
 
-    // Subscribe to Auth State Changes
-    const sub = authService.onAuthStateChange(async (user) => {
+    const sub = authService.onAuthStateChange((user) => {
       setCurrentUser(user);
       if (user) {
-        setActiveTab('overview');
-        await loadUserBusinesses(user);
-      } else {
-        setMemberships([]);
-        setActiveBusiness(null);
-        setDataset(null);
-        setCrmContacts([]);
+        setIsDemoMode(false);
+        loadUserWorkspace(user);
       }
     });
 
@@ -94,303 +120,305 @@ const InnerDashboardApp: React.FC = () => {
     };
   }, []);
 
-  // 2. Load User Businesses
-  const loadUserBusinesses = async (user: User) => {
-    const userBizs = await businessService.getUserBusinesses(user.id);
-    setMemberships(userBizs);
-
-    if (userBizs.length > 0) {
-      const lastActiveId = localStorage.getItem(ACTIVE_BIZ_KEY);
-      const matched = userBizs.find((m) => m.business.id === lastActiveId) || userBizs[0];
-      await handleSwitchBusiness(matched.business);
-      
-      // If non-admin and not paid -> ask subscription AFTER loading business
-      if (!user.isAdmin && user.subscriptionStatus !== 'paid') {
-        setIsSubscriptionOpen(true);
-      }
+  const loadUserWorkspace = async (user: User) => {
+    const bizs = await businessService.getUserBusinesses(user.id);
+    setMemberships(bizs);
+    if (bizs.length > 0) {
+      setActiveBusiness(bizs[0].business);
+      setCurrency(bizs[0].business.currency);
+      // Load user's live deals and tasks
+      const loadedDeals = await crmService.getDeals(bizs[0].business.id);
+      const loadedContacts = await crmService.getContacts(bizs[0].business.id);
+      const loadedTasks = await crmService.getTasks(bizs[0].business.id);
+      setDeals(loadedDeals);
+      setContacts(loadedContacts);
+      setTasks(loadedTasks);
     } else {
-      setIsOnboardingOpen(true);
+      // Empty workspace
+      setDeals([]);
+      setContacts([]);
+      setTasks([]);
+      setInvoices([]);
+      setRecords([]);
     }
   };
 
-  // 3. Switch Business Tenant Context
-  const handleSwitchBusiness = async (business: Business) => {
-    setActiveBusiness(business);
-    setCurrency(business.currency);
-    localStorage.setItem(ACTIVE_BIZ_KEY, business.id);
-
-    // Fetch transactions & CRM for this business
-    const txs = await transactionService.getBusinessTransactions(business.id);
-    const deals = await crmService.getDeals(business.id);
-
-    if (txs.length > 0) {
-      setDataset({
-        meta: {
-          fileName: `${business.name} Dataset`,
-          fileSize: 1024,
-          rowCount: txs.length,
-          headers: ['Date', 'Revenue', 'Expense', 'Category', 'Product', 'Customer'],
-          uploadedAt: new Date(),
-          mapping: { date: 'Date', revenue: 'Revenue', expense: 'Expense', profit: 'Profit', category: 'Category', product: 'Product', customer: 'Customer', quantity: null },
-        },
-        records: txs,
-      });
-    } else {
-      setDataset(null);
-    }
-
-    setCrmContacts(deals);
-    auditService.logEvent(business.id, currentUser?.id, 'business_switched', { businessName: business.name });
+  const handleSwitchToDemo = () => {
+    setIsDemoMode(true);
+    setDeals(DEMO_DEALS);
+    setContacts(DEMO_CONTACTS);
+    setTasks(DEMO_TASKS);
+    setInvoices(DEMO_INVOICES);
+    setRecords(DEMO_TRANSACTIONS);
   };
 
-  // 4. Handle Onboarding Completion
-  const handleOnboardingComplete = async (newBiz: Business) => {
-    setIsOnboardingOpen(false);
-    if (currentUser) {
-      const updatedBizs = await businessService.getUserBusinesses(currentUser.id);
-      setMemberships(updatedBizs);
-      await handleSwitchBusiness(newBiz);
-
-      // Ask subscription after onboarding if user is non-admin and not paid
-      if (!currentUser.isAdmin && currentUser.subscriptionStatus !== 'paid') {
-        setIsSubscriptionOpen(true);
-      } else if (currentUser.isFirstTimeUser) {
-        setIsTourOpen(true);
-      }
+  const handleSwitchToReal = () => {
+    if (!currentUser) {
+      setAuthMode('signup');
+      setIsAuthOpen(true);
+      return;
     }
+    setIsDemoMode(false);
+    loadUserWorkspace(currentUser);
   };
 
-  const handleToggleTheme = (e?: React.MouseEvent) => {
-    toggleThemeWithRipple(e, () => {
-      const nextTheme = theme === 'dark' ? 'light' : 'dark';
-      setTheme(nextTheme);
-      localStorage.setItem(THEME_KEY, nextTheme);
-      if (nextTheme === 'dark') document.documentElement.classList.add('dark');
-      else document.documentElement.classList.remove('dark');
-    });
-  };
+  // Create Deal Handler
+  const handleCreateDealSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!dealTitle.trim()) return;
 
-  const handleCurrencyChange = (code: CurrencyCode) => {
-    setCurrency(code);
-    if (activeBusiness) {
-      businessService.updateBusinessSettings(activeBusiness.id, { currency: code });
-      setActiveBusiness({ ...activeBusiness, currency: code });
-    }
-  };
+    const newDeal: Deal = {
+      id: `deal-${Date.now()}`,
+      workspaceId: isDemoMode ? 'demo-ws' : activeBusiness?.id || 'main-ws',
+      title: dealTitle.trim(),
+      companyName: dealCompany.trim() || dealTitle.trim(),
+      contactName: dealContact.trim() || undefined,
+      stage: dealStage,
+      amount: Number(dealAmount) || 0,
+      currency,
+      expectedCloseDate: dealCloseDate,
+      probabilityPct: dealStage === 'won' ? 100 : dealStage === 'negotiation' ? 85 : dealStage === 'proposal_sent' ? 70 : 30,
+      nextStep: dealNextStep.trim() || undefined,
+      tags: ['Active Deal'],
+      createdAt: new Date().toISOString().split('T')[0],
+      updatedAt: new Date().toISOString(),
+    };
 
-  const handleUpdateBusiness = async (updates: Partial<{ name: string; currency: CurrencyCode; country: string; logoUrl: string }>) => {
-    if (!activeBusiness) return;
-    await businessService.updateBusinessSettings(activeBusiness.id, updates);
-    const updatedBiz = { ...activeBusiness, ...updates };
-    setActiveBusiness(updatedBiz);
-    if (updates.currency) {
-      setCurrency(updates.currency);
-    }
-    if (currentUser) {
-      const updatedBizs = await businessService.getUserBusinesses(currentUser.id);
-      setMemberships(updatedBizs);
-    }
-  };
-
-  const handleDatasetLoaded = async (newDataset: Dataset) => {
-    if (!activeBusiness) {
-      if (currentUser) {
-        setIsOnboardingOpen(true);
-        return;
-      } else {
-        // Create local guest workspace so demo/unauthenticated users can explore immediately
-        const guestBiz: Business = {
-          id: `guest-${Date.now()}`,
-          name: newDataset.meta.fileName.replace(/\.[^/.]+$/, '') || 'My Business Workspace',
-          type: 'General',
-          country: 'United States',
-          currency: 'USD',
-          createdAt: new Date().toISOString(),
-        };
-        setActiveBusiness(guestBiz);
-        setDataset(newDataset);
-        return;
-      }
+    const updated = [newDeal, ...deals];
+    setDeals(updated);
+    if (!isDemoMode && activeBusiness) {
+      await crmService.createDeal(activeBusiness.id, newDeal);
     }
 
-    setDataset(newDataset);
-    if (activeBusiness && !activeBusiness.id.startsWith('guest-')) {
-      await transactionService.importDataset(activeBusiness.id, newDataset.meta, newDataset.records);
-      const refreshedTxs = await transactionService.getBusinessTransactions(activeBusiness.id);
-      if (refreshedTxs.length > 0) {
-        setDataset({
-          meta: newDataset.meta,
-          records: refreshedTxs,
-        });
-      }
+    setShowAddDealModal(false);
+    setDealTitle('');
+    setDealCompany('');
+    setDealContact('');
+    setDealNextStep('');
+  };
+
+  // Create Task Handler
+  const handleCreateTaskSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!taskTitle.trim()) return;
+
+    const newTask: Task = {
+      id: `task-${Date.now()}`,
+      workspaceId: isDemoMode ? 'demo-ws' : activeBusiness?.id || 'main-ws',
+      title: taskTitle.trim(),
+      contactName: taskContact.trim() || undefined,
+      dueDate: taskDueDate,
+      priority: taskPriority,
+      status: 'pending',
+      createdAt: new Date().toISOString().split('T')[0],
+    };
+
+    const updated = [newTask, ...tasks];
+    setTasks(updated);
+    if (!isDemoMode && activeBusiness) {
+      await crmService.saveTasks(activeBusiness.id, updated);
     }
 
-    auditService.logEvent(activeBusiness.id, currentUser?.id, 'dataset_imported', {
-      rowCount: newDataset.records.length,
-      fileName: newDataset.meta.fileName,
-    });
+    setShowAddTaskModal(false);
+    setTaskTitle('');
+    setTaskContact('');
   };
 
-  const handleAddManualRecord = async (newRec: NormalizedRecord) => {
-    let currentBiz = activeBusiness;
-    if (!currentBiz) {
-      currentBiz = {
-        id: `guest-${Date.now()}`,
-        name: 'My Business Workspace',
-        type: 'General',
-        country: 'United States',
-        currency: 'USD',
-        createdAt: new Date().toISOString(),
-      };
-      setActiveBusiness(currentBiz);
-    }
+  // Create Invoice Handler
+  const handleCreateInvoiceSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!invoiceCustomer.trim()) return;
 
-    if (!currentBiz.id.startsWith('guest-')) {
-      await transactionService.addSingleTransaction(currentBiz.id, newRec);
-    }
+    const newInvoice: Invoice = {
+      id: `inv-${Date.now()}`,
+      workspaceId: isDemoMode ? 'demo-ws' : activeBusiness?.id || 'main-ws',
+      invoiceNumber: invoiceNumber.trim(),
+      customerName: invoiceCustomer.trim(),
+      status: 'due_soon',
+      issueDate: new Date().toISOString().split('T')[0],
+      dueDate: invoiceDueDate,
+      amount: Number(invoiceAmount) || 0,
+      currency,
+      amountPaid: 0,
+      balanceDue: Number(invoiceAmount) || 0,
+      createdAt: new Date().toISOString().split('T')[0],
+      updatedAt: new Date().toISOString(),
+    };
 
-    const updatedRecords = [newRec, ...(dataset?.records || [])];
-    setDataset({
-      meta: dataset?.meta || {
-        fileName: 'Manual Log',
-        fileSize: 1024,
-        rowCount: updatedRecords.length,
-        headers: ['Date', 'Revenue', 'Expense', 'Category', 'Product', 'Customer'],
-        uploadedAt: new Date(),
-        mapping: { date: 'Date', revenue: 'Revenue', expense: 'Expense', profit: 'Profit', category: 'Category', product: 'Product', customer: 'Customer', quantity: null },
-      },
-      records: updatedRecords,
-    });
-
-    auditService.logEvent(currentBiz.id, currentUser?.id, 'manual_transaction_added', { product: newRec.product });
+    setInvoices([newInvoice, ...invoices]);
+    setShowAddInvoiceModal(false);
+    setInvoiceCustomer('');
   };
 
-  const handleClearData = async () => {
-    if (activeBusiness) {
-      await transactionService.clearBusinessTransactions(activeBusiness.id);
-    }
-    setDataset(null);
-    setActiveTab('overview');
-  };
-
-  const handleContactsChange = (updated: CRMContact[]) => {
-    setCrmContacts(updated);
-  };
-
-  const handleOpenAuth = (mode: 'signin' | 'signup') => {
-    setAuthMode(mode);
-    setIsAuthOpen(true);
-  };
-
-  const handleAuthSuccess = async (user: User) => {
-    setCurrentUser(user);
-    setIsAuthOpen(false);
-    setActiveTab('overview');
-    const guestDataset = dataset;
-    await loadUserBusinesses(user);
-
-    // If user loaded data as guest, migrate it into their new cloud business tenant
-    if (guestDataset && guestDataset.records.length > 0 && activeBusiness && !activeBusiness.id.startsWith('guest-')) {
-      await transactionService.importDataset(activeBusiness.id, guestDataset.meta, guestDataset.records);
-      const refreshed = await transactionService.getBusinessTransactions(activeBusiness.id);
-      if (refreshed.length > 0) {
-        setDataset({ meta: guestDataset.meta, records: refreshed });
-      }
+  // Complete Task Handler
+  const handleCompleteTask = async (taskId: string) => {
+    const updated = tasks.map((t) => (t.id === taskId ? { ...t, status: 'completed' as Task['status'] } : t));
+    setTasks(updated);
+    if (!isDemoMode && activeBusiness) {
+      await crmService.saveTasks(activeBusiness.id, updated);
     }
   };
 
-  const handleLogout = async () => {
-    await authService.signOut();
-    setCurrentUser(null);
-    setMemberships([]);
-    setActiveBusiness(null);
-    setDataset(null);
-    setCrmContacts([]);
-    window.location.href = '/';
+  // Snooze Task Handler
+  const handleSnoozeTask = async (taskId: string) => {
+    const tomorrowStr = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+    const updated = tasks.map((t) => (t.id === taskId ? { ...t, dueDate: tomorrowStr } : t));
+    setTasks(updated);
+    if (!isDemoMode && activeBusiness) {
+      await crmService.saveTasks(activeBusiness.id, updated);
+    }
+  };
+
+  const handleDatasetLoaded = (newDataset: Dataset) => {
+    setRecords(newDataset.records);
+    setIsUploadOpen(false);
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 dark:bg-[#09090b] dark:text-zinc-100 flex flex-col font-sans transition-colors duration-200 selection:bg-rose-600 selection:text-white">
+    <div className="min-h-screen bg-[#f8f9fa] dark:bg-[#09090b] text-slate-900 dark:text-zinc-100 flex flex-col font-sans transition-colors duration-200">
+      {/* Explicit Labeled Demo Mode Banner */}
+      {isDemoMode && (
+        <DemoBanner
+          onSwitchToReal={handleSwitchToReal}
+          onResetDemo={() => {
+            setDeals(DEMO_DEALS);
+            setContacts(DEMO_CONTACTS);
+            setTasks(DEMO_TASKS);
+            setInvoices(DEMO_INVOICES);
+            setRecords(DEMO_TRANSACTIONS);
+          }}
+        />
+      )}
+
+      {/* Main Navbar & Sidebar */}
       <Navbar
         activeTab={activeTab}
         setActiveTab={setActiveTab}
-        datasetMeta={dataset?.meta || null}
+        datasetMeta={null}
         currency={currency}
-        onCurrencyChange={handleCurrencyChange}
+        onCurrencyChange={setCurrency}
         theme={theme}
-        onToggleTheme={handleToggleTheme}
+        onToggleTheme={(e) => {
+          const next = theme === 'dark' ? 'light' : 'dark';
+          setTheme(next);
+          toggleThemeWithRipple(e, () => {
+            if (next === 'dark') document.documentElement.classList.add('dark');
+            else document.documentElement.classList.remove('dark');
+            localStorage.setItem(THEME_KEY, next);
+          });
+        }}
         onOpenUpload={() => setIsUploadOpen(true)}
-        onClearData={handleClearData}
+        onClearData={() => {
+          setRecords([]);
+          setDeals([]);
+          setContacts([]);
+          setInvoices([]);
+        }}
         currentUser={currentUser}
-        onOpenAuth={handleOpenAuth}
-        onLogout={handleLogout}
+        onOpenAuth={(mode) => {
+          setAuthMode(mode);
+          setIsAuthOpen(true);
+        }}
+        onLogout={() => authService.signOut().then(() => setCurrentUser(null))}
         businessMemberships={memberships}
         activeBusiness={activeBusiness}
-        onSelectBusiness={handleSwitchBusiness}
-        onOpenCreateBusiness={() => setIsOnboardingOpen(true)}
         onOpenCommandPalette={() => setIsCommandPaletteOpen(true)}
       />
 
-      <main className="pl-0 md:pl-14 flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 pb-24 md:pb-8">
-        <div key={activeTab} className="animate-tabFade">
-          {activeTab === 'overview' ? (
-            <DashboardView
-              records={dataset?.records || []}
-              currency={currency}
-              onOpenUpload={() => setIsUploadOpen(true)}
-              crmContacts={crmContacts}
-              onNavigateTab={(tab) => setActiveTab(tab)}
-              onAddManualRecord={handleAddManualRecord}
-            />
-          ) : activeTab === 'crm' ? (
-            <CRMView
-              contacts={crmContacts}
-              onContactsChange={handleContactsChange}
-              currency={currency}
-              records={dataset?.records || []}
-              activeBusinessId={activeBusiness?.id}
-            />
-          ) : activeTab === 'finance' ? (
-            <FinanceView
-              records={dataset?.records || []}
-              currency={currency}
-              onAddManualRecord={handleAddManualRecord}
-            />
-          ) : activeTab === 'insights' ? (
-            <InsightsView
-              records={dataset?.records || []}
-              crmDeals={crmContacts}
-              currency={currency}
-              businessId={activeBusiness?.id}
-            />
-          ) : activeTab === 'reports' ? (
-            <ReportsView
-              records={dataset?.records || []}
-              meta={dataset?.meta || null}
-              currency={currency}
-              businessName={activeBusiness?.name}
-            />
-          ) : activeTab === 'settings' ? (
-            <SettingsView
-              meta={dataset?.meta || null}
-              records={dataset?.records || []}
-              currency={currency}
-              onCurrencyChange={handleCurrencyChange}
-              onClearData={handleClearData}
-              activeBusiness={activeBusiness}
-              onUpdateBusiness={handleUpdateBusiness}
-            />
-          ) : null}
-        </div>
+      {/* Main View Port Container */}
+      <main className="flex-1 pl-0 md:pl-14 pt-4 pb-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto w-full transition-all">
+        {activeTab === 'overview' && (
+          <DashboardView
+            deals={deals}
+            contacts={contacts}
+            tasks={tasks}
+            invoices={invoices}
+            records={records}
+            currency={currency}
+            isDemo={isDemoMode}
+            onNavigateTab={setActiveTab}
+            onOpenUpload={() => setIsUploadOpen(true)}
+            onOpenAddDeal={() => setShowAddDealModal(true)}
+            onOpenAddTask={() => setShowAddTaskModal(true)}
+            onOpenAddInvoice={() => setShowAddInvoiceModal(true)}
+            onCompleteTask={handleCompleteTask}
+            onSnoozeTask={handleSnoozeTask}
+            onSwitchToDemo={handleSwitchToDemo}
+          />
+        )}
+
+        {activeTab === 'crm' && (
+          <CRMView
+            deals={deals}
+            contacts={contacts}
+            tasks={tasks}
+            currency={currency}
+            workspaceId={activeBusiness?.id || 'ws-main'}
+            onDealsChange={setDeals}
+            onContactsChange={setContacts}
+            onTasksChange={setTasks}
+            onOpenAddDeal={() => setShowAddDealModal(true)}
+            onOpenAddTask={() => setShowAddTaskModal(true)}
+          />
+        )}
+
+        {activeTab === 'finance' && (
+          <FinanceView
+            invoices={invoices}
+            deals={deals}
+            records={records}
+            currency={currency}
+            workspaceId={activeBusiness?.id || 'ws-main'}
+            onInvoicesChange={setInvoices}
+            onOpenAddInvoice={() => setShowAddInvoiceModal(true)}
+            onOpenUpload={() => setIsUploadOpen(true)}
+            onNavigateTab={setActiveTab}
+          />
+        )}
+
+        {activeTab === 'insights' && (
+          <InsightsView
+            records={records}
+            deals={deals}
+            invoices={invoices}
+            currency={currency}
+            onOpenUpload={() => setIsUploadOpen(true)}
+          />
+        )}
+
+        {activeTab === 'reports' && (
+          <ReportsView
+            deals={deals}
+            invoices={invoices}
+            records={records}
+            currency={currency}
+            workspaceName={activeBusiness?.name || (isDemoMode ? 'Apex Technical Solutions (Demo)' : 'My Workspace')}
+          />
+        )}
+
+        {activeTab === 'settings' && (
+          <SettingsView
+            records={records}
+            currency={currency}
+            onCurrencyChange={setCurrency}
+            onClearData={() => {
+              setRecords([]);
+              setDeals([]);
+              setContacts([]);
+              setInvoices([]);
+            }}
+            activeBusiness={activeBusiness}
+            currentUser={currentUser}
+          />
+        )}
       </main>
 
-      <footer className="pl-0 md:pl-14 bg-white dark:bg-zinc-950 border-t border-slate-200 dark:border-zinc-800/80 py-4 text-center text-xs text-slate-500 dark:text-zinc-500 no-print pb-24 md:pb-4">
-        <p>DataBeta Technologies — Business Intelligence & CRM Platform</p>
+      {/* Footer */}
+      <footer className="pl-0 md:pl-14 bg-white dark:bg-zinc-950 border-t border-slate-200 dark:border-zinc-800/80 py-4 text-center text-xs text-slate-500 dark:text-zinc-500 no-print">
+        <p>DataBeta Technologies — Sales & Cash Operating System</p>
       </footer>
 
-      {/* Global Live Presence Telemetry Feed (10,000+ Variants) */}
-      <PresenceToast context={activeTab === 'settings' ? 'overview' : activeTab} enabled={true} />
-
+      {/* Modals */}
       <FileUploadModal
         isOpen={isUploadOpen}
         onClose={() => setIsUploadOpen(false)}
@@ -401,74 +429,312 @@ const InnerDashboardApp: React.FC = () => {
         isOpen={isAuthOpen}
         initialMode={authMode}
         onClose={() => setIsAuthOpen(false)}
-        onAuthSuccess={handleAuthSuccess}
+        onAuthSuccess={() => setIsAuthOpen(false)}
       />
 
-      {currentUser && (
-        <OnboardingModal
-          isOpen={isOnboardingOpen}
-          userId={currentUser.id}
-          onComplete={handleOnboardingComplete}
-          onClose={() => setIsOnboardingOpen(false)}
-        />
-      )}
-
-      {currentUser && (
-        <SubscriptionModal
-          isOpen={isSubscriptionOpen}
-          user={currentUser}
-          businessName={activeBusiness?.name}
-          onSuccess={() => {
-            setIsSubscriptionOpen(false);
-            setCurrentUser({ ...currentUser, subscriptionStatus: 'paid' });
-            if (currentUser.isFirstTimeUser) {
-              setIsTourOpen(true);
-            }
-          }}
-        />
-      )}
-
-      {currentUser && (
-        <GuidedTourModal
-          isOpen={isTourOpen}
-          user={currentUser}
-          activeTab={activeTab}
-          setActiveTab={setActiveTab}
-          onClose={(updatedUser) => {
-            setCurrentUser(updatedUser);
-            setIsTourOpen(false);
-          }}
-        />
-      )}
-
-      {/* Mobile-First Fixed Bottom Navigation Bar */}
-      <MobileBottomNav
-        activeTab={activeTab}
-        setActiveTab={(t) => setActiveTab(t as CoreTab)}
-        onOpenAI={() => setIsAIOpen(true)}
-      />
-
-      {/* Global Cmd+K Command Palette */}
       <CommandPaletteModal
         isOpen={isCommandPaletteOpen}
         onClose={() => setIsCommandPaletteOpen(false)}
-        setActiveTab={(t) => setActiveTab(t as CoreTab)}
-        onOpenAI={() => setIsAIOpen(true)}
+        onNavigate={(tab) => {
+          setActiveTab(tab);
+          setIsCommandPaletteOpen(false);
+        }}
+        onOpenUpload={() => {
+          setIsCommandPaletteOpen(false);
+          setIsUploadOpen(true);
+        }}
+        onOpenAddDeal={() => {
+          setIsCommandPaletteOpen(false);
+          setShowAddDealModal(true);
+        }}
+        onOpenAddTask={() => {
+          setIsCommandPaletteOpen(false);
+          setShowAddTaskModal(true);
+        }}
+        onToggleTheme={() => {
+          const next = theme === 'dark' ? 'light' : 'dark';
+          setTheme(next);
+          if (next === 'dark') document.documentElement.classList.add('dark');
+          else document.documentElement.classList.remove('dark');
+        }}
       />
 
-      {/* Full-Screen Mobile Business Copilot Assistant */}
-      <AICopilotModal
-        isOpen={isAIOpen}
-        onClose={() => setIsAIOpen(false)}
-        records={dataset?.records || []}
-        currency={currency}
-        contacts={crmContacts}
-      />
+      {/* Add Deal Modal */}
+      {showAddDealModal && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-bold text-slate-900 dark:text-white">Create Sales Deal</h3>
+              <button onClick={() => setShowAddDealModal(false)} className="text-slate-400 hover:text-slate-700">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateDealSubmit} className="space-y-3 text-xs">
+              <div>
+                <label className="font-bold text-slate-700 dark:text-zinc-300 block mb-1">Deal Title *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Acme — Enterprise Cloud License"
+                  value={dealTitle}
+                  onChange={(e) => setDealTitle(e.target.value)}
+                  className="w-full p-2.5 bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl text-slate-900 dark:text-white font-semibold"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="font-bold text-slate-700 dark:text-zinc-300 block mb-1">Company Name</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Acme Corp"
+                    value={dealCompany}
+                    onChange={(e) => setDealCompany(e.target.value)}
+                    className="w-full p-2.5 bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl text-slate-900 dark:text-white"
+                  />
+                </div>
+                <div>
+                  <label className="font-bold text-slate-700 dark:text-zinc-300 block mb-1">Contact Name</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. John Doe"
+                    value={dealContact}
+                    onChange={(e) => setDealContact(e.target.value)}
+                    className="w-full p-2.5 bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl text-slate-900 dark:text-white"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="font-bold text-slate-700 dark:text-zinc-300 block mb-1">Deal Amount ({currency})</label>
+                  <input
+                    type="number"
+                    required
+                    min="0"
+                    value={dealAmount}
+                    onChange={(e) => setDealAmount(e.target.value)}
+                    className="w-full p-2.5 bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl text-slate-900 dark:text-white font-mono font-bold"
+                  />
+                </div>
+                <div>
+                  <label className="font-bold text-slate-700 dark:text-zinc-300 block mb-1">Pipeline Stage</label>
+                  <select
+                    value={dealStage}
+                    onChange={(e) => setDealStage(e.target.value as DealStage)}
+                    className="w-full p-2.5 bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl text-slate-900 dark:text-white font-bold"
+                  >
+                    <option value="lead">New Lead</option>
+                    <option value="qualified">Qualified</option>
+                    <option value="discovery">Discovery</option>
+                    <option value="proposal_sent">Proposal Sent</option>
+                    <option value="negotiation">Negotiation</option>
+                    <option value="won">Closed Won</option>
+                    <option value="lost">Closed Lost</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="font-bold text-slate-700 dark:text-zinc-300 block mb-1">Expected Close Date</label>
+                <input
+                  type="date"
+                  value={dealCloseDate}
+                  onChange={(e) => setDealCloseDate(e.target.value)}
+                  className="w-full p-2.5 bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl text-slate-900 dark:text-white font-mono"
+                />
+              </div>
+
+              <div>
+                <label className="font-bold text-slate-700 dark:text-zinc-300 block mb-1">Next Scheduled Step</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Send technical scope document by Tuesday"
+                  value={dealNextStep}
+                  onChange={(e) => setDealNextStep(e.target.value)}
+                  className="w-full p-2.5 bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl text-slate-900 dark:text-white"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-3">
+                <button
+                  type="button"
+                  onClick={() => setShowAddDealModal(false)}
+                  className="px-4 py-2 bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-zinc-300 rounded-xl font-bold"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-rose-600 hover:bg-rose-500 text-white rounded-xl font-bold shadow-xs"
+                >
+                  Save Deal
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Add Task Modal */}
+      {showAddTaskModal && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-bold text-slate-900 dark:text-white">Schedule Follow-up Task</h3>
+              <button onClick={() => setShowAddTaskModal(false)} className="text-slate-400 hover:text-slate-700">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateTaskSubmit} className="space-y-3 text-xs">
+              <div>
+                <label className="font-bold text-slate-700 dark:text-zinc-300 block mb-1">Task Action *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Call Marcus Brody regarding revised SLA"
+                  value={taskTitle}
+                  onChange={(e) => setTaskTitle(e.target.value)}
+                  className="w-full p-2.5 bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl text-slate-900 dark:text-white font-semibold"
+                />
+              </div>
+
+              <div>
+                <label className="font-bold text-slate-700 dark:text-zinc-300 block mb-1">Linked Contact Name</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Marcus Brody"
+                  value={taskContact}
+                  onChange={(e) => setTaskContact(e.target.value)}
+                  className="w-full p-2.5 bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl text-slate-900 dark:text-white"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="font-bold text-slate-700 dark:text-zinc-300 block mb-1">Due Date</label>
+                  <input
+                    type="date"
+                    value={taskDueDate}
+                    onChange={(e) => setTaskDueDate(e.target.value)}
+                    className="w-full p-2.5 bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl text-slate-900 dark:text-white font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="font-bold text-slate-700 dark:text-zinc-300 block mb-1">Priority</label>
+                  <select
+                    value={taskPriority}
+                    onChange={(e) => setTaskPriority(e.target.value as any)}
+                    className="w-full p-2.5 bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl text-slate-900 dark:text-white font-bold"
+                  >
+                    <option value="urgent">Urgent</option>
+                    <option value="high">High</option>
+                    <option value="normal">Normal</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-3">
+                <button
+                  type="button"
+                  onClick={() => setShowAddTaskModal(false)}
+                  className="px-4 py-2 bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-zinc-300 rounded-xl font-bold"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-rose-600 hover:bg-rose-500 text-white rounded-xl font-bold shadow-xs"
+                >
+                  Save Task
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Add Invoice Modal */}
+      {showAddInvoiceModal && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-bold text-slate-900 dark:text-white">Create Customer Invoice</h3>
+              <button onClick={() => setShowAddInvoiceModal(false)} className="text-slate-400 hover:text-slate-700">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateInvoiceSubmit} className="space-y-3 text-xs">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="font-bold text-slate-700 dark:text-zinc-300 block mb-1">Invoice Number *</label>
+                  <input
+                    type="text"
+                    required
+                    value={invoiceNumber}
+                    onChange={(e) => setInvoiceNumber(e.target.value)}
+                    className="w-full p-2.5 bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl text-slate-900 dark:text-white font-mono font-bold"
+                  />
+                </div>
+                <div>
+                  <label className="font-bold text-slate-700 dark:text-zinc-300 block mb-1">Customer Name *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Cobalt BioTech"
+                    value={invoiceCustomer}
+                    onChange={(e) => setInvoiceCustomer(e.target.value)}
+                    className="w-full p-2.5 bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl text-slate-900 dark:text-white font-bold"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="font-bold text-slate-700 dark:text-zinc-300 block mb-1">Invoice Amount ({currency})</label>
+                  <input
+                    type="number"
+                    required
+                    min="0"
+                    value={invoiceAmount}
+                    onChange={(e) => setInvoiceAmount(e.target.value)}
+                    className="w-full p-2.5 bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl text-slate-900 dark:text-white font-mono font-bold"
+                  />
+                </div>
+                <div>
+                  <label className="font-bold text-slate-700 dark:text-zinc-300 block mb-1">Payment Due Date</label>
+                  <input
+                    type="date"
+                    required
+                    value={invoiceDueDate}
+                    onChange={(e) => setInvoiceDueDate(e.target.value)}
+                    className="w-full p-2.5 bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl text-slate-900 dark:text-white font-mono"
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-3">
+                <button
+                  type="button"
+                  onClick={() => setShowAddInvoiceModal(false)}
+                  className="px-4 py-2 bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-zinc-300 rounded-xl font-bold"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold shadow-xs"
+                >
+                  Create Invoice
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
-
-export const DashboardApp: React.FC = () => {
-  return <InnerDashboardApp />;
-};
-

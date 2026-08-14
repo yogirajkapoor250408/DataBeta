@@ -41,8 +41,8 @@ export const Customer360Drawer: React.FC<Customer360DrawerProps> = ({
   // Filter CRM deals belonging to this customer
   const customerDeals = crmDeals.filter(
     (c) =>
-      c.company.toLowerCase().includes(customer.name.toLowerCase()) ||
-      c.name.toLowerCase().includes(customer.name.toLowerCase())
+      (c.companyName || c.company || '').toLowerCase().includes(customer.name.toLowerCase()) ||
+      (c.contactName || c.name || '').toLowerCase().includes(customer.name.toLowerCase())
   );
 
   // Unique products purchased
@@ -144,11 +144,11 @@ export const Customer360Drawer: React.FC<Customer360DrawerProps> = ({
                     className="p-3 rounded-xl bg-slate-50 dark:bg-zinc-900 border border-slate-200/60 dark:border-zinc-800 flex items-center justify-between"
                   >
                     <div>
-                      <div className="font-bold text-xs text-slate-900 dark:text-white">{deal.name}</div>
+                      <div className="font-bold text-xs text-slate-900 dark:text-white">{deal.title || deal.companyName || deal.name}</div>
                       <div className="text-[10px] text-slate-400 uppercase font-semibold mt-0.5">{deal.stage.replace('_', ' ')}</div>
                     </div>
                     <div className="font-bold text-xs font-mono text-slate-900 dark:text-white">
-                      {formatCurrency(deal.dealValue, currency)}
+                      {formatCurrency(deal.amount || deal.dealValue || 0, currency)}
                     </div>
                   </div>
                 ))}
@@ -182,7 +182,9 @@ export const Customer360Drawer: React.FC<Customer360DrawerProps> = ({
                   <div key={tx.id} className="p-3 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-zinc-900/50 text-xs">
                     <div>
                       <div className="font-semibold text-slate-900 dark:text-white">{tx.product || tx.category || 'Order'}</div>
-                      <div className="text-[10px] text-slate-400 font-mono">{tx.dateString || '—'}</div>
+                      <div className="text-[10px] text-slate-400 font-mono">
+                        {tx.dateString || (typeof tx.date === 'string' ? tx.date : '—')}
+                      </div>
                     </div>
                     <div className="font-bold font-mono text-emerald-600 dark:text-emerald-400">
                       +{formatCurrency(tx.revenue, currency)}

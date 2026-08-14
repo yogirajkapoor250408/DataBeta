@@ -63,19 +63,19 @@ export const Navbar: React.FC<NavbarProps> = ({
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
 
   const tabTitles: Record<CoreTab, string> = {
-    overview: 'Executive Overview',
-    crm: 'CRM & Pipeline',
-    finance: 'Finance & Ledger',
-    insights: 'Business Intelligence',
+    overview: "Today's Command Center",
+    crm: 'Sales CRM & Pipeline',
+    finance: 'Cash & Collections',
+    insights: 'Profitability & Health',
     reports: 'Executive Reports',
-    settings: 'Business Settings',
+    settings: 'Workspace Settings',
   };
 
   const navItems: { tab: CoreTab; label: string; icon: LucideIcon }[] = [
-    { tab: 'overview', label: 'Executive Overview', icon: LayoutDashboard },
-    { tab: 'crm', label: 'CRM & Pipeline', icon: Users },
-    { tab: 'finance', label: 'Finance & Ledger', icon: DollarSign },
-    { tab: 'insights', label: 'Business Intelligence', icon: Zap },
+    { tab: 'overview', label: "Today's Command Center", icon: LayoutDashboard },
+    { tab: 'crm', label: 'Sales CRM & Pipeline', icon: Users },
+    { tab: 'finance', label: 'Cash & Collections', icon: DollarSign },
+    { tab: 'insights', label: 'Profitability & Health', icon: Zap },
     { tab: 'reports', label: 'Executive Reports', icon: FileText },
   ];
 
@@ -226,16 +226,20 @@ export const Navbar: React.FC<NavbarProps> = ({
                   className="flex items-center gap-1.5 bg-slate-100/80 dark:bg-zinc-900/80 hover:bg-slate-200/70 dark:hover:bg-zinc-800/70 border border-slate-200/60 dark:border-zinc-800/80 rounded-lg pl-1.5 pr-2 py-1 text-xs font-semibold text-slate-800 dark:text-zinc-200 transition-colors"
                 >
                   <div className="w-5 h-5 rounded-md bg-rose-600 text-white flex items-center justify-center font-bold text-[10px]">
-                    {currentUser.name.charAt(0)}
+                    {(currentUser.fullName || currentUser.name || currentUser.email || 'U').charAt(0).toUpperCase()}
                   </div>
-                  <span className="max-w-[80px] truncate hidden sm:inline text-xs">{currentUser.name}</span>
+                  <span className="max-w-[80px] truncate hidden sm:inline text-xs">
+                    {currentUser.fullName || currentUser.name || currentUser.email.split('@')[0]}
+                  </span>
                   <ChevronDown className="w-3 h-3 text-slate-400 dark:text-zinc-500" />
                 </button>
 
                 {isUserMenuOpen && (
                   <div className="absolute right-0 mt-1.5 w-52 bg-white dark:bg-zinc-950 rounded-xl shadow-xl border border-slate-200/80 dark:border-zinc-800 p-1.5 text-xs z-50 space-y-0.5 animate-fadeIn">
                     <div className="p-2 border-b border-slate-100 dark:border-zinc-900">
-                      <div className="font-bold text-slate-900 dark:text-white truncate">{currentUser.name}</div>
+                      <div className="font-bold text-slate-900 dark:text-white truncate">
+                        {currentUser.fullName || currentUser.name || currentUser.email.split('@')[0]}
+                      </div>
                       <div className="text-[10px] text-slate-400 dark:text-zinc-500 truncate">{currentUser.email}</div>
                     </div>
 

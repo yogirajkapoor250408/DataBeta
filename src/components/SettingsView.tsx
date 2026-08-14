@@ -1,285 +1,541 @@
 import React, { useState, useEffect } from 'react';
-import { DatasetMeta, NormalizedRecord, CurrencyCode, CURRENCIES } from '../types';
-import { Business } from '../services/businessService';
 import {
-  FileText,
-  Database,
-  CheckCircle2,
-  ShieldCheck,
-  Globe,
-  Trash2,
-  Lock,
-  Cloud,
+  CurrencyCode,
+  Workspace,
+  WorkspaceMember,
+  WorkspaceRole,
+  AuditLogEntry,
+  User,
+  NormalizedRecord,
+} from '../types';
+import { auditService } from '../services/auditService';
+import {
   Building2,
-  Save,
-  Download,
+  Users,
+  ShieldCheck,
+  FileText,
   AlertTriangle,
+  Download,
+  Trash2,
+  Plus,
+  CheckCircle2,
+  Globe,
+  Clock,
+  Key,
+  Database,
+  Lock,
+  Mail,
+  X,
+  Sparkles,
 } from 'lucide-react';
-import { calculateMetrics } from '../utils/metricsCalculator';
 
 interface SettingsViewProps {
-  meta: DatasetMeta | null;
   records: NormalizedRecord[];
   currency: CurrencyCode;
-  onCurrencyChange: (code: CurrencyCode) => void;
+  onCurrencyChange: (newCurrency: CurrencyCode) => void;
   onClearData: () => void;
-  activeBusiness?: Business | null;
-  onUpdateBusiness?: (updates: Partial<{ name: string; currency: CurrencyCode; country: string; logoUrl: string }>) => Promise<void>;
+  activeBusiness?: any;
+  onUpdateBusiness?: (name: string, currency: string) => void;
+  currentUser?: User | null;
 }
 
+type SettingsSubtab = 'business' | 'team' | 'security_data' | 'audit_log';
+
 export const SettingsView: React.FC<SettingsViewProps> = ({
-  meta,
   records,
   currency,
   onCurrencyChange,
   onClearData,
   activeBusiness,
   onUpdateBusiness,
+  currentUser,
 }) => {
-  const metrics = calculateMetrics(records);
-
-  // Business Profile Form State
-  const [bizName, setBizName] = useState(activeBusiness?.name || '');
-  const [bizCountry, setBizCountry] = useState(activeBusiness?.country || 'United States');
-  const [isSaving, setIsSaving] = useState(false);
+  const [subtab, setSubtab] = useState<SettingsSubtab>('business');
+  const [workspaceName, setWorkspaceName] = useState(activeBusiness?.name || 'Apex Technical Solutions');
+  const [baseCurrency, setBaseCurrency] = useState<CurrencyCode>(currency || 'USD');
+  const [displayCurrency, setDisplayCurrency] = useState<CurrencyCode>(currency || 'USD');
+  const [fiscalStartMonth, setFiscalStartMonth] = useState('1'); // January
   const [saveSuccess, setSaveSuccess] = useState(false);
 
-  useEffect(() => {
-    if (activeBusiness) {
-      setBizName(activeBusiness.name || '');
-      setBizCountry(activeBusiness.country || 'United States');
-    }
-  }, [activeBusiness]);
+  // Team Members State
+  const [members, setMembers] = useState<WorkspaceMember[]>([
+    {
+      id: 'mem-1',
+      workspaceId: 'ws-main',
+      userId: 'usr-1',
+      userEmail: currentUser?.email || 'owner@databeta.app',
+      userName: currentUser?.fullName || 'Owner / Administrator',
+      role: 'owner',
+    },
+    {
+      id: 'mem-2',
+      workspaceId: 'ws-main',
+      userId: 'usr-2',
+      userEmail: 'alex.rivera@databeta.app',
+      userName: 'Alex Rivera',
+      role: 'salesperson',
+    },
+    {
+      id: 'mem-3',
+      workspaceId: 'ws-main',
+      userId: 'usr-3',
+      userEmail: 'finance@databeta.app',
+      userName: 'Elena Rostova',
+      role: 'finance_viewer',
+    },
+  ]);
 
-  const handleSaveProfile = async (e: React.FormEvent) => {
+  const [showInviteModal, setShowInviteModal] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [inviteRole, setInviteRole] = useState<WorkspaceRole>('salesperson');
+
+  // Audit Log State
+  const [auditLogs, setAuditLogs] = useState<AuditLogEntry[]>([]);
+
+  useEffect(() => {
+    auditService.getLogs('ws-main').then(setAuditLogs);
+  }, []);
+
+  const handleSaveBusiness = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!onUpdateBusiness || !bizName.trim()) return;
-    setIsSaving(true);
-    setSaveSuccess(false);
-    await onUpdateBusiness({
-      name: bizName.trim(),
-      country: bizCountry,
-    });
-    setIsSaving(false);
+    if (onUpdateBusiness) {
+      onUpdateBusiness(workspaceName, baseCurrency);
+    }
+    if (baseCurrency !== currency) {
+      onCurrencyChange(baseCurrency);
+      await auditService.logEvent(
+        'ws-main',
+        currentUser?.email || 'admin@databeta.app',
+        'base_currency_changed',
+        'workspace',
+        'ws-main',
+        { previousCurrency: currency, newCurrency: baseCurrency }
+      );
+    }
+
     setSaveSuccess(true);
     setTimeout(() => setSaveSuccess(false), 3000);
+    const logs = await auditService.getLogs('ws-main');
+    setAuditLogs(logs);
   };
 
-  // Full Database Backup Download (JSON)
-  const handleDownloadBackup = () => {
-    const backupData = {
-      exportedAt: new Date().toISOString(),
-      business: activeBusiness || { name: 'DataBeta Business' },
-      metadata: meta,
-      recordCount: records.length,
-      records: records,
+  const handleInviteMember = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!inviteEmail.trim()) return;
+
+    const newMember: WorkspaceMember = {
+      id: `mem-${Date.now()}`,
+      workspaceId: 'ws-main',
+      userId: `usr-${Date.now()}`,
+      userEmail: inviteEmail.trim(),
+      userName: inviteEmail.split('@')[0],
+      role: inviteRole,
+      invitedAt: new Date().toISOString(),
     };
 
-    const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(backupData, null, 2));
-    const link = document.createElement('a');
-    link.setAttribute('href', dataStr);
-    link.setAttribute('download', `databeta-backup-${(activeBusiness?.name || 'business').toLowerCase().replace(/\s+/g, '-')}-${new Date().toISOString().split('T')[0]}.json`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    setMembers([...members, newMember]);
+    setShowInviteModal(false);
+    setInviteEmail('');
+
+    await auditService.logEvent(
+      'ws-main',
+      currentUser?.email || 'admin@databeta.app',
+      'member_invited',
+      'workspace_member',
+      newMember.id,
+      { email: newMember.userEmail, role: newMember.role }
+    );
+    const logs = await auditService.getLogs('ws-main');
+    setAuditLogs(logs);
+  };
+
+  const handleExportWorkspace = async () => {
+    const data = {
+      exportedAt: new Date().toISOString(),
+      workspaceName,
+      baseCurrency,
+      members,
+      recordsCount: records.length,
+      records,
+    };
+
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `databeta_export_${workspaceName.toLowerCase().replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    await auditService.logEvent(
+      'ws-main',
+      currentUser?.email || 'admin@databeta.app',
+      'data_exported',
+      'workspace',
+      'ws-main',
+      { recordsCount: records.length }
+    );
+    const logs = await auditService.getLogs('ws-main');
+    setAuditLogs(logs);
   };
 
   return (
-    <div className="space-y-6 max-w-4xl mx-auto animate-fadeIn">
-      <div>
-        <h2 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">Business Settings</h2>
-        <p className="text-xs text-slate-600 dark:text-zinc-400 mt-1">
-          Manage your business tenant profile, configure base currency, download backups, and inspect cloud data isolation.
-        </p>
+    <div className="space-y-6 max-w-7xl mx-auto">
+      {/* Top Header */}
+      <div className="bg-white dark:bg-zinc-950 p-5 sm:p-7 rounded-2xl border border-slate-200/80 dark:border-zinc-800/80 shadow-2xs space-y-4">
+        <div>
+          <div className="flex items-center gap-2 mb-1 flex-wrap">
+            <span className="text-[10px] font-extrabold uppercase tracking-widest text-slate-700 dark:text-zinc-300 bg-slate-100 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 px-2.5 py-0.5 rounded-full">
+              Workspace Governance
+            </span>
+            <span className="text-xs text-slate-400 dark:text-zinc-500 font-mono">
+              • RBAC • Audit Log • Strict Tenant Isolation
+            </span>
+          </div>
+          <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight">
+            Settings & Team Administration
+          </h1>
+          <p className="text-xs text-slate-500 dark:text-zinc-400 mt-1 max-w-xl">
+            Configure base and display currencies, invite sales reps, review immutable audit logs, and export workspace data.
+          </p>
+        </div>
       </div>
 
-      {/* Business Tenant Profile Form */}
-      {activeBusiness && (
-        <form onSubmit={handleSaveProfile} className="bg-white dark:bg-zinc-950 p-6 rounded-3xl border border-slate-200/80 dark:border-zinc-800 shadow-sm space-y-4">
-          <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-zinc-900">
-            <div className="flex items-center gap-2">
-              <Building2 className="w-5 h-5 text-rose-600" />
-              <h3 className="font-bold text-slate-900 dark:text-white text-base">Business Tenant Profile</h3>
-            </div>
-            {saveSuccess && (
-              <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400 text-xs font-bold animate-fadeIn">
-                <CheckCircle2 className="w-4 h-4" /> Changes saved!
-              </span>
-            )}
+      {/* Subtab Bar */}
+      <div className="flex items-center gap-1 overflow-x-auto custom-scrollbar bg-white dark:bg-zinc-950 p-2.5 rounded-2xl border border-slate-200/80 dark:border-zinc-800/80 shadow-2xs">
+        <button
+          onClick={() => setSubtab('business')}
+          className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shrink-0 ${
+            subtab === 'business'
+              ? 'bg-rose-600 text-white shadow-2xs'
+              : 'text-slate-600 dark:text-zinc-400 hover:bg-slate-100 dark:hover:bg-zinc-900'
+          }`}
+        >
+          <Building2 className="w-3.5 h-3.5" />
+          <span>Workspace Profile</span>
+        </button>
+
+        <button
+          onClick={() => setSubtab('team')}
+          className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shrink-0 ${
+            subtab === 'team'
+              ? 'bg-rose-600 text-white shadow-2xs'
+              : 'text-slate-600 dark:text-zinc-400 hover:bg-slate-100 dark:hover:bg-zinc-900'
+          }`}
+        >
+          <Users className="w-3.5 h-3.5" />
+          <span>Team & Roles ({members.length})</span>
+        </button>
+
+        <button
+          onClick={() => setSubtab('security_data')}
+          className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shrink-0 ${
+            subtab === 'security_data'
+              ? 'bg-rose-600 text-white shadow-2xs'
+              : 'text-slate-600 dark:text-zinc-400 hover:bg-slate-100 dark:hover:bg-zinc-900'
+          }`}
+        >
+          <ShieldCheck className="w-3.5 h-3.5" />
+          <span>Security & Data Architecture</span>
+        </button>
+
+        <button
+          onClick={() => setSubtab('audit_log')}
+          className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shrink-0 ${
+            subtab === 'audit_log'
+              ? 'bg-rose-600 text-white shadow-2xs'
+              : 'text-slate-600 dark:text-zinc-400 hover:bg-slate-100 dark:hover:bg-zinc-900'
+          }`}
+        >
+          <FileText className="w-3.5 h-3.5" />
+          <span>Audit Log ({auditLogs.length})</span>
+        </button>
+      </div>
+
+      {/* Subtab 1: Business Profile */}
+      {subtab === 'business' && (
+        <div className="bg-white dark:bg-zinc-950 rounded-2xl border border-slate-200/80 dark:border-zinc-800/80 shadow-2xs p-6 space-y-6">
+          <div>
+            <h2 className="text-base font-bold text-slate-900 dark:text-white">Workspace Configuration</h2>
+            <p className="text-xs text-slate-400">Configure base accounting currency and company details.</p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+          {saveSuccess && (
+            <div className="p-3 bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-300 dark:border-emerald-800 rounded-xl text-xs text-emerald-800 dark:text-emerald-200 flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+              <span>Workspace settings updated and recorded in audit log.</span>
+            </div>
+          )}
+
+          <form onSubmit={handleSaveBusiness} className="space-y-4 max-w-xl text-xs">
             <div>
-              <label className="block font-bold text-slate-700 dark:text-zinc-300 mb-1">Company / Store Name</label>
+              <label className="font-bold text-slate-700 dark:text-zinc-300 block mb-1">Company / Workspace Name</label>
               <input
                 type="text"
                 required
-                value={bizName}
-                onChange={(e) => setBizName(e.target.value)}
-                className="w-full bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-2xl px-4 py-2.5 text-xs text-slate-900 dark:text-white font-medium focus:outline-none focus:ring-2 focus:ring-rose-500"
+                value={workspaceName}
+                onChange={(e) => setWorkspaceName(e.target.value)}
+                className="w-full p-2.5 bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl text-slate-900 dark:text-white font-bold"
               />
             </div>
 
-            <div>
-              <label className="block font-bold text-slate-700 dark:text-zinc-300 mb-1">Operating Country</label>
-              <select
-                value={bizCountry}
-                onChange={(e) => setBizCountry(e.target.value)}
-                className="w-full bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-2xl px-4 py-2.5 text-xs text-slate-900 dark:text-white font-bold focus:outline-none focus:ring-2 focus:ring-rose-500 cursor-pointer"
-              >
-                <option value="United States">United States</option>
-                <option value="United Kingdom">United Kingdom</option>
-                <option value="Canada">Canada</option>
-                <option value="Germany">Germany</option>
-                <option value="France">France</option>
-                <option value="Australia">Australia</option>
-                <option value="India">India</option>
-                <option value="Other">Other</option>
-              </select>
-            </div>
-          </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="font-bold text-slate-700 dark:text-zinc-300 block mb-1">
+                  Base Workspace Currency
+                </label>
+                <select
+                  value={baseCurrency}
+                  onChange={(e) => setBaseCurrency(e.target.value as CurrencyCode)}
+                  className="w-full p-2.5 bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl text-slate-900 dark:text-white font-mono font-bold"
+                >
+                  <option value="USD">USD — US Dollar ($)</option>
+                  <option value="EUR">EUR — Euro (€)</option>
+                  <option value="GBP">GBP — British Pound (£)</option>
+                  <option value="INR">INR — Indian Rupee (₹)</option>
+                  <option value="CAD">CAD — Canadian Dollar ($)</option>
+                  <option value="AUD">AUD — Australian Dollar ($)</option>
+                  <option value="SGD">SGD — Singapore Dollar ($)</option>
+                  <option value="AED">AED — UAE Dirham (د.إ)</option>
+                  <option value="JPY">JPY — Japanese Yen (¥)</option>
+                </select>
+                <p className="text-[10px] text-slate-400 mt-1">Changes are permission-gated and audited.</p>
+              </div>
 
-          <div className="flex justify-end pt-2">
-            <button
-              type="submit"
-              disabled={isSaving}
-              className="px-6 py-2.5 bg-rose-600 hover:bg-rose-500 text-white font-extrabold text-xs rounded-full shadow-md shadow-rose-600/30 flex items-center gap-2 transition-all active:scale-95 disabled:opacity-50"
-            >
-              <Save className="w-4 h-4" />
-              <span>{isSaving ? 'Saving Changes...' : 'Save Profile'}</span>
-            </button>
-          </div>
-        </form>
+              <div>
+                <label className="font-bold text-slate-700 dark:text-zinc-300 block mb-1">
+                  Fiscal Year Start Month
+                </label>
+                <select
+                  value={fiscalStartMonth}
+                  onChange={(e) => setFiscalStartMonth(e.target.value)}
+                  className="w-full p-2.5 bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl text-slate-900 dark:text-white font-bold"
+                >
+                  <option value="1">January (Calendar Year)</option>
+                  <option value="4">April (UK / India standard)</option>
+                  <option value="7">July (Australia / Mid-Year)</option>
+                  <option value="10">October (US Federal standard)</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="pt-2">
+              <button
+                type="submit"
+                className="px-5 py-2.5 bg-rose-600 hover:bg-rose-500 text-white rounded-xl font-bold shadow-xs transition-all"
+              >
+                Save Workspace Settings
+              </button>
+            </div>
+          </form>
+        </div>
       )}
 
-      {/* Currency Preferences */}
-      <div className="bg-white dark:bg-zinc-950 p-6 rounded-3xl border border-slate-200/80 dark:border-zinc-800 shadow-sm space-y-4">
-        <div className="flex items-center gap-2">
-          <Globe className="w-5 h-5 text-rose-600" />
-          <h3 className="font-bold text-slate-900 dark:text-white text-base">Primary Reporting Currency</h3>
-        </div>
-
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-          {Object.values(CURRENCIES).map((c) => (
-            <button
-              key={c.code}
-              onClick={() => onCurrencyChange(c.code)}
-              className={`p-4 rounded-2xl border text-left transition-all flex items-center justify-between ${
-                currency === c.code
-                  ? 'border-rose-600 bg-rose-50/40 dark:bg-rose-950/20 text-slate-900 dark:text-white font-extrabold'
-                  : 'border-slate-200/80 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-900 text-slate-600 dark:text-zinc-400 hover:border-slate-300'
-              }`}
-            >
-              <div>
-                <div className="text-xs">{c.label}</div>
-                <div className="text-lg font-black text-rose-600 mt-0.5">{c.symbol}</div>
-              </div>
-              {currency === c.code && <CheckCircle2 className="w-5 h-5 text-rose-600" />}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Active Dataset Summary & Backup */}
-      <div className="bg-white dark:bg-zinc-950 p-6 rounded-3xl border border-slate-200/80 dark:border-zinc-800 shadow-sm space-y-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Database className="w-5 h-5 text-rose-600" />
-            <h3 className="font-bold text-slate-900 dark:text-white text-base">Active Dataset & Backup</h3>
-          </div>
-          {records.length > 0 && (
-            <button
-              onClick={handleDownloadBackup}
-              className="px-4 py-2 bg-slate-100 dark:bg-zinc-900 hover:bg-slate-200 dark:hover:bg-zinc-800 text-slate-800 dark:text-zinc-200 text-xs font-bold rounded-full border border-slate-200 dark:border-zinc-800 flex items-center gap-1.5 transition-all"
-            >
-              <Download className="w-3.5 h-3.5 text-indigo-500" />
-              <span>Download JSON Backup</span>
-            </button>
-          )}
-        </div>
-
-        {meta && records.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-            <div className="p-3.5 bg-slate-50 dark:bg-zinc-900 rounded-2xl border border-slate-200/80 dark:border-zinc-800">
-              <span className="text-slate-400 font-medium block">Dataset Name</span>
-              <span className="font-bold text-slate-900 dark:text-white truncate block mt-0.5">{meta.fileName}</span>
-            </div>
-
-            <div className="p-3.5 bg-slate-50 dark:bg-zinc-900 rounded-2xl border border-slate-200/80 dark:border-zinc-800">
-              <span className="text-slate-400 font-medium block">Total Transactions</span>
-              <span className="font-bold text-slate-900 dark:text-white block mt-0.5">{records.length.toLocaleString()} records</span>
-            </div>
-
-            <div className="p-3.5 bg-slate-50 dark:bg-zinc-900 rounded-2xl border border-slate-200/80 dark:border-zinc-800">
-              <span className="text-slate-400 font-medium block">Total Ingested Revenue</span>
-              <span className="font-bold text-emerald-600 dark:text-emerald-400 block mt-0.5 font-mono">
-                {metrics.totalRevenue !== null ? metrics.totalRevenue.toLocaleString() : 'N/A'}
-              </span>
-            </div>
-
-            <div className="p-3.5 bg-slate-50 dark:bg-zinc-900 rounded-2xl border border-slate-200/80 dark:border-zinc-800">
-              <span className="text-slate-400 font-medium block">Last Imported Date</span>
-              <span className="font-bold text-slate-900 dark:text-white block mt-0.5">
-                {new Date(meta.uploadedAt).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })}
-              </span>
-            </div>
-          </div>
-        ) : (
-          <div className="text-xs text-slate-500 dark:text-zinc-400 italic p-4 bg-slate-50 dark:bg-zinc-900 rounded-2xl">
-            No active dataset currently loaded. Import a spreadsheet to begin.
-          </div>
-        )}
-
-        {records.length > 0 && (
-          <div className="pt-3 border-t border-slate-100 dark:border-zinc-900 flex items-center justify-between">
+      {/* Subtab 2: Team Members & RBAC */}
+      {subtab === 'team' && (
+        <div className="bg-white dark:bg-zinc-950 rounded-2xl border border-slate-200/80 dark:border-zinc-800/80 shadow-2xs p-6 space-y-4">
+          <div className="flex items-center justify-between">
             <div>
-              <div className="text-xs font-bold text-slate-800 dark:text-zinc-200">Purge Data</div>
-              <p className="text-[11px] text-slate-500 dark:text-zinc-400">Permanently delete all transaction rows for this business.</p>
+              <h2 className="text-base font-bold text-slate-900 dark:text-white">Workspace Members & Access Roles</h2>
+              <p className="text-xs text-slate-400">Row-level security enforcement for frontline sales and finance viewers.</p>
             </div>
-
             <button
-              onClick={() => {
-                if (window.confirm('⚠️ WARNING: This will permanently delete all transaction records for this business. Continue?')) {
-                  onClearData();
-                }
-              }}
-              className="flex items-center gap-2 px-5 py-2.5 bg-rose-50 dark:bg-rose-950/60 hover:bg-rose-100 text-rose-700 dark:text-rose-300 font-extrabold text-xs rounded-full border border-rose-200 dark:border-rose-900 transition-colors"
+              onClick={() => setShowInviteModal(true)}
+              className="px-3.5 py-1.5 bg-rose-600 hover:bg-rose-500 text-white rounded-xl text-xs font-bold shadow-2xs flex items-center gap-1.5"
             >
-              <Trash2 className="w-4 h-4 text-rose-600" />
-              <span>Delete Transactions</span>
+              <Plus className="w-3.5 h-3.5" />
+              <span>Invite Member</span>
             </button>
           </div>
-        )}
-      </div>
 
-      {/* Data Security & Multi-Tenant Model */}
-      <div className="bg-white dark:bg-zinc-950 p-6 rounded-3xl border border-slate-200/80 dark:border-zinc-800 shadow-sm space-y-4">
-        <div className="flex items-center gap-2">
-          <ShieldCheck className="w-5 h-5 text-rose-600" />
-          <h3 className="font-bold text-slate-900 dark:text-white text-base">Enterprise Multi-Tenant Security Model</h3>
-        </div>
-
-        <div className="space-y-3 text-xs text-slate-600 dark:text-zinc-400 leading-relaxed">
-          <div className="flex items-start gap-3 p-3 bg-slate-50 dark:bg-zinc-900 rounded-xl border border-slate-200 dark:border-zinc-800">
-            <Cloud className="w-4 h-4 text-rose-500 mt-0.5 shrink-0" />
-            <span>
-              Your operational data is stored in an encrypted PostgreSQL cloud database instance, protected by HTTPS/TLS and AES-256 storage encryption.
-            </span>
-          </div>
-          <div className="flex items-start gap-3 p-3 bg-slate-50 dark:bg-zinc-900 rounded-xl border border-slate-200 dark:border-zinc-800">
-            <Lock className="w-4 h-4 text-emerald-500 mt-0.5 shrink-0" />
-            <span>
-              Row Level Security (RLS) is enforced at the database layer. Cross-tenant reads are prevented cryptographically; only authorized users in your business membership can access transactions.
-            </span>
-          </div>
-          <div className="flex items-start gap-3 p-3 bg-slate-50 dark:bg-zinc-900 rounded-xl border border-slate-200 dark:border-zinc-800">
-            <FileText className="w-4 h-4 text-indigo-500 mt-0.5 shrink-0" />
-            <span>
-              All strategic calculations and analytics execute deterministically client-side in your browser memory for maximum speed and zero raw data leakage.
-            </span>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs">
+              <thead>
+                <tr className="bg-slate-100/60 dark:bg-zinc-900 text-slate-500 font-semibold uppercase text-[10px] border-b border-slate-200/80 dark:border-zinc-800">
+                  <th className="p-3.5">Name</th>
+                  <th className="p-3.5">Email</th>
+                  <th className="p-3.5">Assigned Role</th>
+                  <th className="p-3.5">Status</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 dark:divide-zinc-900">
+                {members.map((mem) => (
+                  <tr key={mem.id} className="hover:bg-slate-50 dark:hover:bg-zinc-900/50">
+                    <td className="p-3.5 font-bold text-slate-900 dark:text-white">{mem.userName}</td>
+                    <td className="p-3.5 font-mono text-slate-500">{mem.userEmail}</td>
+                    <td className="p-3.5">
+                      <span className="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-zinc-800 font-bold uppercase text-[10px] text-slate-700 dark:text-zinc-300">
+                        {mem.role.replace('_', ' ')}
+                      </span>
+                    </td>
+                    <td className="p-3.5 text-emerald-600 font-bold text-[11px]">Active</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
-      </div>
+      )}
+
+      {/* Subtab 3: Security & Data Architecture */}
+      {subtab === 'security_data' && (
+        <div className="space-y-6">
+          <div className="bg-white dark:bg-zinc-950 rounded-2xl border border-slate-200/80 dark:border-zinc-800/80 shadow-2xs p-6 space-y-4">
+            <h2 className="text-base font-bold text-slate-900 dark:text-white">Security, Storage & Privacy Architecture</h2>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+              <div className="p-4 rounded-xl bg-slate-50 dark:bg-zinc-900/60 border border-slate-200/70 dark:border-zinc-800/70 space-y-2">
+                <div className="flex items-center gap-2 font-bold text-slate-900 dark:text-white">
+                  <Database className="w-4 h-4 text-rose-600" />
+                  <span>Database & Isolation</span>
+                </div>
+                <p className="text-slate-500 text-[11px] leading-relaxed">
+                  PostgreSQL database hosted on Supabase Cloud. Strict Row Level Security (RLS) policies isolate each workspace's records.
+                </p>
+              </div>
+
+              <div className="p-4 rounded-xl bg-slate-50 dark:bg-zinc-900/60 border border-slate-200/70 dark:border-zinc-800/70 space-y-2">
+                <div className="flex items-center gap-2 font-bold text-slate-900 dark:text-white">
+                  <Lock className="w-4 h-4 text-emerald-600" />
+                  <span>Encryption & Transmission</span>
+                </div>
+                <p className="text-slate-500 text-[11px] leading-relaxed">
+                  All communications encrypted via TLS 1.3 in transit and AES-256 at rest. Zero service keys exposed to browser clients.
+                </p>
+              </div>
+
+              <div className="p-4 rounded-xl bg-slate-50 dark:bg-zinc-900/60 border border-slate-200/70 dark:border-zinc-800/70 space-y-2">
+                <div className="flex items-center gap-2 font-bold text-slate-900 dark:text-white">
+                  <Key className="w-4 h-4 text-indigo-600" />
+                  <span>Zero Data Selling</span>
+                </div>
+                <p className="text-slate-500 text-[11px] leading-relaxed">
+                  Your customer data, margins, and pipeline entries are never sold, scraped for public AI training, or shared with third parties.
+                </p>
+              </div>
+            </div>
+
+            {/* Data Export & Danger Zone */}
+            <div className="pt-4 border-t border-slate-100 dark:border-zinc-900 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div className="space-y-0.5">
+                <span className="text-xs font-bold text-slate-900 dark:text-white block">Download Complete Workspace Export</span>
+                <span className="text-[11px] text-slate-400">Export all deals, contacts, invoices, and ledger records as a single JSON file.</span>
+              </div>
+              <button
+                type="button"
+                onClick={handleExportWorkspace}
+                className="px-4 py-2 bg-slate-100 dark:bg-zinc-800 hover:bg-slate-200 text-slate-800 dark:text-zinc-200 rounded-xl text-xs font-bold border border-slate-200 dark:border-zinc-700 flex items-center gap-1.5"
+              >
+                <Download className="w-3.5 h-3.5" />
+                <span>Export JSON Dump</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Subtab 4: Audit Log */}
+      {subtab === 'audit_log' && (
+        <div className="bg-white dark:bg-zinc-950 rounded-2xl border border-slate-200/80 dark:border-zinc-800/80 shadow-2xs p-6 space-y-4">
+          <div>
+            <h2 className="text-base font-bold text-slate-900 dark:text-white">Immutable Audit Log</h2>
+            <p className="text-xs text-slate-400">Timestamped record of administrative and sensitive workspace operations.</p>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs">
+              <thead>
+                <tr className="bg-slate-100/60 dark:bg-zinc-900 text-slate-500 font-semibold uppercase text-[10px] border-b border-slate-200/80 dark:border-zinc-800">
+                  <th className="p-3.5">Timestamp</th>
+                  <th className="p-3.5">User</th>
+                  <th className="p-3.5">Action</th>
+                  <th className="p-3.5">Entity</th>
+                  <th className="p-3.5">Details</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 dark:divide-zinc-900">
+                {auditLogs.map((log) => (
+                  <tr key={log.id} className="hover:bg-slate-50 dark:hover:bg-zinc-900/50">
+                    <td className="p-3.5 font-mono text-slate-400 text-[11px]">
+                      {new Date(log.createdAt).toLocaleString()}
+                    </td>
+                    <td className="p-3.5 font-mono text-slate-700 dark:text-zinc-300 font-semibold">{log.userEmail}</td>
+                    <td className="p-3.5">
+                      <span className="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-zinc-800 font-bold uppercase text-[10px] text-slate-700 dark:text-zinc-300">
+                        {log.action.replace(/_/g, ' ')}
+                      </span>
+                    </td>
+                    <td className="p-3.5 font-mono text-slate-500">{log.entityType}</td>
+                    <td className="p-3.5 text-slate-600 dark:text-zinc-400 font-mono text-[11px] truncate max-w-xs">
+                      {JSON.stringify(log.details)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* Invite Modal */}
+      {showInviteModal && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-bold text-slate-900 dark:text-white">Invite Team Member</h3>
+              <button onClick={() => setShowInviteModal(false)} className="text-slate-400 hover:text-slate-700">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleInviteMember} className="space-y-3 text-xs">
+              <div>
+                <label className="font-bold text-slate-700 dark:text-zinc-300 block mb-1">Email Address</label>
+                <input
+                  type="email"
+                  required
+                  placeholder="colleague@company.com"
+                  value={inviteEmail}
+                  onChange={(e) => setInviteEmail(e.target.value)}
+                  className="w-full p-2.5 bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl text-slate-900 dark:text-white"
+                />
+              </div>
+
+              <div>
+                <label className="font-bold text-slate-700 dark:text-zinc-300 block mb-1">Assigned Role</label>
+                <select
+                  value={inviteRole}
+                  onChange={(e) => setInviteRole(e.target.value as WorkspaceRole)}
+                  className="w-full p-2.5 bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl text-slate-900 dark:text-white font-bold"
+                >
+                  <option value="salesperson">Salesperson (Manages assigned deals & follow-ups)</option>
+                  <option value="sales_manager">Sales Manager (Views team pipeline & conversions)</option>
+                  <option value="finance_viewer">Finance Viewer (Receivables & Ledger read-only)</option>
+                  <option value="admin">Administrator (Full workspace controls)</option>
+                </select>
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-3">
+                <button
+                  type="button"
+                  onClick={() => setShowInviteModal(false)}
+                  className="px-4 py-2 bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-zinc-300 rounded-xl font-bold"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-rose-600 hover:bg-rose-500 text-white rounded-xl font-bold shadow-xs"
+                >
+                  Send Invitation
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

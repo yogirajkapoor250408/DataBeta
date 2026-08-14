@@ -60,8 +60,8 @@ export function diagnoseBusinessPerformance(
   const validRecords = [...records]
     .filter((r) => r.date || r.dateString)
     .sort((a, b) => {
-      const dateA = a.date ? a.date.getTime() : new Date(a.dateString).getTime();
-      const dateB = b.date ? b.date.getTime() : new Date(b.dateString).getTime();
+      const dateA = a.date instanceof Date ? a.date.getTime() : new Date(a.date || a.dateString || 0).getTime();
+      const dateB = b.date instanceof Date ? b.date.getTime() : new Date(b.date || b.dateString || 0).getTime();
       return dateA - dateB;
     });
 

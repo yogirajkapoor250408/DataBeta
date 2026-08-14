@@ -1,98 +1,206 @@
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
-import { CRMContact, CRMActivity } from '../types';
+import { Deal, Contact, Company, Task, Activity, DealStage } from '../types';
 
 export const crmService = {
-  async getDeals(businessId: string): Promise<CRMContact[]> {
-    if (!isSupabaseConfigured()) throw new Error('Supabase is not configured.');
+  // --------------------------------------------------------------------------
+  // DEALS
+  // --------------------------------------------------------------------------
+  async getDeals(workspaceId: string): Promise<Deal[]> {
+    if (!isSupabaseConfigured()) {
+      try {
+        const local = localStorage.getItem(`databeta_deals_${workspaceId}`);
+        return local ? JSON.parse(local) : [];
+      } catch {
+        return [];
+      }
+    }
 
     const { data, error } = await supabase
       .from('crm_deals')
       .select('*')
-      .eq('business_id', businessId)
+      .eq('business_id', workspaceId)
       .order('created_at', { ascending: false });
 
     if (error || !data) return [];
 
     return data.map((d: any) => ({
       id: d.id,
-      name: d.company_name,
-      company: d.company_name,
-      email: d.contact_email || '',
-      phone: d.contact_phone || '',
+      workspaceId: d.business_id,
+      title: d.title || d.company_name,
+      companyName: d.company_name,
+      contactName: d.contact_name,
+      contactEmail: d.contact_email || '',
+      contactPhone: d.contact_phone || '',
       stage: d.stage,
-      dealValue: Number(d.deal_value || 0),
+      amount: Number(d.deal_value || 0),
+      currency: d.currency || 'USD',
+      expectedCloseDate: d.expected_close_date || new Date().toISOString().split('T')[0],
+      probabilityPct: Number(d.probability_pct || 50),
+      source: d.source || 'Direct',
+      ownerName: d.owner_name || 'Account Executive',
+      nextStep: d.next_step || '',
+      lastActivityAt: d.updated_at ? d.updated_at.split('T')[0] : 'Recent',
       tags: d.tags || [],
       notes: d.notes || '',
-      lastContactDate: new Date(d.updated_at || d.created_at).toLocaleDateString('en-US', { day: 'numeric', month: 'short' }),
       createdAt: d.created_at ? d.created_at.split('T')[0] : new Date().toISOString().split('T')[0],
-      totalSpent: Number(d.deal_value || 0),
-      orderCount: 1,
+      updatedAt: d.updated_at || new Date().toISOString(),
     }));
   },
 
-  async createDeal(businessId: string, deal: Omit<CRMContact, 'id' | 'createdAt' | 'lastContactDate' | 'totalSpent' | 'orderCount'>): Promise<{ deal: CRMContact | null; error: Error | null }> {
+  async createDeal(workspaceId: string, deal: Omit<Deal, 'id' | 'createdAt' | 'updatedAt'>): Promise<{ deal: Deal | null; error: Error | null }> {
+    const newId = `deal-${Date.now()}`;
+    const newDeal: Deal = {
+      ...deal,
+      id: newId,
+      workspaceId,
+      createdAt: new Date().toISOString().split('T')[0],
+      updatedAt: new Date().toISOString(),
+    };
+
     if (!isSupabaseConfigured()) {
-      return { deal: null, error: new Error('Supabase is not configured. Connect a database to create deals.') };
+      try {
+        const local = localStorage.getItem(`databeta_deals_${workspaceId}`);
+        const list: Deal[] = local ? JSON.parse(local) : [];
+        localStorage.setItem(`databeta_deals_${workspaceId}`, JSON.stringify([newDeal, ...list]));
+        return { deal: newDeal, error: null };
+      } catch (err: any) {
+        return { deal: newDeal, error: err };
+      }
     }
 
     const { data, error } = await supabase
       .from('crm_deals')
       .insert({
-        business_id: businessId,
-        title: deal.name || deal.company,
-        company_name: deal.company,
-        contact_email: deal.email,
-        contact_phone: deal.phone,
+        business_id: workspaceId,
+        title: deal.title,
+        company_name: deal.companyName,
+        contact_email: deal.contactEmail,
+        contact_phone: deal.contactPhone,
         stage: deal.stage,
-        deal_value: deal.dealValue,
+        deal_value: deal.amount,
         tags: deal.tags,
         notes: deal.notes,
       })
       .select()
       .single();
 
-    if (error || !data) return { deal: null, error: error || new Error('Failed to create CRM deal') };
+    if (error || !data) return { deal: null, error: error || new Error('Failed to create deal') };
 
-    const newDeal: CRMContact = {
-      id: data.id,
-      name: data.company_name,
-      company: data.company_name,
-      email: data.contact_email || '',
-      phone: data.contact_phone || '',
-      stage: data.stage,
-      dealValue: Number(data.deal_value),
-      tags: data.tags || [],
-      notes: data.notes || '',
-      lastContactDate: 'Today',
-      createdAt: data.created_at.split('T')[0],
-      totalSpent: Number(data.deal_value),
-      orderCount: 1,
+    return {
+      deal: {
+        ...newDeal,
+        id: data.id,
+      },
+      error: null,
     };
-
-    return { deal: newDeal, error: null };
   },
 
-  async updateDealStage(businessId: string, dealId: string, newStage: CRMContact['stage']): Promise<{ error: Error | null }> {
-    if (!isSupabaseConfigured()) return { error: new Error('Supabase is not configured.') };
+  async updateDealStage(workspaceId: string, dealId: string, newStage: DealStage): Promise<{ error: Error | null }> {
+    if (!isSupabaseConfigured()) {
+      try {
+        const local = localStorage.getItem(`databeta_deals_${workspaceId}`);
+        if (local) {
+          const list: Deal[] = JSON.parse(local);
+          const updated = list.map((d) => (d.id === dealId ? { ...d, stage: newStage, updatedAt: new Date().toISOString() } : d));
+          localStorage.setItem(`databeta_deals_${workspaceId}`, JSON.stringify(updated));
+        }
+      } catch {}
+      return { error: null };
+    }
 
     const { error } = await supabase
       .from('crm_deals')
       .update({ stage: newStage, updated_at: new Date().toISOString() })
       .eq('id', dealId)
-      .eq('business_id', businessId);
+      .eq('business_id', workspaceId);
 
     return { error };
   },
 
-  async deleteDeal(businessId: string, dealId: string): Promise<{ error: Error | null }> {
-    if (!isSupabaseConfigured()) return { error: new Error('Supabase is not configured.') };
+  async deleteDeal(workspaceId: string, dealId: string): Promise<{ error: Error | null }> {
+    if (!isSupabaseConfigured()) {
+      try {
+        const local = localStorage.getItem(`databeta_deals_${workspaceId}`);
+        if (local) {
+          const list: Deal[] = JSON.parse(local);
+          const updated = list.filter((d) => d.id !== dealId);
+          localStorage.setItem(`databeta_deals_${workspaceId}`, JSON.stringify(updated));
+        }
+      } catch {}
+      return { error: null };
+    }
 
     const { error } = await supabase
       .from('crm_deals')
       .delete()
       .eq('id', dealId)
-      .eq('business_id', businessId);
+      .eq('business_id', workspaceId);
 
     return { error };
+  },
+
+  // --------------------------------------------------------------------------
+  // CONTACTS
+  // --------------------------------------------------------------------------
+  async getContacts(workspaceId: string): Promise<Contact[]> {
+    try {
+      const local = localStorage.getItem(`databeta_contacts_${workspaceId}`);
+      return local ? JSON.parse(local) : [];
+    } catch {
+      return [];
+    }
+  },
+
+  async saveContacts(workspaceId: string, contacts: Contact[]): Promise<void> {
+    try {
+      localStorage.setItem(`databeta_contacts_${workspaceId}`, JSON.stringify(contacts));
+    } catch {}
+  },
+
+  // --------------------------------------------------------------------------
+  // TASKS
+  // --------------------------------------------------------------------------
+  async getTasks(workspaceId: string): Promise<Task[]> {
+    try {
+      const local = localStorage.getItem(`databeta_tasks_${workspaceId}`);
+      return local ? JSON.parse(local) : [];
+    } catch {
+      return [];
+    }
+  },
+
+  async saveTasks(workspaceId: string, tasks: Task[]): Promise<void> {
+    try {
+      localStorage.setItem(`databeta_tasks_${workspaceId}`, JSON.stringify(tasks));
+    } catch {}
+  },
+
+  // --------------------------------------------------------------------------
+  // ACTIVITIES (Timeline Log)
+  // --------------------------------------------------------------------------
+  async getActivities(workspaceId: string): Promise<Activity[]> {
+    try {
+      const local = localStorage.getItem(`databeta_activities_${workspaceId}`);
+      return local ? JSON.parse(local) : [];
+    } catch {
+      return [];
+    }
+  },
+
+  async logActivity(workspaceId: string, activity: Omit<Activity, 'id' | 'timestamp'>): Promise<Activity> {
+    const newActivity: Activity = {
+      ...activity,
+      id: `act-${Date.now()}`,
+      workspaceId,
+      timestamp: new Date().toISOString(),
+    };
+
+    try {
+      const local = localStorage.getItem(`databeta_activities_${workspaceId}`);
+      const list: Activity[] = local ? JSON.parse(local) : [];
+      localStorage.setItem(`databeta_activities_${workspaceId}`, JSON.stringify([newActivity, ...list]));
+    } catch {}
+
+    return newActivity;
   },
 };

@@ -51,20 +51,26 @@ export const GoalTrackerCard: React.FC<GoalTrackerCardProps> = ({ records, curre
   const currentExp = metrics.totalExpenses ?? 0;
   const currentMargin = metrics.profitMargin ?? 0;
 
-  const revProgressPct = goals.targetRevenue > 0 ? Math.min(100, (currentRev / goals.targetRevenue) * 100) : 0;
-  const marginProgressPct = goals.targetProfitMarginPct > 0 ? Math.min(100, (currentMargin / goals.targetProfitMarginPct) * 100) : 0;
-  const expenseCapPct = goals.maxExpenseCap > 0 ? Math.min(100, (currentExp / goals.maxExpenseCap) * 100) : 0;
+  const targetRev = goals.targetRevenue || 100000;
+  const targetMargin = goals.targetProfitMarginPct || 25;
+  const maxExp = goals.maxExpenseCap || 25000;
 
-  const dates = records.filter((r) => r.date).map((r) => r.date as Date);
+  const revProgressPct = targetRev > 0 ? Math.min(100, (currentRev / targetRev) * 100) : 0;
+  const marginProgressPct = targetMargin > 0 ? Math.min(100, (currentMargin / targetMargin) * 100) : 0;
+  const expenseCapPct = maxExp > 0 ? Math.min(100, (currentExp / maxExp) * 100) : 0;
+
+  const dateObjs = records
+    .map((r) => (r.date instanceof Date ? r.date : new Date(r.date)))
+    .filter((d) => !isNaN(d.getTime()));
   let daysCount = 30;
-  if (dates.length >= 2) {
-    const minDate = new Date(Math.min(...dates.map((d) => d.getTime())));
-    const maxDate = new Date(Math.max(...dates.map((d) => d.getTime())));
-    daysCount = Math.max(1, Math.ceil((maxDate.getTime() - minDate.getTime()) / (1000 * 60 * 60 * 24)));
+  if (dateObjs.length >= 2) {
+    const minTime = Math.min(...dateObjs.map((d) => d.getTime()));
+    const maxTime = Math.max(...dateObjs.map((d) => d.getTime()));
+    daysCount = Math.max(1, Math.ceil((maxTime - minTime) / (1000 * 60 * 60 * 24)));
   }
 
   const dailyRevPace = daysCount > 0 ? currentRev / daysCount : 0;
-  const revRemaining = Math.max(0, goals.targetRevenue - currentRev);
+  const revRemaining = Math.max(0, targetRev - currentRev);
   const daysToTarget = dailyRevPace > 0 ? Math.ceil(revRemaining / dailyRevPace) : null;
 
   if (isLoadingGoals) {

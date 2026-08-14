@@ -87,9 +87,9 @@ export const NaturalQueryBar: React.FC<NaturalQueryBarProps> = ({ records, curre
               </span>
               <h4 className="text-base font-extrabold mt-0.5 text-white">{activeCard.title}</h4>
             </div>
-            <span className="text-xl font-black text-emerald-400">{activeCard.valueString}</span>
+            <span className="text-xl font-black text-emerald-400">{activeCard.valueString || activeCard.value}</span>
           </div>
-          <p className="text-xs text-zinc-300 mt-2 leading-relaxed">{activeCard.subtitle}</p>
+          <p className="text-xs text-zinc-300 mt-2 leading-relaxed">{activeCard.subtitle || activeCard.description}</p>
         </div>
       )}
     </div>

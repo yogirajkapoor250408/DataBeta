@@ -35,14 +35,19 @@ export const ShopifyAnalyticsChart: React.FC<ShopifyAnalyticsChartProps> = ({
 
     const sorted = [...records]
       .filter((r) => r.date)
-      .sort((a, b) => (a.date as Date).getTime() - (b.date as Date).getTime());
+      .map((r) => ({
+        ...r,
+        parsedDate: r.date instanceof Date ? r.date : new Date(r.date),
+      }))
+      .filter((r) => !isNaN(r.parsedDate.getTime()))
+      .sort((a, b) => a.parsedDate.getTime() - b.parsedDate.getTime());
 
     if (sorted.length === 0) return [];
 
     const dateMap: Record<string, { label: string; revenue: number; expense: number; profit: number; rawDate: Date }> = {};
 
     sorted.forEach((r) => {
-      const d = r.date as Date;
+      const d = r.parsedDate;
       const key = d.toISOString().substring(0, 10);
       const label = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 

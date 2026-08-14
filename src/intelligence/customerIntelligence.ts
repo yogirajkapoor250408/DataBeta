@@ -38,8 +38,11 @@ export function calculateCustomerIntelligence(
     };
   }
 
-  const sortedDates = records.map((r) => r.date).filter(Boolean).sort((a, b) => (a as Date).getTime() - (b as Date).getTime()) as Date[];
-  const maxDate = sortedDates[sortedDates.length - 1] || new Date();
+  const dateObjs = records
+    .map((r) => (r.date instanceof Date ? r.date : new Date(r.date)))
+    .filter((d) => !isNaN(d.getTime()))
+    .sort((a, b) => a.getTime() - b.getTime());
+  const maxDate = dateObjs[dateObjs.length - 1] || new Date();
 
   const customerMap: Record<string, { totalSpent: number; orderCount: number; lastDate: Date; firstDate: Date }> = {};
   let grossRevenue = 0;
@@ -48,16 +51,16 @@ export function calculateCustomerIntelligence(
     const cust = (r.customer || 'Direct Client').trim();
     const rev = r.revenue || 0;
     grossRevenue += rev;
+    const d = r.date instanceof Date ? r.date : r.date ? new Date(r.date) : maxDate;
 
     if (!customerMap[cust]) {
-      const d = r.date || maxDate;
       customerMap[cust] = { totalSpent: 0, orderCount: 0, lastDate: d, firstDate: d };
     }
 
     customerMap[cust].totalSpent += rev;
     customerMap[cust].orderCount += 1;
-    if (r.date && r.date > customerMap[cust].lastDate) customerMap[cust].lastDate = r.date;
-    if (r.date && r.date < customerMap[cust].firstDate) customerMap[cust].firstDate = r.date;
+    if (d.getTime() > customerMap[cust].lastDate.getTime()) customerMap[cust].lastDate = d;
+    if (d.getTime() < customerMap[cust].firstDate.getTime()) customerMap[cust].firstDate = d;
   });
 
   let champions = 0;

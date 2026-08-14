@@ -47,8 +47,11 @@ export function calculateFiscalComparison(
   }
 
   // Get mapping for latest transaction date
-  const sortedDates = records.map((r) => r.date).filter(Boolean).sort((a, b) => (a as Date).getTime() - (b as Date).getTime()) as Date[];
-  const latestDate = sortedDates[sortedDates.length - 1] || new Date();
+  const dateObjs = records
+    .map((r) => (r.date instanceof Date ? r.date : new Date(r.date)))
+    .filter((d) => !isNaN(d.getTime()))
+    .sort((a, b) => a.getTime() - b.getTime());
+  const latestDate = dateObjs[dateObjs.length - 1] || new Date();
   const currentMapping = getFiscalPeriodMapping(latestDate, config);
 
   const currentFY = currentMapping.fiscalYear;

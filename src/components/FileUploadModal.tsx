@@ -1,258 +1,278 @@
-import React, { useState, useRef } from 'react';
-import { Upload, AlertCircle, X, ShoppingBag, CreditCard, ShoppingCart, Square, BookOpen, DollarSign } from 'lucide-react';
-import { parseFile, normalizeRows } from '../utils/dataParser';
-import { validateMapping } from '../utils/columnMatcher';
-import { ColumnMapping, Dataset, DatasetMeta, NormalizedRecord } from '../types';
-import { ColumnMapperModal } from './ColumnMapperModal';
+import React, { useState } from 'react';
+import {
+  ImportEntityType,
+  ImportPreviewResult,
+  Dataset,
+  Deal,
+  Contact,
+  Invoice,
+  NormalizedRecord,
+} from '../types';
+import { IMPORT_TEMPLATES, downloadTemplate } from '../utils/importTemplates';
+import { parseAndValidateImport } from '../utils/importValidator';
+import {
+  Upload,
+  FileSpreadsheet,
+  Download,
+  CheckCircle2,
+  AlertTriangle,
+  ArrowRight,
+  X,
+  Layers,
+  FileText,
+  AlertCircle,
+  Sparkles,
+} from 'lucide-react';
 
 interface FileUploadModalProps {
   isOpen: boolean;
   onClose: () => void;
   onDatasetLoaded: (dataset: Dataset) => void;
+  onImportDeals?: (deals: Deal[]) => void;
+  onImportContacts?: (contacts: Contact[]) => void;
+  onImportInvoices?: (invoices: Invoice[]) => void;
 }
 
 export const FileUploadModal: React.FC<FileUploadModalProps> = ({
   isOpen,
   onClose,
   onDatasetLoaded,
+  onImportDeals,
+  onImportContacts,
+  onImportInvoices,
 }) => {
-  const [isDragging, setIsDragging] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
-
-  const [parsedData, setParsedData] = useState<{
-    headers: string[];
-    rawRows: Record<string, any>[];
-    suggestedMapping: ColumnMapping;
-    fileName: string;
-    fileSize: number;
-  } | null>(null);
-
-  const [showMapperModal, setShowMapperModal] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [selectedType, setSelectedType] = useState<ImportEntityType>('transactions');
+  const [file, setFile] = useState<File | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [preview, setPreview] = useState<ImportPreviewResult | null>(null);
+  const [step, setStep] = useState<'select' | 'preview' | 'success'>('select');
 
   if (!isOpen) return null;
 
-  const processFiles = async (files: FileList | File[]) => {
-    setIsLoading(true);
-    setErrorMsg(null);
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const uploadedFile = e.target.files?.[0];
+    if (!uploadedFile) return;
+
+    setFile(uploadedFile);
+    setIsProcessing(true);
 
     try {
-      const fileList = Array.from(files);
-      if (fileList.length === 0) return;
-
-      let combinedRows: Record<string, any>[] = [];
-      let combinedHeaders: string[] = [];
-      let primaryFileName = fileList[0].name;
-      let totalSize = 0;
-      let suggestedMapping: ColumnMapping = { date: null, revenue: null, expense: null, profit: null, category: null, product: null, customer: null, quantity: null };
-
-      for (let i = 0; i < fileList.length; i++) {
-        const parsed = await parseFile(fileList[i]);
-        combinedRows = [...combinedRows, ...parsed.rawRows];
-        totalSize += parsed.fileSize;
-        if (i === 0) {
-          combinedHeaders = parsed.headers;
-          suggestedMapping = parsed.suggestedMapping;
-        }
-      }
-
-      if (fileList.length > 1) {
-        primaryFileName = `${fileList.length} Combined Files (${fileList[0].name}, etc.)`;
-      }
-
-      const { isValid } = validateMapping(suggestedMapping);
-
-      const parsedPayload = {
-        headers: combinedHeaders,
-        rawRows: combinedRows,
-        suggestedMapping,
-        fileName: primaryFileName,
-        fileSize: totalSize,
-      };
-
-      setParsedData(parsedPayload);
-
-      if (!isValid) {
-        setShowMapperModal(true);
-      } else {
-        const records = normalizeRows(combinedRows, suggestedMapping);
-        const meta: DatasetMeta = {
-          fileName: primaryFileName,
-          fileSize: totalSize,
-          rowCount: records.length,
-          headers: combinedHeaders,
-          uploadedAt: new Date(),
-          mapping: suggestedMapping,
-        };
-
-        onDatasetLoaded({ meta, records });
-        onClose();
-      }
-    } catch (err: any) {
-      setErrorMsg(err.message || 'An error occurred while parsing file(s). Check file formats.');
+      const result = await parseAndValidateImport(uploadedFile, selectedType);
+      setPreview(result);
+      setStep('preview');
+    } catch (err) {
+      alert('Failed to parse file. Please verify CSV or Excel formatting.');
     } finally {
-      setIsLoading(false);
+      setIsProcessing(false);
     }
   };
 
-  const handleApplyMapping = (mapping: ColumnMapping) => {
-    if (!parsedData) return;
+  const handleConfirmImport = () => {
+    if (!preview) return;
 
-    const records = normalizeRows(parsedData.rawRows, mapping);
-    const meta: DatasetMeta = {
-      fileName: parsedData.fileName,
-      fileSize: parsedData.fileSize,
-      rowCount: records.length,
-      headers: parsedData.headers,
-      uploadedAt: new Date(),
-      mapping,
-    };
+    // Build normalized records if transaction type
+    if (selectedType === 'transactions') {
+      const records: NormalizedRecord[] = preview.sampleRows.map((r, i) => ({
+        id: `rec-${Date.now()}-${i}`,
+        date: r.Date || r.date || new Date().toISOString().split('T')[0],
+        revenue: Number(r.Revenue || r.revenue || 0),
+        expense: Number(r.Expense || r.expense || 0),
+        profit: Number(r.Revenue || r.revenue || 0) - Number(r.Expense || r.expense || 0),
+        category: r.Category || r.category || 'General',
+        customer: r.Customer || r.customer || r['Customer Name'] || undefined,
+        product: r.Product || r.product || undefined,
+        paymentMethod: r['Payment Method'] || r.payment_method || 'Direct',
+      }));
 
-    onDatasetLoaded({ meta, records });
-    setShowMapperModal(false);
-    onClose();
+      onDatasetLoaded({
+        id: `ds-${Date.now()}`,
+        fileName: preview.fileName,
+        uploadedAt: new Date().toISOString(),
+        recordCount: preview.validRowsCount,
+        records,
+      });
+    }
+
+    setStep('success');
+  };
+
+  const handleReset = () => {
+    setFile(null);
+    setPreview(null);
+    setStep('select');
   };
 
   return (
-    <>
-      <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
-        <div className="bg-white dark:bg-zinc-950 rounded-3xl shadow-2xl border border-slate-200/80 dark:border-zinc-800 max-w-xl w-full p-6 relative my-8">
-          <button
-            onClick={onClose}
-            className="absolute top-5 right-5 text-slate-400 dark:text-zinc-500 hover:text-slate-600 dark:hover:text-zinc-200 transition-colors"
-          >
-            <X className="w-5 h-5" />
-          </button>
-
-          <div className="mb-4">
-            <h2 className="text-xl font-bold text-slate-900 dark:text-white">Upload Business Spreadsheets</h2>
-            <p className="text-xs text-slate-600 dark:text-zinc-400 mt-1">
-              Upload CSV or Excel files. Support for single or multiple combined files.
-            </p>
+    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+      <div className="bg-white dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-3xl max-w-2xl w-full p-6 sm:p-7 space-y-6 shadow-2xl animate-scaleUp">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <div className="w-9 h-9 rounded-xl bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-900 flex items-center justify-center text-rose-600">
+              <FileSpreadsheet className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="text-lg font-black text-slate-900 dark:text-white">Import & Data Quality Center</h3>
+              <p className="text-xs text-slate-400">Structured CSV/Excel validation with pre-write error checks.</p>
+            </div>
           </div>
+          <button onClick={onClose} className="p-1.5 text-slate-400 hover:text-slate-700 rounded-lg">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
 
-          {errorMsg && (
-            <div className="mb-4 bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-900 text-rose-800 dark:text-rose-200 rounded-2xl p-3.5 text-xs flex items-start gap-2.5">
-              <AlertCircle className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
-              <div>
-                <p className="font-bold text-rose-900 dark:text-white">File Ingestion Issue</p>
-                <p className="mt-0.5">{errorMsg}</p>
+        {/* Step 1: Select Type & Upload */}
+        {step === 'select' && (
+          <div className="space-y-4">
+            <div>
+              <label className="text-xs font-bold text-slate-700 dark:text-zinc-300 block mb-2">
+                1. Select Data Entity Type
+              </label>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+                {(['transactions', 'deals', 'contacts', 'invoices'] as ImportEntityType[]).map((type) => (
+                  <button
+                    key={type}
+                    type="button"
+                    onClick={() => setSelectedType(type)}
+                    className={`p-3 rounded-xl border text-left transition-all ${
+                      selectedType === type
+                        ? 'border-rose-600 bg-rose-50/50 dark:bg-rose-950/40 text-rose-900 dark:text-rose-200 font-bold'
+                        : 'border-slate-200 dark:border-zinc-800 hover:border-slate-300 text-slate-700 dark:text-zinc-300'
+                    }`}
+                  >
+                    <span className="capitalize block">{type}</span>
+                    <span className="text-[10px] text-slate-400 font-normal">
+                      {type === 'transactions' ? 'Revenue & Expenses' : type === 'deals' ? 'CRM Pipeline' : type === 'contacts' ? 'Customers & Leads' : 'Billing & Receivables'}
+                    </span>
+                  </button>
+                ))}
               </div>
             </div>
-          )}
 
-
-
-          {/* Sample Dataset Quick Loader */}
-          <div className="mb-4 p-3.5 bg-slate-50 dark:bg-zinc-900/80 rounded-2xl border border-slate-200 dark:border-zinc-800 flex items-center justify-between gap-3">
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-xl bg-rose-50 dark:bg-rose-950/60 text-rose-600 border border-rose-200 dark:border-rose-900 flex items-center justify-center font-bold text-xs">
-                ⚡
+            {/* Download Template Banner */}
+            <div className="p-3.5 bg-slate-50 dark:bg-zinc-900 rounded-xl border border-slate-200/70 dark:border-zinc-800 flex items-center justify-between gap-3 text-xs">
+              <div className="space-y-0.5">
+                <span className="font-bold text-slate-900 dark:text-white block">Download formatted template</span>
+                <span className="text-slate-500 text-[11px]">{IMPORT_TEMPLATES[selectedType].description}</span>
               </div>
-              <div>
-                <p className="text-xs font-bold text-slate-900 dark:text-white">Don't have a CSV handy?</p>
-                <p className="text-[11px] text-slate-500 dark:text-zinc-400">Load a verified SMB e-commerce & SaaS sample dataset.</p>
+              <button
+                type="button"
+                onClick={() => downloadTemplate(selectedType)}
+                className="px-3 py-1.5 bg-white dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 rounded-lg text-slate-800 dark:text-zinc-200 font-bold flex items-center gap-1.5 shadow-2xs hover:bg-slate-50 shrink-0"
+              >
+                <Download className="w-3.5 h-3.5" />
+                <span>Download .CSV</span>
+              </button>
+            </div>
+
+            {/* Dropzone */}
+            <div>
+              <label className="text-xs font-bold text-slate-700 dark:text-zinc-300 block mb-2">
+                2. Upload your CSV or XLSX file
+              </label>
+              <label className="border-2 border-dashed border-slate-300 dark:border-zinc-800 hover:border-rose-500 rounded-2xl p-8 flex flex-col items-center justify-center cursor-pointer transition-colors text-center space-y-2 bg-slate-50/50 dark:bg-zinc-900/30">
+                <Upload className="w-8 h-8 text-slate-400" />
+                <span className="text-xs font-bold text-slate-900 dark:text-white">
+                  {isProcessing ? 'Validating schema...' : 'Click to browse or drop file here'}
+                </span>
+                <span className="text-[11px] text-slate-400">Supports .CSV, .XLSX, .XLS up to 25MB</span>
+                <input
+                  type="file"
+                  accept=".csv, .xlsx, .xls"
+                  onChange={handleFileChange}
+                  className="hidden"
+                  disabled={isProcessing}
+                />
+              </label>
+            </div>
+          </div>
+        )}
+
+        {/* Step 2: Pre-write Validation & Preview */}
+        {step === 'preview' && preview && (
+          <div className="space-y-4">
+            {/* Summary Banner */}
+            <div className="grid grid-cols-3 gap-3">
+              <div className="p-3 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-900 rounded-xl text-xs">
+                <span className="text-emerald-700 dark:text-emerald-300 font-bold block uppercase text-[10px]">Valid Rows</span>
+                <span className="text-xl font-black text-emerald-800 dark:text-emerald-200 font-mono">
+                  {preview.validRowsCount}
+                </span>
+              </div>
+              <div className="p-3 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900 rounded-xl text-xs">
+                <span className="text-amber-800 dark:text-amber-300 font-bold block uppercase text-[10px]">Total Scanned</span>
+                <span className="text-xl font-black text-amber-900 dark:text-amber-200 font-mono">
+                  {preview.totalRows}
+                </span>
+              </div>
+              <div className="p-3 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900 rounded-xl text-xs">
+                <span className="text-rose-700 dark:text-rose-300 font-bold block uppercase text-[10px]">Errors / Skipped</span>
+                <span className="text-xl font-black text-rose-800 dark:text-rose-200 font-mono">
+                  {preview.errorRowsCount}
+                </span>
               </div>
             </div>
 
+            {/* Errors List (if any) */}
+            {preview.errors.length > 0 && (
+              <div className="p-3 bg-rose-50/70 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-900 rounded-xl space-y-1.5 text-xs">
+                <span className="font-bold text-rose-800 dark:text-rose-300 flex items-center gap-1.5">
+                  <AlertTriangle className="w-3.5 h-3.5" />
+                  Validation Warnings ({preview.errors.length})
+                </span>
+                <div className="max-h-24 overflow-y-auto space-y-1 custom-scrollbar text-[11px] text-rose-700 dark:text-rose-400">
+                  {preview.errors.map((err, i) => (
+                    <div key={i}>
+                      Row {err.rowIndex}: <strong>{err.field}</strong> — {err.reason}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Actions */}
+            <div className="flex items-center justify-between pt-3 border-t border-slate-100 dark:border-zinc-900">
+              <button
+                type="button"
+                onClick={handleReset}
+                className="px-4 py-2 text-xs font-bold text-slate-600 dark:text-zinc-400 hover:text-slate-900"
+              >
+                ← Back
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmImport}
+                className="px-5 py-2.5 bg-rose-600 hover:bg-rose-500 text-white rounded-xl text-xs font-extrabold shadow-md shadow-rose-600/30 transition-all flex items-center gap-2"
+              >
+                <span>Confirm & Write {preview.validRowsCount} Records</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Step 3: Success First Insights */}
+        {step === 'success' && (
+          <div className="text-center py-8 space-y-4">
+            <div className="w-12 h-12 rounded-full bg-emerald-100 dark:bg-emerald-950 flex items-center justify-center mx-auto text-emerald-600">
+              <CheckCircle2 className="w-6 h-6" />
+            </div>
+            <div>
+              <h4 className="text-lg font-black text-slate-900 dark:text-white">Data Verified & Imported</h4>
+              <p className="text-xs text-slate-500 max-w-sm mx-auto mt-1">
+                Your records have been normalized. Your Today command center, CRM pipeline, and cash outlook have updated automatically.
+              </p>
+            </div>
             <button
               type="button"
-              onClick={() => {
-                const sampleRecords: NormalizedRecord[] = [
-                  { id: 'tx-1', date: new Date('2026-01-05'), dateString: '2026-01-05', revenue: 14500, expense: 3200, profit: 11300, category: 'Enterprise SaaS', product: 'Annual Platform License', customer: 'Acme Global Corp', quantity: 1 },
-                  { id: 'tx-2', date: new Date('2026-01-12'), dateString: '2026-01-12', revenue: 8200, expense: 1900, profit: 6300, category: 'Consulting', product: 'Architecture Audit', customer: 'Vertex Logistics', quantity: 1 },
-                  { id: 'tx-3', date: new Date('2026-01-18'), dateString: '2026-01-18', revenue: 0, expense: 2450, profit: -2450, category: 'Infrastructure', product: 'AWS Cloud Hosting', customer: undefined, quantity: 1 },
-                  { id: 'tx-4', date: new Date('2026-01-25'), dateString: '2026-01-25', revenue: 9800, expense: 2100, profit: 7700, category: 'Enterprise SaaS', product: 'Tier 3 Seat Expansion', customer: 'Nordic Health Systems', quantity: 1 },
-                  { id: 'tx-5', date: new Date('2026-02-02'), dateString: '2026-02-02', revenue: 12000, expense: 2800, profit: 9200, category: 'Enterprise SaaS', product: 'Annual Platform License', customer: 'Starlight Financial', quantity: 1 },
-                  { id: 'tx-6', date: new Date('2026-02-10'), dateString: '2026-02-10', revenue: 0, expense: 1800, profit: -1800, category: 'Software Tools', product: 'Linear & GitHub Enterprise', customer: undefined, quantity: 1 },
-                  { id: 'tx-7', date: new Date('2026-02-15'), dateString: '2026-02-15', revenue: 16500, expense: 3900, profit: 12600, category: 'Enterprise SaaS', product: 'Enterprise SLA & Support', customer: 'Acme Global Corp', quantity: 1 },
-                  { id: 'tx-8', date: new Date('2026-02-22'), dateString: '2026-02-22', revenue: 7400, expense: 1600, profit: 5800, category: 'Consulting', product: 'Security Review', customer: 'Horizon Media Group', quantity: 1 },
-                  { id: 'tx-9', date: new Date('2026-03-01'), dateString: '2026-03-01', revenue: 18900, expense: 4200, profit: 14700, category: 'Enterprise SaaS', product: 'Custom Integration Pack', customer: 'Pinnacle Capital Partners', quantity: 1 },
-                  { id: 'tx-10', date: new Date('2026-03-05'), dateString: '2026-03-05', revenue: 0, expense: 3500, profit: -3500, category: 'Marketing', product: 'Paid Growth Campaigns', customer: undefined, quantity: 1 },
-                  { id: 'tx-11', date: new Date('2026-03-10'), dateString: '2026-03-10', revenue: 11200, expense: 2400, profit: 8800, category: 'Enterprise SaaS', product: 'Annual Platform License', customer: 'BlueShift Technologies', quantity: 1 },
-                ];
-
-                const meta: DatasetMeta = {
-                  fileName: 'Sample Business Ledger.csv',
-                  fileSize: 4096,
-                  rowCount: sampleRecords.length,
-                  headers: ['Date', 'Revenue', 'Expense', 'Profit', 'Category', 'Product', 'Customer', 'Quantity'],
-                  uploadedAt: new Date(),
-                  mapping: { date: 'Date', revenue: 'Revenue', expense: 'Expense', profit: 'Profit', category: 'Category', product: 'Product', customer: 'Customer', quantity: 'Quantity' },
-                };
-
-                onDatasetLoaded({ meta, records: sampleRecords });
-                onClose();
-              }}
-              className="px-3.5 py-1.5 bg-rose-600 hover:bg-rose-500 text-white text-xs font-extrabold rounded-full shadow-sm transition-all shrink-0 active:scale-[0.98]"
+              onClick={onClose}
+              className="px-6 py-2.5 bg-slate-900 dark:bg-white text-white dark:text-black font-extrabold text-xs rounded-xl shadow-xs"
             >
-              Load Sample Demo
+              View Updated Dashboard
             </button>
           </div>
-
-          {/* Dropzone */}
-          <div
-            onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
-            onDragLeave={() => setIsDragging(false)}
-            onDrop={(e) => {
-              e.preventDefault();
-              setIsDragging(false);
-              if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-                processFiles(e.dataTransfer.files);
-              }
-            }}
-            onClick={() => fileInputRef.current?.click()}
-            className={`border-2 border-dashed rounded-3xl p-8 text-center cursor-pointer transition-all ${
-              isDragging
-                ? 'border-rose-500 bg-rose-50/20 dark:bg-rose-950/20 scale-[0.99]'
-                : 'border-slate-300 dark:border-zinc-800 hover:border-rose-400 hover:bg-slate-50/50 dark:hover:bg-zinc-900/50'
-            }`}
-          >
-            <input
-              ref={fileInputRef}
-              type="file"
-              multiple
-              accept=".csv, .xlsx, .xls"
-              onChange={(e) => e.target.files && processFiles(e.target.files)}
-              className="hidden"
-            />
-
-            <div className="w-12 h-12 rounded-2xl bg-rose-50 dark:bg-rose-950/60 text-rose-600 border border-rose-200 dark:border-rose-900 flex items-center justify-center mx-auto mb-3 shadow-inner">
-              {isLoading ? (
-                <div className="w-6 h-6 border-2 border-rose-600 border-t-transparent rounded-full animate-spin" />
-              ) : (
-                <Upload className="w-6 h-6" />
-              )}
-            </div>
-
-            <p className="text-sm font-bold text-slate-800 dark:text-zinc-200">
-              {isLoading ? 'Processing Files...' : 'Click to select or drag & drop files'}
-            </p>
-            <p className="text-xs text-slate-500 dark:text-zinc-400 mt-1">
-              Supports CSV (.csv) and Excel (.xlsx, .xls). Upload single or multiple combined files.
-            </p>
-          </div>
-
-          <div className="mt-6 pt-4 border-t border-slate-100 dark:border-zinc-900 flex items-center justify-between text-xs text-slate-500 dark:text-zinc-400">
-            <span>🔒 100% In-Browser Execution. Data stays private.</span>
-            <button onClick={onClose} className="text-slate-600 dark:text-zinc-400 font-bold hover:text-slate-900 dark:hover:text-white">
-              Cancel
-            </button>
-          </div>
-        </div>
+        )}
       </div>
-
-      {parsedData && (
-        <ColumnMapperModal
-          isOpen={showMapperModal}
-          onClose={() => setShowMapperModal(false)}
-          headers={parsedData.headers}
-          initialMapping={parsedData.suggestedMapping}
-          fileName={parsedData.fileName}
-          onApplyMapping={handleApplyMapping}
-        />
-      )}
-    </>
+    </div>
   );
 };

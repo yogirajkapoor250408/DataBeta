@@ -36,8 +36,9 @@ export const TaxView: React.FC<TaxViewProps> = ({ records, currency }) => {
   }, [netIncome, taxRatePct]);
 
   const dynamicTaxSavings = useMemo(() => {
-    return (taxSummary.totalDeductibleExpense * taxRatePct) / 100;
-  }, [taxSummary.totalDeductibleExpense, taxRatePct]);
+    const deductible = taxSummary.totalDeductibleExpense ?? taxSummary.totalDeductibleExpenses ?? 0;
+    return (deductible * taxRatePct) / 100;
+  }, [taxSummary.totalDeductibleExpense, taxSummary.totalDeductibleExpenses, taxRatePct]);
 
   // Quarterly Estimated Installments (IRS Form 1040-ES / Safe Harbor)
   const quarterlyInstallment = useMemo(() => {
@@ -58,7 +59,7 @@ export const TaxView: React.FC<TaxViewProps> = ({ records, currency }) => {
   const handleExportTaxCSV = () => {
     if (taxSummary.breakdown.length === 0) return;
     const headers = ['Category Name', 'Schedule C Tax Line', 'Deductibility %', 'Gross Total Expense', 'Deductible Amount'];
-    const rows = taxSummary.breakdown.map((r) => [
+    const rows = taxSummary.breakdown.map((r: any) => [
       `"${r.categoryName.replace(/"/g, '""')}"`,
       `"${r.taxScheduleCategory.replace(/"/g, '""')}"`,
       `${r.deductiblePct}%`,
@@ -66,7 +67,7 @@ export const TaxView: React.FC<TaxViewProps> = ({ records, currency }) => {
       r.estimatedDeduction,
     ]);
 
-    const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map((e) => e.join(','))].join('\n');
+    const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map((e: any) => e.join(','))].join('\n');
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement('a');
     link.setAttribute('href', encodedUri);
@@ -244,7 +245,7 @@ export const TaxView: React.FC<TaxViewProps> = ({ records, currency }) => {
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-zinc-800">
               {taxSummary.breakdown.length > 0 ? (
-                taxSummary.breakdown.map((row) => {
+                taxSummary.breakdown.map((row: any) => {
                   const lineSavings = (row.estimatedDeduction * taxRatePct) / 100;
                   return (
                     <tr key={row.categoryName} className="hover:bg-slate-50/80 dark:hover:bg-zinc-900/50 transition-colors">

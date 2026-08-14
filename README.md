@@ -1,125 +1,78 @@
-# DataBeta - Small Business Financial Analytics MVP
+# DataBeta — Daily Sales & Cash Operating System
 
-DataBeta is a lightweight, zero-latency business data analysis tool designed for small and micro online business owners. It allows business owners to upload raw sales and expense data (CSV or Excel) and immediately understand financial performance, profit margins, and key operational trends without manual calculations or external dependencies.
+> **"Know exactly who to follow up with today, what is likely to close, and what it means for this month’s cash — without rebuilding your business in a spreadsheet."**
 
----
-
-## Key Features
-
-1. **End-to-End Data Parsing & Normalization**:
-   - Accepts CSV (`.csv`) and Excel (`.xlsx`, `.xls`) workbooks.
-   - Automatically cleans currency formatting (e.g. `$1,250.00`, `€450`, `,`), dates, and number formats.
-
-2. **Smart Column Auto-Detection & Manual Mapping**:
-   - Fuzzy-detects standard business fields (`Date`, `Revenue`, `Expense`, `Profit`, `Category`, `Product`, `Customer`, `Quantity`).
-   - If required columns are ambiguous or missing, an interactive modal allows manual field mapping.
-
-3. **Strict Financial Accuracy ("No Invented Data")**:
-   - Calculates Total Revenue, Total Expenses, Estimated Profit, Profit Margin (%), Transaction Count, and Average Transaction Value.
-   - If a metric cannot be derived from uploaded data, it displays `"Not enough data"` instead of generating fake numbers.
-
-4. **Dynamic Visual Dashboards**:
-   - Area and Bar charts for Revenue, Expense, and Profit over time.
-   - Category breakdown chart.
-   - Date preset filtering (All time, This month, Last month, Last 3 months, Custom date range).
-
-5. **Rule-Based Business Summary**:
-   - Automated financial observations (e.g., period-over-period revenue growth, expense growth vs revenue velocity, top revenue categories, profit margin health).
-   - 100% deterministic rule-based analysis (no paid AI APIs required).
-
-6. **Interactive Searchable Data Table**:
-   - Full record grid with search, category filtering, column sorting, and pagination.
-
-7. **Printable Executive Reports**:
-   - Print-formatted summary optimized for browser `window.print()` / PDF export.
-
-8. **100% Client-Side Data Privacy**:
-   - All file parsing and processing occurs locally in the browser. No business data is sent to external servers.
-
-9. **Try Demo Data Mode**:
-   - Built-in 6-month e-commerce sample dataset clearly labeled with a `Demo Data` badge.
+DataBeta is a production-grade, privacy-first sales and cash operating system built specifically for small business owners and frontline sales teams (2–25 people). It bridges pipeline progression, customer communication, and receivables into an actionable 30-day cash outlook with full metric provenance.
 
 ---
 
-## Tech Stack
+## 🏛 Core Architecture & Operating Principles
 
-- **Framework**: Vite + React 18 + TypeScript
-- **Styling**: Tailwind CSS
-- **Icons**: Lucide React
-- **File Ingestion**: PapaParse (CSV), SheetJS `xlsx` (Excel)
-- **Data Visualization**: Recharts
-- **Date Handling**: `date-fns`
+1. **Non-Negotiable Provenance Envelope**:
+   - Zero invented metrics, fake runways, or optimistic health scores.
+   - Every metric reports its status (`complete` | `partial` | `needs_data`), contributing record count, date window, missing inputs, and calculation assumptions.
+2. **Strict Isolated Demo Mode**:
+   - Explicitly isolated dataset (`Apex Technical Solutions`) marked with a persistent amber banner (`"Demo data — not your business data"`).
+   - Production mode presents honest, step-by-step empty-state checklists until records are created or imported.
+3. **No Fake Telemetry or Social Proof**:
+   - Purged all fake random notification engines and fabricated user presence toasts.
+4. **Relational Sales & Cash Data Model**:
+   - Deals (7-stage Kanban), Contacts, Companies, Tasks, Products/Services, Invoices, and Transactions.
 
 ---
 
-## Installation & Local Execution
+## 📂 Core Modules
+
+- **Module A: Today Command Center (`DashboardView.tsx`)**: Prioritized Next Best Actions with plain-English rationale, 30-Day Cash Outlook (Committed + Weighted Pipeline - Outflows), and Daily Target Pace.
+- **Module B: Sales CRM (`CRMView.tsx`)**: 7-stage drag-and-drop Kanban, Contacts & Companies directory with duplicate warning, and 1-tap WhatsApp follow-up script copying.
+- **Module C: Cash & Receivables (`FinanceView.tsx`)**: Invoices aging list (`draft`, `sent`, `due_soon`, `overdue`, `paid`, `disputed`), 1-tap polite reminder script copying, and 30-day cash calendar.
+- **Module D: Profitability & Provenance (`InsightsView.tsx`)**: Customer and job-level gross margins, product profitability leaderboard, and full provenance calculation inspectors.
+- **Module E: Import & Data Quality Center (`FileUploadModal.tsx`)**: Pre-write validation engine for 7 entity types with downloadable CSV templates and row-by-row error auditing.
+- **Module F: Executive Reporting (`ReportsView.tsx`)**: 5 core reports with data completeness preflight checks, print-formatted stylesheets, and CSV exports.
+- **Module G: Governance & Settings (`SettingsView.tsx`)**: Workspace base currency vs display currency separation, team invites with RBAC roles, live audit logging, and full JSON data backup export.
+- **Module H: Honest Public Website (`LandingPage.tsx`)**: Grounded marketing for 2–25 person businesses with an interactive ROI calculator and straightforward pricing tiers ($0, $29/mo, $79/mo).
+
+---
+
+## 📚 Specification Documentation
+
+- 📖 [DEMO_MODE.md](file:///Users/yogiraj/Desktop/DataBeta/DEMO_MODE.md) — Isolated Demo Mode contract & mock dataset rules.
+- 📐 [CALCULATIONS.md](file:///Users/yogiraj/Desktop/DataBeta/CALCULATIONS.md) — Formal mathematical formulas, provenance envelope definitions, and data requirements.
+- 🔒 [SECURITY_AND_DATA.md](file:///Users/yogiraj/Desktop/DataBeta/SECURITY_AND_DATA.md) — Security model, tenant isolation, RLS policies, RBAC roles, and audit logging.
+- 🗺️ [OPEN_ITEMS.md](file:///Users/yogiraj/Desktop/DataBeta/OPEN_ITEMS.md) — Future product roadmap, regional tax boundaries, and accounting integrations.
+
+---
+
+## 🚀 Getting Started
 
 ### Prerequisites
-- Node.js v18+ 
+- Node.js v18+
 - npm or yarn
 
-### Quickstart
-
-1. **Clone or Navigate to Project Directory**:
-   ```bash
-   cd DataBeta
-   ```
-
-2. **Install Dependencies**:
-   ```bash
-   npm install
-   ```
-
-3. **Start Local Development Server**:
-   ```bash
-   npm run dev
-   ```
-
-4. **Open in Browser**:
-   Navigate to `http://localhost:5173`.
-
-5. **Build for Production**:
-   ```bash
-   npm run build
-   ```
-
----
-
-## Project Structure
-
+### Installation
+```bash
+git clone https://github.com/yogirajkapoor250408/DataBeta.git
+cd DataBeta
+npm install
 ```
-DataBeta/
-├── src/
-│   ├── components/
-│   │   ├── Navbar.tsx             # Top navigation header & Demo banner
-│   │   ├── DashboardView.tsx      # KPI Cards, Recharts, Business Summary
-│   │   ├── DataTableView.tsx      # Searchable, sortable, paginated grid
-│   │   ├── ReportsView.tsx        # Printable executive PDF/Print view
-│   │   ├── SettingsView.tsx       # Export CSV, reset state, privacy docs
-│   │   ├── ColumnMapperModal.tsx  # Manual column mapping UI
-│   │   ├── FileUploadModal.tsx    # Drag-and-drop file uploader
-│   │   └── EmptyState.tsx         # Zero-data onboarding screen
-│   ├── utils/
-│   │   ├── dataParser.ts          # CSV/XLSX file reader & number cleaner
-│   │   ├── columnMatcher.ts       # Fuzzy header matching engine
-│   │   ├── metricsCalculator.ts   # Financial KPI calculations
-│   │   ├── summaryEngine.ts       # Deterministic rule-based insights
-│   │   └── demoData.ts            # Realistic 6-month sample dataset
-│   ├── types/
-│   │   └── index.ts               # TypeScript interfaces & types
-│   ├── App.tsx                    # Root container & tab router
-│   ├── main.tsx                   # React DOM entry point
-│   └── index.css                  # Tailwind styles & print CSS
-├── package.json
-├── vite.config.ts
-├── tailwind.config.js
-├── ARCHITECTURE.md                # Beginner-friendly architecture overview
-└── README.md
+
+### Running Locally
+```bash
+npm run dev
+```
+Visit `http://localhost:5173/` for the public marketing site, or `http://localhost:5173/dashboard.html` for the application.
+
+### Running Unit Tests
+```bash
+npm test
+```
+
+### Production Build
+```bash
+npm run build
 ```
 
 ---
 
-## Known Limitations & Future Roadmap
-
-- Multi-currency conversion is not built into MVP (assumes single currency symbol).
-- Large files (>100,000 rows) may take 1-2 seconds to parse synchronously in the browser main thread.
+## 🛡️ License
+Private & Proprietary — Built for DataBeta.

@@ -222,7 +222,7 @@ export function generateAICopilotResponse(
   if (query.includes('tax') || query.includes('deduct') || query.includes('write off')) {
     return {
       answerText: `Based on IRS Schedule C business deduction rules, we identified ${formatCurrency(taxSummary.totalDeductibleExpense, currency)} in qualified deductible operating costs, projecting a tax liability reduction of ${formatCurrency(taxSummary.estimatedTaxSavings, currency)} (~25% pass-through rate).`,
-      cards: taxSummary.breakdown.slice(0, 3).map((b) => ({
+      cards: (taxSummary.breakdown as any[]).slice(0, 3).map((b: any) => ({
         title: b.taxScheduleCategory,
         value: formatCurrency(b.estimatedDeduction, currency),
         detail: `${b.categoryName} (${b.deductiblePct}% deductible)`,

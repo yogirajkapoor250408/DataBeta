@@ -47,7 +47,7 @@ export const CustomersView: React.FC<CustomersViewProps> = ({ records, crmDeals,
     records.forEach((r) => {
       if (r.customer && r.customer.trim()) {
         const name = r.customer.trim();
-        const dateStr = r.dateString || (r.date ? r.date.toISOString().split('T')[0] : '');
+        const dateStr = r.dateString || (typeof r.date === 'string' ? r.date : r.date instanceof Date ? r.date.toISOString().split('T')[0] : '');
         if (!map[name]) {
           map[name] = { total: 0, count: 0, first: dateStr, last: dateStr };
         }

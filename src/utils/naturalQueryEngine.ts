@@ -126,7 +126,8 @@ export function evaluateNaturalQuery(
       r.product?.toLowerCase().includes(q) ||
       r.category?.toLowerCase().includes(q) ||
       r.customer?.toLowerCase().includes(q) ||
-      r.dateString.includes(q)
+      (r.dateString && r.dateString.includes(q)) ||
+      (typeof r.date === 'string' && r.date.includes(q))
     );
   });
 

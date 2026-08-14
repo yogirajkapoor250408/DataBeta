@@ -98,7 +98,8 @@ export const DataTableView: React.FC<DataTableViewProps> = ({
           (r.customer && r.customer.toLowerCase().includes(q)) ||
           (r.product && r.product.toLowerCase().includes(q)) ||
           (r.category && r.category.toLowerCase().includes(q)) ||
-          r.dateString.includes(q)
+          (r.dateString && r.dateString.includes(q)) ||
+          (typeof r.date === 'string' && r.date.includes(q))
       );
     }
 
@@ -115,7 +116,8 @@ export const DataTableView: React.FC<DataTableViewProps> = ({
     if (dateThreshold) {
       result = result.filter((r) => {
         if (!r.date) return false;
-        return r.date >= dateThreshold;
+        const d = r.date instanceof Date ? r.date : new Date(r.date);
+        return d >= dateThreshold;
       });
     }
 
@@ -124,8 +126,8 @@ export const DataTableView: React.FC<DataTableViewProps> = ({
       let valB = 0;
 
       if (sortField === 'date') {
-        valA = a.date ? a.date.getTime() : 0;
-        valB = b.date ? b.date.getTime() : 0;
+        valA = a.date instanceof Date ? a.date.getTime() : new Date(a.date || 0).getTime();
+        valB = b.date instanceof Date ? b.date.getTime() : new Date(b.date || 0).getTime();
       } else if (sortField === 'revenue') {
         valA = a.revenue || 0;
         valB = b.revenue || 0;
@@ -198,7 +200,7 @@ export const DataTableView: React.FC<DataTableViewProps> = ({
     if (processedRecords.length === 0) return;
     const headers = ['Date', 'Category', 'Customer', 'Product', 'Revenue', 'Expense', 'Profit'];
     const rows = processedRecords.map((r) => [
-      `"${r.dateString}"`,
+      `"${r.dateString || (typeof r.date === 'string' ? r.date : r.date instanceof Date ? r.date.toISOString().split('T')[0] : '')}"`,
       `"${(r.category || '').replace(/"/g, '""')}"`,
       `"${(r.customer || '').replace(/"/g, '""')}"`,
       `"${(r.product || '').replace(/"/g, '""')}"`,
@@ -469,7 +471,9 @@ export const DataTableView: React.FC<DataTableViewProps> = ({
                 const isPositive = profit >= 0;
                 return (
                   <tr key={r.id} className="hover:bg-slate-50 dark:hover:bg-zinc-900/50 transition-colors">
-                    <td className="p-3.5 font-mono text-slate-500 dark:text-zinc-400">{r.dateString}</td>
+                    <td className="p-3.5 font-mono text-slate-500 dark:text-zinc-400">
+                      {r.dateString || (typeof r.date === 'string' ? r.date : r.date instanceof Date ? r.date.toISOString().split('T')[0] : '—')}
+                    </td>
                     <td className="p-3.5">
                       <span className="px-2.5 py-0.5 rounded-full bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-zinc-300 text-[10px] font-bold border border-slate-200 dark:border-zinc-700">
                         {r.category || 'General'}

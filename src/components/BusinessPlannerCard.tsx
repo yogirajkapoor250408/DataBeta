@@ -44,7 +44,7 @@ export const BusinessPlannerCard: React.FC<BusinessPlannerCardProps> = ({
     }
 
     // 1. Pending AR / Pipeline Cash
-    const openDeals = crmDeals.filter(d => d.stage === 'proposal' || d.stage === 'negotiation');
+    const openDeals = crmDeals.filter(d => (d.stage as any) === 'proposal_sent' || (d.stage as any) === 'proposal' || d.stage === 'negotiation');
     if (openDeals.length > 0) {
        list.push({
           id: 'auto-pipeline',

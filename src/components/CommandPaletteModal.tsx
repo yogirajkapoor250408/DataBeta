@@ -1,22 +1,44 @@
 import React, { useState, useEffect } from 'react';
-import { Search, LayoutDashboard, BarChart3, Zap, GitPullRequest, Bot, Settings, FileText, ArrowRight, X, Table, Users, Receipt, DollarSign } from 'lucide-react';
+import {
+  Search,
+  LayoutDashboard,
+  Zap,
+  Settings,
+  FileText,
+  Users,
+  DollarSign,
+  Plus,
+  FileSpreadsheet,
+  Sun,
+  Moon,
+  X,
+} from 'lucide-react';
+import { CoreTab } from '../types';
 
-interface CommandPaletteModalProps {
+export interface CommandPaletteModalProps {
   isOpen: boolean;
   onClose: () => void;
-  setActiveTab: (tab: string) => void;
-  onOpenAI: () => void;
+  onNavigate?: (tab: CoreTab) => void;
+  setActiveTab?: (tab: string) => void;
+  onOpenAI?: () => void;
+  onOpenUpload?: () => void;
+  onOpenAddDeal?: () => void;
+  onOpenAddTask?: () => void;
+  onToggleTheme?: () => void;
 }
 
 export const CommandPaletteModal: React.FC<CommandPaletteModalProps> = ({
   isOpen,
   onClose,
+  onNavigate,
   setActiveTab,
-  onOpenAI,
+  onOpenUpload,
+  onOpenAddDeal,
+  onOpenAddTask,
+  onToggleTheme,
 }) => {
   const [search, setSearch] = useState('');
 
-  // Handle Cmd+K / Ctrl+K keyboard shortcut
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
@@ -30,76 +52,132 @@ export const CommandPaletteModal: React.FC<CommandPaletteModalProps> = ({
 
   if (!isOpen) return null;
 
+  const navigateTo = (tab: CoreTab) => {
+    if (onNavigate) onNavigate(tab);
+    if (setActiveTab) setActiveTab(tab);
+    onClose();
+  };
+
   const commands = [
-    { id: 'overview', title: 'Executive Overview Command Center', category: 'Navigation', icon: LayoutDashboard, action: () => { setActiveTab('overview'); onClose(); } },
-    { id: 'crm', title: 'CRM, Pipeline, Contacts & Tasks', category: 'CRM', icon: Users, action: () => { setActiveTab('crm'); onClose(); } },
-    { id: 'finance', title: 'Finance Ledger, P&L, Taxes & Runway', category: 'Finance', icon: DollarSign, action: () => { setActiveTab('finance'); onClose(); } },
-    { id: 'insights', title: 'Business Intelligence, Leaks & Forecaster', category: 'Intelligence', icon: Zap, action: () => { setActiveTab('insights'); onClose(); } },
-    { id: 'reports', title: 'Executive Financial Reports & Statements', category: 'Reports', icon: FileText, action: () => { setActiveTab('reports'); onClose(); } },
-    { id: 'settings', title: 'Business Settings & Data Backup', category: 'Settings', icon: Settings, action: () => { setActiveTab('settings'); onClose(); } },
-    { id: 'ai', title: 'Ask AI Business Copilot', category: 'AI Assistant', icon: Bot, action: () => { onClose(); onOpenAI(); } },
+    {
+      id: 'overview',
+      title: "Today's Command Center",
+      category: 'Navigation',
+      icon: LayoutDashboard,
+      action: () => navigateTo('overview'),
+    },
+    {
+      id: 'crm',
+      title: 'Sales CRM & Pipeline',
+      category: 'Navigation',
+      icon: Users,
+      action: () => navigateTo('crm'),
+    },
+    {
+      id: 'finance',
+      title: 'Cash & Collections',
+      category: 'Navigation',
+      icon: DollarSign,
+      action: () => navigateTo('finance'),
+    },
+    {
+      id: 'insights',
+      title: 'Profitability & Provenance',
+      category: 'Navigation',
+      icon: Zap,
+      action: () => navigateTo('insights'),
+    },
+    {
+      id: 'reports',
+      title: 'Executive Reports',
+      category: 'Navigation',
+      icon: FileText,
+      action: () => navigateTo('reports'),
+    },
+    {
+      id: 'settings',
+      title: 'Workspace Settings & Team',
+      category: 'Navigation',
+      icon: Settings,
+      action: () => navigateTo('settings'),
+    },
+    {
+      id: 'add-deal',
+      title: 'Add New Sales Deal',
+      category: 'Actions',
+      icon: Plus,
+      action: () => {
+        onClose();
+        if (onOpenAddDeal) onOpenAddDeal();
+      },
+    },
+    {
+      id: 'add-task',
+      title: 'Schedule Follow-up Task',
+      category: 'Actions',
+      icon: Plus,
+      action: () => {
+        onClose();
+        if (onOpenAddTask) onOpenAddTask();
+      },
+    },
+    {
+      id: 'import',
+      title: 'Import CSV or Excel Ledger',
+      category: 'Actions',
+      icon: FileSpreadsheet,
+      action: () => {
+        onClose();
+        if (onOpenUpload) onOpenUpload();
+      },
+    },
   ];
 
-  const filtered = commands.filter(c =>
-    c.title.toLowerCase().includes(search.toLowerCase()) ||
-    c.category.toLowerCase().includes(search.toLowerCase())
+  const filtered = commands.filter(
+    (c) =>
+      c.title.toLowerCase().includes(search.toLowerCase()) ||
+      c.category.toLowerCase().includes(search.toLowerCase())
   );
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-md flex items-start justify-center pt-16 sm:pt-24 px-4 animate-fadeIn">
-      <div className="bg-white dark:bg-zinc-950 text-slate-900 dark:text-white rounded-3xl border border-slate-200 dark:border-zinc-800 w-full max-w-xl shadow-2xl overflow-hidden space-y-0">
-        {/* Search Header */}
-        <div className="p-4 border-b border-slate-100 dark:border-zinc-900 flex items-center justify-between gap-3">
-          <Search className="w-5 h-5 text-rose-600 shrink-0" />
+    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-start justify-center pt-20 p-4">
+      <div className="bg-white dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-2xl max-w-lg w-full shadow-2xl overflow-hidden animate-scaleUp">
+        <div className="p-3.5 border-b border-slate-100 dark:border-zinc-900 flex items-center gap-2.5">
+          <Search className="w-4 h-4 text-slate-400" />
           <input
             type="text"
             autoFocus
-            placeholder="Type a command or search platform (e.g., 'Show revenue', 'Insights')..."
+            placeholder="Type a command or jump to..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full bg-transparent text-sm font-medium text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-zinc-500 focus:outline-none"
+            className="flex-1 bg-transparent border-none text-xs text-slate-900 dark:text-white outline-hidden"
           />
-          <button
-            onClick={onClose}
-            className="p-1 rounded-full text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors"
-          >
-            <X className="w-4 h-4" />
-          </button>
+          <kbd className="text-[10px] font-mono px-1.5 py-0.5 bg-slate-100 dark:bg-zinc-800 rounded text-slate-500">
+            ESC
+          </kbd>
         </div>
 
-        {/* Command List */}
-        <div className="p-3 max-h-80 overflow-y-auto space-y-1">
-          {filtered.length > 0 ? (
+        <div className="max-h-72 overflow-y-auto p-2 space-y-1 custom-scrollbar">
+          {filtered.length === 0 ? (
+            <div className="py-8 text-center text-xs text-slate-400">No matching commands found</div>
+          ) : (
             filtered.map((cmd) => {
               const Icon = cmd.icon;
               return (
                 <button
                   key={cmd.id}
                   onClick={cmd.action}
-                  className="w-full p-3 rounded-2xl flex items-center justify-between hover:bg-slate-100 dark:hover:bg-zinc-900/80 transition-all text-left group"
+                  className="w-full flex items-center justify-between p-2.5 rounded-xl text-left hover:bg-slate-100 dark:hover:bg-zinc-900 transition-colors group text-xs"
                 >
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-xl bg-slate-100 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 text-rose-600 flex items-center justify-center shrink-0">
-                      <Icon className="w-4 h-4" />
-                    </div>
-                    <div>
-                      <div className="text-xs font-bold text-slate-900 dark:text-white">{cmd.title}</div>
-                      <span className="text-[10px] font-mono text-slate-400 uppercase">{cmd.category}</span>
-                    </div>
+                  <div className="flex items-center gap-2.5">
+                    <Icon className="w-4 h-4 text-slate-500 group-hover:text-rose-600" />
+                    <span className="font-bold text-slate-800 dark:text-zinc-200">{cmd.title}</span>
                   </div>
-                  <ArrowRight className="w-4 h-4 text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <span className="text-[10px] text-slate-400 font-mono">{cmd.category}</span>
                 </button>
               );
             })
-          ) : (
-            <div className="p-8 text-center text-xs text-slate-400">No matching commands found</div>
           )}
-        </div>
-
-        {/* Footer info */}
-        <div className="p-3 bg-slate-50 dark:bg-zinc-900/50 border-t border-slate-100 dark:border-zinc-900 flex justify-between items-center text-[10px] font-mono text-slate-400 px-4">
-          <span>Navigate with Arrow keys</span>
-          <span>Esc to close</span>
         </div>
       </div>
     </div>

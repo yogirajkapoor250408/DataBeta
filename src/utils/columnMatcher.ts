@@ -31,7 +31,7 @@ export function autoDetectColumns(headers: string[]): ColumnMapping {
 
   // Pass 1: Exact alias matches
   for (const fieldDef of FIELD_DEFINITIONS) {
-    const field = fieldDef.key;
+    const field = fieldDef.field as StandardField;
     const aliases = ALIASES[field];
 
     for (const header of headers) {
@@ -48,7 +48,7 @@ export function autoDetectColumns(headers: string[]): ColumnMapping {
 
   // Pass 2: Partial matches if still unassigned
   for (const fieldDef of FIELD_DEFINITIONS) {
-    const field = fieldDef.key;
+    const field = fieldDef.field as StandardField;
     if (mapping[field]) continue; // Already mapped
 
     const aliases = ALIASES[field];
