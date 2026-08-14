@@ -115,7 +115,17 @@ export const DashboardApp: React.FC = () => {
       }
     });
 
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        setIsCommandPaletteOpen((prev) => !prev);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+
     return () => {
+      window.removeEventListener('keydown', handleKeyDown);
       if (sub && typeof sub.unsubscribe === 'function') sub.unsubscribe();
     };
   }, []);
