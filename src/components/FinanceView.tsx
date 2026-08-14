@@ -280,9 +280,9 @@ export const FinanceView: React.FC<FinanceViewProps> = ({
 
       {/* Subtab 1: Invoices List */}
       {subtab === 'invoices' && (
-        <div className="bg-white dark:bg-zinc-950 rounded-2xl border border-slate-200/80 dark:border-zinc-800/80 shadow-2xs overflow-hidden">
+        <div className="space-y-4">
           {filteredInvoices.length === 0 ? (
-            <div className="text-center py-12 space-y-3">
+            <div className="bg-white dark:bg-zinc-950 rounded-2xl border border-slate-200/80 dark:border-zinc-800/80 p-8 text-center space-y-3">
               <Receipt className="w-8 h-8 text-slate-300 dark:text-zinc-700 mx-auto" />
               <div className="text-sm font-bold text-slate-900 dark:text-white">No invoices matching filter</div>
               <p className="text-xs text-slate-500 max-w-sm mx-auto">
@@ -290,83 +290,165 @@ export const FinanceView: React.FC<FinanceViewProps> = ({
               </p>
               <button
                 onClick={onOpenAddInvoice}
-                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold shadow-xs"
+                className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold shadow-xs min-h-[44px]"
               >
                 + Create Invoice
               </button>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs">
-                <thead>
-                  <tr className="bg-slate-100/60 dark:bg-zinc-900 text-slate-500 font-semibold uppercase text-[10px] border-b border-slate-200/80 dark:border-zinc-800">
-                    <th className="p-3.5">Invoice #</th>
-                    <th className="p-3.5">Customer</th>
-                    <th className="p-3.5">Status</th>
-                    <th className="p-3.5">Issue Date</th>
-                    <th className="p-3.5">Due Date</th>
-                    <th className="p-3.5">Total Amount</th>
-                    <th className="p-3.5">Balance Due</th>
-                    <th className="p-3.5 text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 dark:divide-zinc-900">
-                  {filteredInvoices.map((inv) => (
-                    <tr key={inv.id} className="hover:bg-slate-50 dark:hover:bg-zinc-900/50">
-                      <td className="p-3.5 font-mono font-bold text-slate-900 dark:text-white">
-                        {inv.invoiceNumber}
-                      </td>
-                      <td className="p-3.5 font-bold text-slate-900 dark:text-white">{inv.customerName}</td>
-                      <td className="p-3.5">
-                        <span
-                          className={`text-[9px] font-extrabold uppercase px-2 py-0.5 rounded-md ${
-                            inv.status === 'paid'
-                              ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300'
-                              : inv.status === 'overdue'
-                              ? 'bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300'
-                              : 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300'
-                          }`}
-                        >
-                          {inv.status.replace('_', ' ')}
-                        </span>
-                      </td>
-                      <td className="p-3.5 font-mono text-slate-500">{inv.issueDate}</td>
-                      <td className="p-3.5 font-mono text-slate-700 dark:text-zinc-300 font-bold">{inv.dueDate}</td>
-                      <td className="p-3.5 font-mono font-bold text-slate-900 dark:text-white">
-                        {formatCurrency(inv.amount, inv.currency)}
-                      </td>
-                      <td className="p-3.5 font-mono font-bold text-rose-600 dark:text-rose-400">
-                        {formatCurrency(inv.balanceDue, inv.currency)}
-                      </td>
-                      <td className="p-3.5 text-right space-x-1.5">
-                        {inv.status !== 'paid' && (
-                          <>
-                            <button
-                              onClick={() => handleCopyPaymentRequest(inv)}
-                              className="px-2.5 py-1 bg-slate-100 dark:bg-zinc-800 hover:bg-slate-200 text-slate-700 dark:text-zinc-300 rounded-lg text-xs font-bold"
-                              title="Copy polite reminder text to clipboard"
-                            >
-                              {copiedInvoiceId === inv.id ? 'Copied script!' : 'Copy Reminder'}
-                            </button>
-                            <button
-                              onClick={() => handleMarkAsPaid(inv.id)}
-                              className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold shadow-2xs"
-                            >
-                              Mark Paid
-                            </button>
-                          </>
-                        )}
-                        {inv.status === 'paid' && (
-                          <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-bold">
-                            ✓ Settled
+            <>
+              {/* MOBILE INVOICE CARDS (md:hidden) */}
+              <div className="md:hidden space-y-3">
+                {filteredInvoices.map((inv) => (
+                  <div
+                    key={inv.id}
+                    className="p-4 bg-white dark:bg-zinc-950 rounded-2xl border border-slate-200/80 dark:border-zinc-800 shadow-2xs space-y-3"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono text-xs font-bold text-slate-900 dark:text-white">
+                            {inv.invoiceNumber}
                           </span>
+                          <span
+                            className={`text-[9px] font-extrabold uppercase px-2 py-0.5 rounded-md ${
+                              inv.status === 'paid'
+                                ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300'
+                                : inv.status === 'overdue'
+                                ? 'bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300'
+                                : 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300'
+                            }`}
+                          >
+                            {inv.status.replace('_', ' ')}
+                          </span>
+                        </div>
+                        <div className="text-sm font-bold text-slate-900 dark:text-white mt-0.5">
+                          {inv.customerName}
+                        </div>
+                      </div>
+
+                      <div className="text-right shrink-0">
+                        <div className="text-sm font-mono font-black text-slate-900 dark:text-white">
+                          {formatCurrency(inv.amount, inv.currency)}
+                        </div>
+                        {inv.balanceDue > 0 && inv.status !== 'paid' && (
+                          <div className="text-[10px] font-mono font-bold text-rose-600 dark:text-rose-400">
+                            Due: {formatCurrency(inv.balanceDue, inv.currency)}
+                          </div>
                         )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between text-xs text-slate-500 font-mono pt-1">
+                      <span>Issued: {inv.issueDate}</span>
+                      <span className="font-bold text-slate-800 dark:text-zinc-200">Due: {inv.dueDate}</span>
+                    </div>
+
+                    {/* Mobile Actions: WhatsApp Reminder & Mark as Paid */}
+                    <div className="flex items-center gap-2 pt-2 border-t border-slate-100 dark:border-zinc-900">
+                      {inv.status !== 'paid' && (
+                        <>
+                          <button
+                            onClick={() => handleCopyPaymentRequest(inv)}
+                            className="flex-1 py-2.5 bg-slate-100 dark:bg-zinc-900 text-slate-800 dark:text-zinc-200 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 min-h-[44px]"
+                          >
+                            {copiedInvoiceId === inv.id ? (
+                              <Check className="w-3.5 h-3.5 text-emerald-500" />
+                            ) : (
+                              <Copy className="w-3.5 h-3.5 text-slate-500" />
+                            )}
+                            <span>{copiedInvoiceId === inv.id ? 'Copied script!' : 'WhatsApp'}</span>
+                          </button>
+
+                          <button
+                            onClick={() => handleMarkAsPaid(inv.id)}
+                            className="py-2.5 px-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold min-h-[44px] shadow-2xs"
+                          >
+                            ✓ Mark Paid
+                          </button>
+                        </>
+                      )}
+                      {inv.status === 'paid' && (
+                        <div className="w-full py-2 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 rounded-xl text-xs font-bold text-center flex items-center justify-center gap-1">
+                          <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                          <span>Fully Paid & Reconciled</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* DESKTOP INVOICE TABLE (hidden md:block) */}
+              <div className="hidden md:block bg-white dark:bg-zinc-950 rounded-2xl border border-slate-200/80 dark:border-zinc-800/80 shadow-2xs overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs">
+                    <thead>
+                      <tr className="bg-slate-100/60 dark:bg-zinc-900 text-slate-500 font-semibold uppercase text-[10px] border-b border-slate-200/80 dark:border-zinc-800">
+                        <th className="p-3.5">Invoice #</th>
+                        <th className="p-3.5">Customer</th>
+                        <th className="p-3.5">Status</th>
+                        <th className="p-3.5">Issue Date</th>
+                        <th className="p-3.5">Due Date</th>
+                        <th className="p-3.5">Total Amount</th>
+                        <th className="p-3.5">Balance Due</th>
+                        <th className="p-3.5 text-right">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 dark:divide-zinc-900">
+                      {filteredInvoices.map((inv) => (
+                        <tr key={inv.id} className="hover:bg-slate-50 dark:hover:bg-zinc-900/50">
+                          <td className="p-3.5 font-mono font-bold text-slate-900 dark:text-white">
+                            {inv.invoiceNumber}
+                          </td>
+                          <td className="p-3.5 font-bold text-slate-900 dark:text-white">{inv.customerName}</td>
+                          <td className="p-3.5">
+                            <span
+                              className={`text-[9px] font-extrabold uppercase px-2 py-0.5 rounded-md ${
+                                inv.status === 'paid'
+                                  ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300'
+                                  : inv.status === 'overdue'
+                                  ? 'bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300'
+                                  : 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300'
+                              }`}
+                            >
+                              {inv.status.replace('_', ' ')}
+                            </span>
+                          </td>
+                          <td className="p-3.5 font-mono text-slate-500">{inv.issueDate}</td>
+                          <td className="p-3.5 font-mono text-slate-700 dark:text-zinc-300 font-bold">{inv.dueDate}</td>
+                          <td className="p-3.5 font-mono font-bold text-slate-900 dark:text-white">
+                            {formatCurrency(inv.amount, inv.currency)}
+                          </td>
+                          <td className="p-3.5 font-mono font-bold text-rose-600 dark:text-rose-400">
+                            {formatCurrency(inv.balanceDue, inv.currency)}
+                          </td>
+                          <td className="p-3.5 text-right space-x-1.5">
+                            {inv.status !== 'paid' && (
+                              <>
+                                <button
+                                  onClick={() => handleCopyPaymentRequest(inv)}
+                                  className="px-2.5 py-1 bg-slate-100 dark:bg-zinc-800 hover:bg-slate-200 text-slate-700 dark:text-zinc-300 rounded-lg text-xs font-bold"
+                                  title="Copy polite reminder text to clipboard"
+                                >
+                                  {copiedInvoiceId === inv.id ? 'Copied script!' : 'Copy Reminder'}
+                                </button>
+                                <button
+                                  onClick={() => handleMarkAsPaid(inv.id)}
+                                  className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold shadow-2xs"
+                                >
+                                  ✓ Mark Paid
+                                </button>
+                              </>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </>
           )}
         </div>
       )}

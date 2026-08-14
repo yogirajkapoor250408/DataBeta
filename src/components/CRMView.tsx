@@ -80,6 +80,7 @@ export const CRMView: React.FC<CRMViewProps> = ({
 }) => {
   const [subtab, setSubtab] = useState<CRMSubtab>('deals');
   const [viewMode, setViewMode] = useState<'kanban' | 'list'>('kanban');
+  const [mobileStageFilter, setMobileStageFilter] = useState<DealStage | 'all'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedDeal, setSelectedDeal] = useState<Deal | null>(null);
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
@@ -173,8 +174,8 @@ export const CRMView: React.FC<CRMViewProps> = ({
   };
 
   // Delete Deal
-  const handleDeleteDeal = async (dealId: string, e: React.MouseEvent) => {
-    e.stopPropagation();
+  const handleDeleteDeal = async (dealId: string, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
     if (!confirm('Are you sure you want to delete this deal?')) return;
     const updated = deals.filter((d) => d.id !== dealId);
     onDealsChange(updated);
@@ -408,152 +409,279 @@ export const CRMView: React.FC<CRMViewProps> = ({
 
       {/* Subtab 1: Deals Pipeline */}
       {subtab === 'deals' && (
-        <div>
-          {viewMode === 'kanban' ? (
-            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-7 gap-3.5 overflow-x-auto pb-4 custom-scrollbar">
-              {KANBAN_STAGES.map((stage) => {
-                const stageDeals = deals.filter(
-                  (d) =>
-                    d.stage === stage.key &&
-                    (searchQuery === '' ||
-                      d.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                      d.companyName.toLowerCase().includes(searchQuery.toLowerCase()))
-                );
-                const stageTotal = stageDeals.reduce((sum, d) => sum + (d.amount || 0), 0);
+        <div className="space-y-4">
+          {/* MOBILE STAGE FILTER CAROUSEL (md:hidden) */}
+          <div className="md:hidden flex items-center gap-1.5 overflow-x-auto pb-1.5 custom-scrollbar">
+            <button
+              onClick={() => setMobileStageFilter('all')}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold shrink-0 transition-all ${
+                mobileStageFilter === 'all'
+                  ? 'bg-rose-600 text-white shadow-2xs'
+                  : 'bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 text-slate-600 dark:text-zinc-400'
+              }`}
+            >
+              All ({deals.length})
+            </button>
+            {KANBAN_STAGES.map((st) => {
+              const count = deals.filter((d) => d.stage === st.key).length;
+              const isSel = mobileStageFilter === st.key;
+              return (
+                <button
+                  key={st.key}
+                  onClick={() => setMobileStageFilter(st.key)}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold shrink-0 transition-all flex items-center gap-1.5 ${
+                    isSel
+                      ? 'bg-rose-600 text-white shadow-2xs'
+                      : 'bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 text-slate-600 dark:text-zinc-400'
+                  }`}
+                >
+                  <span>{st.label}</span>
+                  <span className={`text-[10px] font-mono px-1.5 py-0.2 rounded-md ${isSel ? 'bg-white/20 text-white' : 'bg-slate-100 dark:bg-zinc-800 text-slate-500'}`}>
+                    {count}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
 
-                return (
-                  <div
-                    key={stage.key}
-                    className="bg-slate-50/70 dark:bg-zinc-950/60 p-3 rounded-2xl border border-slate-200/70 dark:border-zinc-800/70 flex flex-col space-y-3 min-w-[220px]"
-                  >
-                    {/* Stage Column Header */}
-                    <div className="flex items-center justify-between pb-2 border-b border-slate-200/60 dark:border-zinc-800/60">
-                      <div>
-                        <div className="text-xs font-black text-slate-900 dark:text-white flex items-center gap-1.5">
-                          <span className="truncate">{stage.label}</span>
-                          <span className="text-[10px] font-mono text-slate-400 bg-white dark:bg-zinc-800 px-1.5 py-0.2 rounded-md border border-slate-200/60 dark:border-zinc-700">
-                            {stageDeals.length}
+          {/* MOBILE DEALS FEED (md:hidden) */}
+          <div className="md:hidden space-y-3">
+            {deals
+              .filter((d) => (mobileStageFilter === 'all' || d.stage === mobileStageFilter) &&
+                (searchQuery === '' ||
+                  d.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                  d.companyName.toLowerCase().includes(searchQuery.toLowerCase())))
+              .length === 0 ? (
+              <div className="p-8 text-center bg-white dark:bg-zinc-950 border border-dashed border-slate-200 dark:border-zinc-800 rounded-2xl space-y-2">
+                <Users className="w-8 h-8 text-slate-400 mx-auto" />
+                <div className="text-xs font-bold text-slate-900 dark:text-white">No deals in this stage</div>
+                <button
+                  onClick={onOpenAddDeal}
+                  className="px-4 py-2 bg-rose-600 text-white text-xs font-bold rounded-xl mt-2"
+                >
+                  + Add New Deal
+                </button>
+              </div>
+            ) : (
+              deals
+                .filter((d) => (mobileStageFilter === 'all' || d.stage === mobileStageFilter) &&
+                  (searchQuery === '' ||
+                    d.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                    d.companyName.toLowerCase().includes(searchQuery.toLowerCase())))
+                .map((deal) => {
+                  const stageObj = KANBAN_STAGES.find((s) => s.key === deal.stage);
+                  return (
+                    <div
+                      key={deal.id}
+                      onClick={() => setSelectedDeal(deal)}
+                      className="p-4 bg-white dark:bg-zinc-950 rounded-2xl border border-slate-200/80 dark:border-zinc-800 shadow-2xs space-y-3 active:scale-[0.99] transition-transform"
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="space-y-0.5">
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-rose-600 dark:text-rose-400">
+                            {stageObj?.label || deal.stage}
                           </span>
+                          <h3 className="text-sm font-bold text-slate-900 dark:text-white line-clamp-1">
+                            {deal.title}
+                          </h3>
+                          <div className="text-xs text-slate-500">{deal.companyName}</div>
                         </div>
-                        <div className="text-[10px] font-mono font-bold text-slate-500 dark:text-zinc-400 mt-0.5">
-                          {formatCurrency(stageTotal, currency)}
+
+                        <div className="text-right shrink-0">
+                          <div className="text-sm font-black font-mono text-emerald-600 dark:text-emerald-400">
+                            {formatCurrency(deal.amount, currency)}
+                          </div>
+                          <div className="text-[10px] font-mono text-slate-400">
+                            {deal.expectedCloseDate}
+                          </div>
                         </div>
                       </div>
-                      <span className="text-[9px] font-mono text-slate-400 font-bold">{stage.probabilityPct}%</span>
-                    </div>
 
-                    {/* Stage Cards */}
-                    <div className="space-y-2.5 flex-1">
-                      {stageDeals.length === 0 ? (
-                        <div className="p-4 text-center text-[11px] text-slate-400 border border-dashed border-slate-200 dark:border-zinc-800/60 rounded-xl">
-                          No deals
+                      {deal.nextStep && (
+                        <div className="p-2 bg-slate-50 dark:bg-zinc-900 rounded-xl border border-slate-100 dark:border-zinc-800/60 text-xs text-slate-600 dark:text-zinc-400">
+                          <span className="font-bold text-slate-900 dark:text-white">👉 Next: </span>
+                          {deal.nextStep}
                         </div>
-                      ) : (
-                        stageDeals.map((deal) => (
-                          <div
-                            key={deal.id}
-                            onClick={() => setSelectedDeal(deal)}
-                            className="p-3 bg-white dark:bg-zinc-900 rounded-xl border border-slate-200/80 dark:border-zinc-800 shadow-2xs hover:border-rose-400 dark:hover:border-rose-600 transition-all cursor-pointer space-y-2 group"
-                          >
-                            <div className="flex items-start justify-between gap-1">
-                              <span className="text-xs font-bold text-slate-900 dark:text-white leading-snug group-hover:text-rose-600 dark:group-hover:text-rose-400 transition-colors line-clamp-2">
-                                {deal.title}
-                              </span>
-                              <button
-                                onClick={(e) => handleDeleteDeal(deal.id, e)}
-                                className="opacity-0 group-hover:opacity-100 p-1 text-slate-400 hover:text-rose-600 transition-opacity"
-                                title="Delete deal"
-                              >
-                                <Trash2 className="w-3 h-3" />
-                              </button>
-                            </div>
-
-                            <div className="flex items-center justify-between text-xs font-mono font-bold">
-                              <span className="text-slate-900 dark:text-white">
-                                {formatCurrency(deal.amount, currency)}
-                              </span>
-                              <span className="text-[10px] font-sans text-slate-400">
-                                {deal.expectedCloseDate}
-                              </span>
-                            </div>
-
-                            {deal.nextStep && (
-                              <p className="text-[10px] text-slate-500 dark:text-zinc-400 truncate bg-slate-50 dark:bg-zinc-950 p-1.5 rounded-md border border-slate-100 dark:border-zinc-800">
-                                👉 {deal.nextStep}
-                              </p>
-                            )}
-
-                            {/* Advance Stage Button */}
-                            {stage.key !== 'won' && stage.key !== 'lost' && (
-                              <button
-                                onClick={(e) => handleAdvanceStage(deal.id, e)}
-                                className="w-full mt-1 py-1 bg-slate-50 dark:bg-zinc-800 hover:bg-rose-50 dark:hover:bg-rose-950/60 hover:text-rose-600 dark:hover:text-rose-400 text-slate-600 dark:text-zinc-300 rounded-lg text-[10px] font-bold border border-slate-200/60 dark:border-zinc-700 transition-all flex items-center justify-center gap-1"
-                              >
-                                <span>Advance Stage</span>
-                                <ArrowRight className="w-3 h-3" />
-                              </button>
-                            )}
-                          </div>
-                        ))
                       )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          ) : (
-            /* Deals Table List View */
-            <div className="bg-white dark:bg-zinc-950 rounded-2xl border border-slate-200/80 dark:border-zinc-800/80 shadow-2xs overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs">
-                  <thead>
-                    <tr className="bg-slate-100/60 dark:bg-zinc-900 text-slate-500 font-semibold uppercase text-[10px] border-b border-slate-200/80 dark:border-zinc-800">
-                      <th className="p-3.5">Deal / Company</th>
-                      <th className="p-3.5">Stage</th>
-                      <th className="p-3.5">Amount</th>
-                      <th className="p-3.5">Probability</th>
-                      <th className="p-3.5">Target Close</th>
-                      <th className="p-3.5">Next Step</th>
-                      <th className="p-3.5 text-right">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100 dark:divide-zinc-900">
-                    {deals.map((deal) => (
-                      <tr
-                        key={deal.id}
-                        onClick={() => setSelectedDeal(deal)}
-                        className="hover:bg-slate-50 dark:hover:bg-zinc-900/50 cursor-pointer"
-                      >
-                        <td className="p-3.5">
-                          <div className="font-bold text-slate-900 dark:text-white">{deal.title}</div>
-                          <div className="text-[11px] text-slate-400">{deal.companyName}</div>
-                        </td>
-                        <td className="p-3.5">
-                          <span className="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-zinc-800 font-bold uppercase text-[10px] text-slate-700 dark:text-zinc-300">
-                            {deal.stage.replace('_', ' ')}
-                          </span>
-                        </td>
-                        <td className="p-3.5 font-mono font-bold text-slate-900 dark:text-white">
-                          {formatCurrency(deal.amount, currency)}
-                        </td>
-                        <td className="p-3.5 font-mono text-slate-600 dark:text-zinc-400">{deal.probabilityPct}%</td>
-                        <td className="p-3.5 font-mono text-slate-500">{deal.expectedCloseDate}</td>
-                        <td className="p-3.5 text-slate-600 dark:text-zinc-400 truncate max-w-xs">{deal.nextStep || '—'}</td>
-                        <td className="p-3.5 text-right" onClick={(e) => e.stopPropagation()}>
+
+                      {/* Mobile Actions: Call, WhatsApp & Advance */}
+                      <div className="flex items-center gap-2 pt-1 border-t border-slate-100 dark:border-zinc-900" onClick={(e) => e.stopPropagation()}>
+                        <button
+                          onClick={() => handleCopyWhatsApp(deal.contactName || deal.title, deal.title)}
+                          className="flex-1 py-2.5 bg-slate-100 dark:bg-zinc-900 text-slate-800 dark:text-zinc-200 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 min-h-[44px]"
+                        >
+                          {copiedActionId === (deal.contactName || deal.title) ? (
+                            <Check className="w-3.5 h-3.5 text-emerald-500" />
+                          ) : (
+                            <MessageSquare className="w-3.5 h-3.5 text-slate-500" />
+                          )}
+                          <span>{copiedActionId === (deal.contactName || deal.title) ? 'Copied!' : 'WhatsApp'}</span>
+                        </button>
+
+                        {deal.stage !== 'won' && deal.stage !== 'lost' && (
                           <button
                             onClick={(e) => handleAdvanceStage(deal.id, e)}
-                            className="px-2 py-1 bg-slate-100 dark:bg-zinc-800 hover:bg-rose-50 text-slate-700 hover:text-rose-600 rounded-lg text-xs font-bold"
+                            className="flex-1 py-2.5 bg-rose-600 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1 min-h-[44px] shadow-2xs"
                           >
-                            Advance →
+                            <span>Advance</span>
+                            <ArrowRight className="w-3.5 h-3.5" />
                           </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })
+            )}
+          </div>
+
+          {/* DESKTOP VIEWPORT (hidden md:block) */}
+          <div className="hidden md:block">
+            {viewMode === 'kanban' ? (
+              <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-7 gap-3.5 overflow-x-auto pb-4 custom-scrollbar">
+                {KANBAN_STAGES.map((stage) => {
+                  const stageDeals = deals.filter(
+                    (d) =>
+                      d.stage === stage.key &&
+                      (searchQuery === '' ||
+                        d.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                        d.companyName.toLowerCase().includes(searchQuery.toLowerCase()))
+                  );
+                  const stageTotal = stageDeals.reduce((sum, d) => sum + (d.amount || 0), 0);
+
+                  return (
+                    <div
+                      key={stage.key}
+                      className="bg-slate-50/70 dark:bg-zinc-950/60 p-3 rounded-2xl border border-slate-200/70 dark:border-zinc-800/70 flex flex-col space-y-3 min-w-[220px]"
+                    >
+                      {/* Stage Column Header */}
+                      <div className="flex items-center justify-between pb-2 border-b border-slate-200/60 dark:border-zinc-800/60">
+                        <div>
+                          <div className="text-xs font-black text-slate-900 dark:text-white flex items-center gap-1.5">
+                            <span className="truncate">{stage.label}</span>
+                            <span className="text-[10px] font-mono text-slate-400 bg-white dark:bg-zinc-800 px-1.5 py-0.2 rounded-md border border-slate-200/60 dark:border-zinc-700">
+                              {stageDeals.length}
+                            </span>
+                          </div>
+                          <div className="text-[10px] font-mono font-bold text-slate-500 dark:text-zinc-400 mt-0.5">
+                            {formatCurrency(stageTotal, currency)}
+                          </div>
+                        </div>
+                        <span className="text-[9px] font-mono text-slate-400 font-bold">{stage.probabilityPct}%</span>
+                      </div>
+
+                      {/* Stage Cards */}
+                      <div className="space-y-2.5 flex-1">
+                        {stageDeals.length === 0 ? (
+                          <div className="p-4 text-center text-[11px] text-slate-400 border border-dashed border-slate-200 dark:border-zinc-800/60 rounded-xl">
+                            No deals
+                          </div>
+                        ) : (
+                          stageDeals.map((deal) => (
+                            <div
+                              key={deal.id}
+                              onClick={() => setSelectedDeal(deal)}
+                              className="p-3 bg-white dark:bg-zinc-900 rounded-xl border border-slate-200/80 dark:border-zinc-800 shadow-2xs hover:border-rose-400 dark:hover:border-rose-600 transition-all cursor-pointer space-y-2 group"
+                            >
+                              <div className="flex items-start justify-between gap-1">
+                                <span className="text-xs font-bold text-slate-900 dark:text-white leading-snug group-hover:text-rose-600 dark:group-hover:text-rose-400 transition-colors line-clamp-2">
+                                  {deal.title}
+                                </span>
+                                <button
+                                  onClick={(e) => handleDeleteDeal(deal.id, e)}
+                                  className="opacity-0 group-hover:opacity-100 p-1 text-slate-400 hover:text-rose-600 transition-opacity"
+                                  title="Delete deal"
+                                >
+                                  <Trash2 className="w-3 h-3" />
+                                </button>
+                              </div>
+
+                              <div className="flex items-center justify-between text-xs font-mono font-bold">
+                                <span className="text-slate-900 dark:text-white">
+                                  {formatCurrency(deal.amount, currency)}
+                                </span>
+                                <span className="text-[10px] font-sans text-slate-400">
+                                  {deal.expectedCloseDate}
+                                </span>
+                              </div>
+
+                              {deal.nextStep && (
+                                <p className="text-[10px] text-slate-500 dark:text-zinc-400 truncate bg-slate-50 dark:bg-zinc-950 p-1.5 rounded-md border border-slate-100 dark:border-zinc-800">
+                                  👉 {deal.nextStep}
+                                </p>
+                              )}
+
+                              {/* Advance Stage Button */}
+                              {stage.key !== 'won' && stage.key !== 'lost' && (
+                                <button
+                                  onClick={(e) => handleAdvanceStage(deal.id, e)}
+                                  className="w-full mt-1 py-1 bg-slate-50 dark:bg-zinc-800 hover:bg-rose-50 dark:hover:bg-rose-950/60 hover:text-rose-600 dark:hover:text-rose-400 text-slate-600 dark:text-zinc-300 rounded-lg text-[10px] font-bold border border-slate-200/60 dark:border-zinc-700 transition-all flex items-center justify-center gap-1"
+                                >
+                                  <span>Advance Stage</span>
+                                  <ArrowRight className="w-3 h-3" />
+                                </button>
+                              )}
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
-            </div>
-          )}
+            ) : (
+              /* Deals Table List View */
+              <div className="bg-white dark:bg-zinc-950 rounded-2xl border border-slate-200/80 dark:border-zinc-800/80 shadow-2xs overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs">
+                    <thead>
+                      <tr className="bg-slate-100/60 dark:bg-zinc-900 text-slate-500 font-semibold uppercase text-[10px] border-b border-slate-200/80 dark:border-zinc-800">
+                        <th className="p-3.5">Deal / Company</th>
+                        <th className="p-3.5">Stage</th>
+                        <th className="p-3.5">Amount</th>
+                        <th className="p-3.5">Probability</th>
+                        <th className="p-3.5">Target Close</th>
+                        <th className="p-3.5">Next Step</th>
+                        <th className="p-3.5 text-right">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 dark:divide-zinc-900">
+                      {deals.map((deal) => (
+                        <tr
+                          key={deal.id}
+                          onClick={() => setSelectedDeal(deal)}
+                          className="hover:bg-slate-50 dark:hover:bg-zinc-900/50 cursor-pointer"
+                        >
+                          <td className="p-3.5">
+                            <div className="font-bold text-slate-900 dark:text-white">{deal.title}</div>
+                            <div className="text-[11px] text-slate-400">{deal.companyName}</div>
+                          </td>
+                          <td className="p-3.5">
+                            <span className="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-zinc-800 font-bold uppercase text-[10px] text-slate-700 dark:text-zinc-300">
+                              {deal.stage.replace('_', ' ')}
+                            </span>
+                          </td>
+                          <td className="p-3.5 font-mono font-bold text-slate-900 dark:text-white">
+                            {formatCurrency(deal.amount, currency)}
+                          </td>
+                          <td className="p-3.5 font-mono text-slate-600 dark:text-zinc-400">{deal.probabilityPct}%</td>
+                          <td className="p-3.5 font-mono text-slate-500">{deal.expectedCloseDate}</td>
+                          <td className="p-3.5 text-slate-600 dark:text-zinc-400 truncate max-w-xs">{deal.nextStep || '—'}</td>
+                          <td className="p-3.5 text-right" onClick={(e) => e.stopPropagation()}>
+                            <button
+                              onClick={(e) => handleAdvanceStage(deal.id, e)}
+                              className="px-2 py-1 bg-slate-100 dark:bg-zinc-800 hover:bg-rose-50 text-slate-700 hover:text-rose-600 rounded-lg text-xs font-bold"
+                            >
+                              Advance →
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       )}
 
@@ -745,14 +873,183 @@ export const CRMView: React.FC<CRMViewProps> = ({
         </div>
       )}
 
+      {/* Selected Deal Detail Bottom Sheet / Modal */}
+      {selectedDeal && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4 animate-fadeIn">
+          <div className="bg-white dark:bg-zinc-950 border-t sm:border border-slate-200 dark:border-zinc-800 rounded-t-3xl sm:rounded-2xl max-w-lg w-full p-5 sm:p-6 space-y-4 shadow-2xl max-h-[90vh] overflow-y-auto animate-slideUp">
+            <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-zinc-900">
+              <div className="flex items-center gap-2">
+                <span className="w-2.5 h-2.5 rounded-full bg-rose-600"></span>
+                <span className="text-[11px] font-extrabold uppercase tracking-wider text-rose-600 dark:text-rose-400">
+                  Deal Details
+                </span>
+              </div>
+              <button
+                onClick={() => setSelectedDeal(null)}
+                className="p-1 rounded-full text-slate-400 hover:text-slate-700 dark:hover:text-zinc-200"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-1">
+              <h2 className="text-lg font-black text-slate-900 dark:text-white">{selectedDeal.title}</h2>
+              <p className="text-xs text-slate-500">{selectedDeal.companyName}</p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2.5">
+              <div className="p-3 bg-slate-50 dark:bg-zinc-900 rounded-xl border border-slate-100 dark:border-zinc-800">
+                <span className="text-[10px] text-slate-400 uppercase font-bold">Deal Value</span>
+                <div className="text-base font-black font-mono text-emerald-600 dark:text-emerald-400 mt-0.5">
+                  {formatCurrency(selectedDeal.amount, currency)}
+                </div>
+              </div>
+
+              <div className="p-3 bg-slate-50 dark:bg-zinc-900 rounded-xl border border-slate-100 dark:border-zinc-800">
+                <span className="text-[10px] text-slate-400 uppercase font-bold">Probability & Close</span>
+                <div className="text-sm font-bold text-slate-900 dark:text-white mt-0.5">
+                  {selectedDeal.probabilityPct}% • {selectedDeal.expectedCloseDate}
+                </div>
+              </div>
+            </div>
+
+            {/* Stage Progress Stepper */}
+            <div className="space-y-1.5 pt-1">
+              <label className="text-[11px] font-bold text-slate-600 dark:text-zinc-400">Pipeline Stage</label>
+              <div className="grid grid-cols-4 sm:grid-cols-7 gap-1">
+                {KANBAN_STAGES.map((st) => {
+                  const isCurrent = selectedDeal.stage === st.key;
+                  return (
+                    <button
+                      key={st.key}
+                      onClick={() => {
+                        const updated = deals.map((d) => (d.id === selectedDeal.id ? { ...d, stage: st.key } : d));
+                        onDealsChange(updated);
+                        setSelectedDeal({ ...selectedDeal, stage: st.key });
+                      }}
+                      className={`p-1.5 rounded-lg text-[9px] font-bold text-center transition-all ${
+                        isCurrent
+                          ? 'bg-rose-600 text-white shadow-2xs scale-102'
+                          : 'bg-slate-100 dark:bg-zinc-900 text-slate-500 hover:bg-slate-200'
+                      }`}
+                    >
+                      {st.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {selectedDeal.nextStep && (
+              <div className="p-3 bg-slate-50 dark:bg-zinc-900 rounded-xl border border-slate-100 dark:border-zinc-800 text-xs">
+                <span className="font-bold text-slate-900 dark:text-white block mb-0.5">Scheduled Next Step:</span>
+                <span className="text-slate-600 dark:text-zinc-400">{selectedDeal.nextStep}</span>
+              </div>
+            )}
+
+            {/* Quick Actions */}
+            <div className="flex items-center gap-2 pt-2 border-t border-slate-100 dark:border-zinc-900 pb-safe">
+              <button
+                onClick={() => handleCopyWhatsApp(selectedDeal.contactName || selectedDeal.title, selectedDeal.title)}
+                className="flex-1 py-2.5 bg-slate-100 dark:bg-zinc-800 hover:bg-slate-200 text-slate-800 dark:text-zinc-200 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 min-h-[44px]"
+              >
+                {copiedActionId === (selectedDeal.contactName || selectedDeal.title) ? (
+                  <Check className="w-4 h-4 text-emerald-500" />
+                ) : (
+                  <MessageSquare className="w-4 h-4 text-slate-500" />
+                )}
+                <span>{copiedActionId === (selectedDeal.contactName || selectedDeal.title) ? 'Copied script!' : 'WhatsApp Script'}</span>
+              </button>
+
+              <button
+                onClick={() => {
+                  handleDeleteDeal(selectedDeal.id);
+                  setSelectedDeal(null);
+                }}
+                className="py-2.5 px-3 bg-rose-50 dark:bg-rose-950/40 text-rose-600 rounded-xl text-xs font-bold min-h-[44px]"
+                title="Delete Deal"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Selected Contact Detail Bottom Sheet / Modal */}
+      {selectedContact && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4 animate-fadeIn">
+          <div className="bg-white dark:bg-zinc-950 border-t sm:border border-slate-200 dark:border-zinc-800 rounded-t-3xl sm:rounded-2xl max-w-md w-full p-5 sm:p-6 space-y-4 shadow-2xl max-h-[90vh] overflow-y-auto animate-slideUp">
+            <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-zinc-900">
+              <div className="flex items-center gap-2">
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+                <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-500">
+                  Contact Card
+                </span>
+              </div>
+              <button
+                onClick={() => setSelectedContact(null)}
+                className="p-1 rounded-full text-slate-400 hover:text-slate-700 dark:hover:text-zinc-200"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-1">
+              <h2 className="text-lg font-black text-slate-900 dark:text-white">{selectedContact.name}</h2>
+              <p className="text-xs text-slate-500">{selectedContact.roleTitle || 'Commercial Stakeholder'} • {selectedContact.companyName || 'Direct'}</p>
+            </div>
+
+            <div className="p-3 bg-slate-50 dark:bg-zinc-900 rounded-xl border border-slate-100 dark:border-zinc-800 space-y-1.5 text-xs font-mono">
+              <div className="text-slate-700 dark:text-zinc-300">📧 {selectedContact.email}</div>
+              {selectedContact.phone && <div className="text-slate-700 dark:text-zinc-300">📱 {selectedContact.phone}</div>}
+            </div>
+
+            {selectedContact.notes && (
+              <div className="p-3 bg-slate-50 dark:bg-zinc-900 rounded-xl border border-slate-100 dark:border-zinc-800 text-xs">
+                <span className="font-bold text-slate-900 dark:text-white block mb-0.5">Notes:</span>
+                <span className="text-slate-600 dark:text-zinc-400">{selectedContact.notes}</span>
+              </div>
+            )}
+
+            <div className="flex items-center gap-2 pt-2 border-t border-slate-100 dark:border-zinc-900 pb-safe">
+              {selectedContact.phone && (
+                <a
+                  href={`tel:${selectedContact.phone}`}
+                  className="flex-1 py-2.5 bg-emerald-600 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 min-h-[44px]"
+                >
+                  <Phone className="w-4 h-4" />
+                  <span>Call Now</span>
+                </a>
+              )}
+
+              <button
+                onClick={() => handleCopyWhatsApp(selectedContact.name)}
+                className="flex-1 py-2.5 bg-slate-100 dark:bg-zinc-800 hover:bg-slate-200 text-slate-800 dark:text-zinc-200 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 min-h-[44px]"
+              >
+                {copiedActionId === selectedContact.name ? (
+                  <Check className="w-4 h-4 text-emerald-500" />
+                ) : (
+                  <MessageSquare className="w-4 h-4 text-slate-500" />
+                )}
+                <span>{copiedActionId === selectedContact.name ? 'Copied script!' : 'WhatsApp Script'}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Add Contact Modal with Duplicate Detection */}
       {showAddContactModal && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl animate-scaleUp">
-            <div className="flex items-center justify-between">
-              <h3 className="text-lg font-bold text-slate-900 dark:text-white">Create CRM Contact</h3>
-              <button onClick={() => setShowAddContactModal(false)} className="text-slate-400 hover:text-slate-700">
-                <X className="w-4 h-4" />
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4 animate-fadeIn">
+          <div className="bg-white dark:bg-zinc-950 border-t sm:border border-slate-200 dark:border-zinc-800 rounded-t-3xl sm:rounded-2xl max-w-md w-full p-5 sm:p-6 space-y-4 shadow-2xl max-h-[90vh] overflow-y-auto animate-slideUp">
+            <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-zinc-900">
+              <div className="flex items-center gap-2">
+                <span className="w-2.5 h-2.5 rounded-full bg-rose-600"></span>
+                <h3 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white">Create CRM Contact</h3>
+              </div>
+              <button onClick={() => setShowAddContactModal(false)} className="p-1 rounded-full text-slate-400 hover:text-slate-700 dark:hover:text-zinc-200">
+                <X className="w-5 h-5" />
               </button>
             </div>
 
@@ -772,7 +1069,7 @@ export const CRMView: React.FC<CRMViewProps> = ({
                   placeholder="e.g. Sarah Jenkins"
                   value={newContactName}
                   onChange={(e) => setNewContactName(e.target.value)}
-                  className="w-full p-2.5 bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl text-slate-900 dark:text-white"
+                  className="w-full p-3 sm:p-2.5 bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl text-slate-900 dark:text-white text-sm sm:text-xs"
                 />
               </div>
 
@@ -783,11 +1080,11 @@ export const CRMView: React.FC<CRMViewProps> = ({
                   placeholder="e.g. Apex Industrial"
                   value={newContactCompany}
                   onChange={(e) => setNewContactCompany(e.target.value)}
-                  className="w-full p-2.5 bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl text-slate-900 dark:text-white"
+                  className="w-full p-3 sm:p-2.5 bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl text-slate-900 dark:text-white text-sm sm:text-xs"
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="font-bold text-slate-700 dark:text-zinc-300 block mb-1">Email</label>
                   <input
@@ -795,7 +1092,7 @@ export const CRMView: React.FC<CRMViewProps> = ({
                     placeholder="sarah@apex.com"
                     value={newContactEmail}
                     onChange={(e) => setNewContactEmail(e.target.value)}
-                    className="w-full p-2.5 bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl text-slate-900 dark:text-white"
+                    className="w-full p-3 sm:p-2.5 bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl text-slate-900 dark:text-white text-sm sm:text-xs font-mono"
                   />
                 </div>
                 <div>
@@ -805,7 +1102,7 @@ export const CRMView: React.FC<CRMViewProps> = ({
                     placeholder="+1 (555) 019-2834"
                     value={newContactPhone}
                     onChange={(e) => setNewContactPhone(e.target.value)}
-                    className="w-full p-2.5 bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl text-slate-900 dark:text-white"
+                    className="w-full p-3 sm:p-2.5 bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl text-slate-900 dark:text-white text-sm sm:text-xs font-mono"
                   />
                 </div>
               </div>
@@ -817,21 +1114,21 @@ export const CRMView: React.FC<CRMViewProps> = ({
                   placeholder="e.g. Head of Procurement"
                   value={newContactRole}
                   onChange={(e) => setNewContactRole(e.target.value)}
-                  className="w-full p-2.5 bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl text-slate-900 dark:text-white"
+                  className="w-full p-3 sm:p-2.5 bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl text-slate-900 dark:text-white text-sm sm:text-xs"
                 />
               </div>
 
-              <div className="flex items-center justify-end gap-2 pt-3">
+              <div className="flex items-center justify-end gap-2 pt-3 pb-safe">
                 <button
                   type="button"
                   onClick={() => setShowAddContactModal(false)}
-                  className="px-4 py-2 bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-zinc-300 rounded-xl font-bold"
+                  className="flex-1 sm:flex-none px-4 py-2.5 bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-zinc-300 rounded-xl font-bold min-h-[44px]"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-rose-600 hover:bg-rose-500 text-white rounded-xl font-bold shadow-xs"
+                  className="flex-1 sm:flex-none px-5 py-2.5 bg-rose-600 hover:bg-rose-500 text-white rounded-xl font-bold shadow-xs min-h-[44px]"
                 >
                   Create Contact
                 </button>

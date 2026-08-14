@@ -331,12 +331,14 @@ export const DashboardApp: React.FC = () => {
         }}
         onLogout={() => authService.signOut().then(() => setCurrentUser(null))}
         businessMemberships={memberships}
-        activeBusiness={activeBusiness}
         onOpenCommandPalette={() => setIsCommandPaletteOpen(true)}
+        onOpenAddDeal={() => setShowAddDealModal(true)}
+        onOpenAddTask={() => setShowAddTaskModal(true)}
+        onOpenAddInvoice={() => setShowAddInvoiceModal(true)}
       />
 
-      {/* Main View Port Container */}
-      <main className="flex-1 pl-0 md:pl-14 pt-4 pb-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto w-full transition-all">
+      {/* Main View Port Container (pb-28 on mobile for bottom navigation clearance) */}
+      <main className="flex-1 pl-0 md:pl-14 pt-3 sm:pt-4 pb-28 md:pb-12 px-3 sm:px-6 lg:px-8 max-w-7xl mx-auto w-full transition-all">
         {activeTab === 'overview' && (
           <DashboardView
             deals={deals}
@@ -471,12 +473,15 @@ export const DashboardApp: React.FC = () => {
 
       {/* Add Deal Modal */}
       {showAddDealModal && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl">
-            <div className="flex items-center justify-between">
-              <h3 className="text-lg font-bold text-slate-900 dark:text-white">Create Sales Deal</h3>
-              <button onClick={() => setShowAddDealModal(false)} className="text-slate-400 hover:text-slate-700">
-                <X className="w-4 h-4" />
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4 animate-fadeIn">
+          <div className="bg-white dark:bg-zinc-950 border-t sm:border border-slate-200 dark:border-zinc-800 rounded-t-3xl sm:rounded-2xl max-w-md w-full p-5 sm:p-6 space-y-4 shadow-2xl max-h-[90vh] overflow-y-auto animate-slideUp">
+            <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-zinc-900">
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-rose-600"></span>
+                <h3 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white">Create Sales Deal</h3>
+              </div>
+              <button onClick={() => setShowAddDealModal(false)} className="p-1 rounded-full text-slate-400 hover:text-slate-700 dark:hover:text-zinc-200">
+                <X className="w-5 h-5" />
               </button>
             </div>
 
@@ -489,11 +494,11 @@ export const DashboardApp: React.FC = () => {
                   placeholder="e.g. Acme — Enterprise Cloud License"
                   value={dealTitle}
                   onChange={(e) => setDealTitle(e.target.value)}
-                  className="w-full p-2.5 bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl text-slate-900 dark:text-white font-semibold"
+                  className="w-full p-3 sm:p-2.5 bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl text-slate-900 dark:text-white text-sm sm:text-xs font-semibold"
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="font-bold text-slate-700 dark:text-zinc-300 block mb-1">Company Name</label>
                   <input
@@ -501,7 +506,7 @@ export const DashboardApp: React.FC = () => {
                     placeholder="e.g. Acme Corp"
                     value={dealCompany}
                     onChange={(e) => setDealCompany(e.target.value)}
-                    className="w-full p-2.5 bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl text-slate-900 dark:text-white"
+                    className="w-full p-3 sm:p-2.5 bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl text-slate-900 dark:text-white text-sm sm:text-xs"
                   />
                 </div>
                 <div>
@@ -511,12 +516,12 @@ export const DashboardApp: React.FC = () => {
                     placeholder="e.g. John Doe"
                     value={dealContact}
                     onChange={(e) => setDealContact(e.target.value)}
-                    className="w-full p-2.5 bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl text-slate-900 dark:text-white"
+                    className="w-full p-3 sm:p-2.5 bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl text-slate-900 dark:text-white text-sm sm:text-xs"
                   />
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="font-bold text-slate-700 dark:text-zinc-300 block mb-1">Deal Amount ({currency})</label>
                   <input
@@ -525,7 +530,7 @@ export const DashboardApp: React.FC = () => {
                     min="0"
                     value={dealAmount}
                     onChange={(e) => setDealAmount(e.target.value)}
-                    className="w-full p-2.5 bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl text-slate-900 dark:text-white font-mono font-bold"
+                    className="w-full p-3 sm:p-2.5 bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl text-slate-900 dark:text-white text-sm sm:text-xs font-mono font-bold"
                   />
                 </div>
                 <div>
@@ -533,7 +538,7 @@ export const DashboardApp: React.FC = () => {
                   <select
                     value={dealStage}
                     onChange={(e) => setDealStage(e.target.value as DealStage)}
-                    className="w-full p-2.5 bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl text-slate-900 dark:text-white font-bold"
+                    className="w-full p-3 sm:p-2.5 bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl text-slate-900 dark:text-white text-sm sm:text-xs font-bold"
                   >
                     <option value="lead">New Lead</option>
                     <option value="qualified">Qualified</option>
@@ -552,7 +557,7 @@ export const DashboardApp: React.FC = () => {
                   type="date"
                   value={dealCloseDate}
                   onChange={(e) => setDealCloseDate(e.target.value)}
-                  className="w-full p-2.5 bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl text-slate-900 dark:text-white font-mono"
+                  className="w-full p-3 sm:p-2.5 bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl text-slate-900 dark:text-white text-sm sm:text-xs font-mono"
                 />
               </div>
 
@@ -563,21 +568,21 @@ export const DashboardApp: React.FC = () => {
                   placeholder="e.g. Send technical scope document by Tuesday"
                   value={dealNextStep}
                   onChange={(e) => setDealNextStep(e.target.value)}
-                  className="w-full p-2.5 bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl text-slate-900 dark:text-white"
+                  className="w-full p-3 sm:p-2.5 bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl text-slate-900 dark:text-white text-sm sm:text-xs"
                 />
               </div>
 
-              <div className="flex items-center justify-end gap-2 pt-3">
+              <div className="flex items-center justify-end gap-2 pt-3 pb-safe">
                 <button
                   type="button"
                   onClick={() => setShowAddDealModal(false)}
-                  className="px-4 py-2 bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-zinc-300 rounded-xl font-bold"
+                  className="flex-1 sm:flex-none px-4 py-2.5 bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-zinc-300 rounded-xl font-bold min-h-[44px]"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-rose-600 hover:bg-rose-500 text-white rounded-xl font-bold shadow-xs"
+                  className="flex-1 sm:flex-none px-5 py-2.5 bg-rose-600 hover:bg-rose-500 text-white rounded-xl font-bold shadow-xs min-h-[44px]"
                 >
                   Save Deal
                 </button>
@@ -589,12 +594,15 @@ export const DashboardApp: React.FC = () => {
 
       {/* Add Task Modal */}
       {showAddTaskModal && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl">
-            <div className="flex items-center justify-between">
-              <h3 className="text-lg font-bold text-slate-900 dark:text-white">Schedule Follow-up Task</h3>
-              <button onClick={() => setShowAddTaskModal(false)} className="text-slate-400 hover:text-slate-700">
-                <X className="w-4 h-4" />
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4 animate-fadeIn">
+          <div className="bg-white dark:bg-zinc-950 border-t sm:border border-slate-200 dark:border-zinc-800 rounded-t-3xl sm:rounded-2xl max-w-md w-full p-5 sm:p-6 space-y-4 shadow-2xl max-h-[90vh] overflow-y-auto animate-slideUp">
+            <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-zinc-900">
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-blue-600"></span>
+                <h3 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white">Schedule Follow-up Task</h3>
+              </div>
+              <button onClick={() => setShowAddTaskModal(false)} className="p-1 rounded-full text-slate-400 hover:text-slate-700 dark:hover:text-zinc-200">
+                <X className="w-5 h-5" />
               </button>
             </div>
 
@@ -607,7 +615,7 @@ export const DashboardApp: React.FC = () => {
                   placeholder="e.g. Call Marcus Brody regarding revised SLA"
                   value={taskTitle}
                   onChange={(e) => setTaskTitle(e.target.value)}
-                  className="w-full p-2.5 bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl text-slate-900 dark:text-white font-semibold"
+                  className="w-full p-3 sm:p-2.5 bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl text-slate-900 dark:text-white text-sm sm:text-xs font-semibold"
                 />
               </div>
 
@@ -618,18 +626,18 @@ export const DashboardApp: React.FC = () => {
                   placeholder="e.g. Marcus Brody"
                   value={taskContact}
                   onChange={(e) => setTaskContact(e.target.value)}
-                  className="w-full p-2.5 bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl text-slate-900 dark:text-white"
+                  className="w-full p-3 sm:p-2.5 bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl text-slate-900 dark:text-white text-sm sm:text-xs"
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="font-bold text-slate-700 dark:text-zinc-300 block mb-1">Due Date</label>
                   <input
                     type="date"
                     value={taskDueDate}
                     onChange={(e) => setTaskDueDate(e.target.value)}
-                    className="w-full p-2.5 bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl text-slate-900 dark:text-white font-mono"
+                    className="w-full p-3 sm:p-2.5 bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl text-slate-900 dark:text-white text-sm sm:text-xs font-mono"
                   />
                 </div>
                 <div>
@@ -637,7 +645,7 @@ export const DashboardApp: React.FC = () => {
                   <select
                     value={taskPriority}
                     onChange={(e) => setTaskPriority(e.target.value as any)}
-                    className="w-full p-2.5 bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl text-slate-900 dark:text-white font-bold"
+                    className="w-full p-3 sm:p-2.5 bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl text-slate-900 dark:text-white text-sm sm:text-xs font-bold"
                   >
                     <option value="urgent">Urgent</option>
                     <option value="high">High</option>
@@ -646,17 +654,17 @@ export const DashboardApp: React.FC = () => {
                 </div>
               </div>
 
-              <div className="flex items-center justify-end gap-2 pt-3">
+              <div className="flex items-center justify-end gap-2 pt-3 pb-safe">
                 <button
                   type="button"
                   onClick={() => setShowAddTaskModal(false)}
-                  className="px-4 py-2 bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-zinc-300 rounded-xl font-bold"
+                  className="flex-1 sm:flex-none px-4 py-2.5 bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-zinc-300 rounded-xl font-bold min-h-[44px]"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-rose-600 hover:bg-rose-500 text-white rounded-xl font-bold shadow-xs"
+                  className="flex-1 sm:flex-none px-5 py-2.5 bg-rose-600 hover:bg-rose-500 text-white rounded-xl font-bold shadow-xs min-h-[44px]"
                 >
                   Save Task
                 </button>
@@ -668,17 +676,20 @@ export const DashboardApp: React.FC = () => {
 
       {/* Add Invoice Modal */}
       {showAddInvoiceModal && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl">
-            <div className="flex items-center justify-between">
-              <h3 className="text-lg font-bold text-slate-900 dark:text-white">Create Customer Invoice</h3>
-              <button onClick={() => setShowAddInvoiceModal(false)} className="text-slate-400 hover:text-slate-700">
-                <X className="w-4 h-4" />
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4 animate-fadeIn">
+          <div className="bg-white dark:bg-zinc-950 border-t sm:border border-slate-200 dark:border-zinc-800 rounded-t-3xl sm:rounded-2xl max-w-md w-full p-5 sm:p-6 space-y-4 shadow-2xl max-h-[90vh] overflow-y-auto animate-slideUp">
+            <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-zinc-900">
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-emerald-600"></span>
+                <h3 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white">Create Customer Invoice</h3>
+              </div>
+              <button onClick={() => setShowAddInvoiceModal(false)} className="p-1 rounded-full text-slate-400 hover:text-slate-700 dark:hover:text-zinc-200">
+                <X className="w-5 h-5" />
               </button>
             </div>
 
             <form onSubmit={handleCreateInvoiceSubmit} className="space-y-3 text-xs">
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="font-bold text-slate-700 dark:text-zinc-300 block mb-1">Invoice Number *</label>
                   <input
@@ -686,7 +697,7 @@ export const DashboardApp: React.FC = () => {
                     required
                     value={invoiceNumber}
                     onChange={(e) => setInvoiceNumber(e.target.value)}
-                    className="w-full p-2.5 bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl text-slate-900 dark:text-white font-mono font-bold"
+                    className="w-full p-3 sm:p-2.5 bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl text-slate-900 dark:text-white text-sm sm:text-xs font-mono font-bold"
                   />
                 </div>
                 <div>
@@ -697,12 +708,12 @@ export const DashboardApp: React.FC = () => {
                     placeholder="e.g. Cobalt BioTech"
                     value={invoiceCustomer}
                     onChange={(e) => setInvoiceCustomer(e.target.value)}
-                    className="w-full p-2.5 bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl text-slate-900 dark:text-white font-bold"
+                    className="w-full p-3 sm:p-2.5 bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl text-slate-900 dark:text-white text-sm sm:text-xs font-bold"
                   />
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="font-bold text-slate-700 dark:text-zinc-300 block mb-1">Invoice Amount ({currency})</label>
                   <input
@@ -711,7 +722,7 @@ export const DashboardApp: React.FC = () => {
                     min="0"
                     value={invoiceAmount}
                     onChange={(e) => setInvoiceAmount(e.target.value)}
-                    className="w-full p-2.5 bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl text-slate-900 dark:text-white font-mono font-bold"
+                    className="w-full p-3 sm:p-2.5 bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl text-slate-900 dark:text-white text-sm sm:text-xs font-mono font-bold"
                   />
                 </div>
                 <div>
@@ -721,22 +732,22 @@ export const DashboardApp: React.FC = () => {
                     required
                     value={invoiceDueDate}
                     onChange={(e) => setInvoiceDueDate(e.target.value)}
-                    className="w-full p-2.5 bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl text-slate-900 dark:text-white font-mono"
+                    className="w-full p-3 sm:p-2.5 bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl text-slate-900 dark:text-white text-sm sm:text-xs font-mono"
                   />
                 </div>
               </div>
 
-              <div className="flex items-center justify-end gap-2 pt-3">
+              <div className="flex items-center justify-end gap-2 pt-3 pb-safe">
                 <button
                   type="button"
                   onClick={() => setShowAddInvoiceModal(false)}
-                  className="px-4 py-2 bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-zinc-300 rounded-xl font-bold"
+                  className="flex-1 sm:flex-none px-4 py-2.5 bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-zinc-300 rounded-xl font-bold min-h-[44px]"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold shadow-xs"
+                  className="flex-1 sm:flex-none px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold shadow-xs min-h-[44px]"
                 >
                   Create Invoice
                 </button>
