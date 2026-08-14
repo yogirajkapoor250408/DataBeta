@@ -34,20 +34,18 @@ DataBeta is a production-grade, privacy-first sales and cash operating system bu
 
 ---
 
-## 📚 Specification Documentation
+## 📚 Production Specification Documentation
 
-- 📖 [DEMO_MODE.md](file:///Users/yogiraj/Desktop/DataBeta/DEMO_MODE.md) — Isolated Demo Mode contract & mock dataset rules.
-- 📐 [CALCULATIONS.md](file:///Users/yogiraj/Desktop/DataBeta/CALCULATIONS.md) — Formal mathematical formulas, provenance envelope definitions, and data requirements.
-- 🔒 [SECURITY_AND_DATA.md](file:///Users/yogiraj/Desktop/DataBeta/SECURITY_AND_DATA.md) — Security model, tenant isolation, RLS policies, RBAC roles, and audit logging.
-- 🗺️ [OPEN_ITEMS.md](file:///Users/yogiraj/Desktop/DataBeta/OPEN_ITEMS.md) — Future product roadmap, regional tax boundaries, and accounting integrations.
+- 🏛️ [ARCHITECTURE.md](file:///Users/yogiraj/Desktop/DataBeta/ARCHITECTURE.md) — System architecture, tenant boundaries, route lifecycle & trust invariants.
+- 📥 [IMPORT_SPEC.md](file:///Users/yogiraj/Desktop/DataBeta/IMPORT_SPEC.md) — Zod-validated import normalizer, decimal safety, and post-import reconciliation.
+- 💵 [MONEY_AND_CURRENCY.md](file:///Users/yogiraj/Desktop/DataBeta/MONEY_AND_CURRENCY.md) — MoneyAmount model, FX rate provenance, and multi-currency aggregation safety.
+- 🛡️ [AUDIT_LOG.md](file:///Users/yogiraj/Desktop/DataBeta/AUDIT_LOG.md) — Append-only audit schema, mutation events, and compliance backup exports.
+- 🎭 [DEMO_MODE.md](file:///Users/yogiraj/Desktop/DataBeta/DEMO_MODE.md) — Immutable demo tenant isolation and persistent banner specifications.
+- 🧪 [TESTING.md](file:///Users/yogiraj/Desktop/DataBeta/TESTING.md) — Automated test suite coverage matrix and manual QA checklist.
 
 ---
 
 ## 🚀 Getting Started
-
-### Prerequisites
-- Node.js v18+
-- npm or yarn
 
 ### Installation
 ```bash
@@ -56,21 +54,29 @@ cd DataBeta
 npm install
 ```
 
+### Automated Tests
+```bash
+node tests/runAllTests.js
+```
+
+### Type Checking & Production Build
+```bash
+npx tsc --noEmit
+npm run build
+```
+
 ### Running Locally
 ```bash
 npm run dev
 ```
 Visit `http://localhost:5173/` for the public marketing site, or `http://localhost:5173/dashboard.html` for the application.
 
-### Running Unit Tests
-```bash
-npm test
-```
+---
 
-### Production Build
-```bash
-npm run build
-```
+## 🗄️ Database Migrations
+
+Apply `supabase/schema.sql` (or `supabase/migrations/20260815_production_hardening.sql`) in your Supabase SQL Editor to enable multi-tenant CRM tables and RLS isolation policies.
+
 
 ---
 

@@ -1,31 +1,44 @@
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
-import { AuditLogEntry } from '../types';
+import { AuditLogEntry, AuditAction } from '../types';
 
 export const auditService = {
   async logEvent(
     workspaceId: string,
     userEmail: string,
-    action: AuditLogEntry['action'],
+    action: AuditAction,
     entityType: string,
     entityId?: string,
-    details: Record<string, any> = {}
-  ): Promise<void> {
+    details: Record<string, any> = {},
+    beforeSummary?: string,
+    afterSummary?: string
+  ): Promise<AuditLogEntry> {
+    const timestamp = new Date().toISOString();
+    const eventId = `evt-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
     const entry: AuditLogEntry = {
-      id: `audit-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+      id: eventId,
+      eventId,
       workspaceId,
       userId: 'usr-active',
+      actorId: 'usr-active',
       userEmail: userEmail || 'owner@databeta.app',
+      actorEmail: userEmail || 'owner@databeta.app',
       action,
       entityType,
       entityId,
+      requestId: `req-${Date.now()}`,
+      source: 'web_client',
+      beforeSummary,
+      afterSummary,
       details,
-      createdAt: new Date().toISOString(),
+      metadata: details,
+      createdAt: timestamp,
+      timestamp,
     };
 
     try {
       const local = localStorage.getItem(`databeta_audit_${workspaceId}`);
       const list: AuditLogEntry[] = local ? JSON.parse(local) : [];
-      localStorage.setItem(`databeta_audit_${workspaceId}`, JSON.stringify([entry, ...list].slice(0, 100)));
+      localStorage.setItem(`databeta_audit_${workspaceId}`, JSON.stringify([entry, ...list].slice(0, 200)));
     } catch {}
 
     if (isSupabaseConfigured()) {
@@ -33,10 +46,20 @@ export const auditService = {
         await supabase.from('audit_logs').insert({
           business_id: workspaceId,
           action,
-          metadata: { entityType, entityId, details, userEmail },
+          metadata: {
+            eventId,
+            entityType,
+            entityId,
+            details,
+            userEmail,
+            beforeSummary,
+            afterSummary,
+          },
         });
       } catch {}
     }
+
+    return entry;
   },
 
   async getLogs(workspaceId: string): Promise<AuditLogEntry[]> {
@@ -46,19 +69,7 @@ export const auditService = {
     } catch {}
 
     if (!isSupabaseConfigured()) {
-      // Return default seed audit entries for demo/first-run
-      return [
-        {
-          id: 'audit-seed-1',
-          workspaceId,
-          userId: 'usr-admin',
-          userEmail: 'admin@databeta.app',
-          action: 'workspace_created',
-          entityType: 'workspace',
-          details: { name: 'DataBeta Primary Workspace' },
-          createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
-        },
-      ];
+      return [];
     }
 
     const { data, error } = await supabase
@@ -66,20 +77,28 @@ export const auditService = {
       .select('*')
       .eq('business_id', workspaceId)
       .order('created_at', { ascending: false })
-      .limit(50);
+      .limit(100);
 
     if (error || !data) return [];
 
     return data.map((item: any) => ({
       id: item.id,
+      eventId: item.metadata?.eventId || item.id,
       workspaceId: item.business_id,
       userId: item.user_id || 'usr-anon',
-      userEmail: item.metadata?.userEmail || 'admin@databeta.app',
-      action: item.action,
+      actorId: item.user_id || 'usr-anon',
+      userEmail: item.metadata?.userEmail || 'owner@databeta.app',
+      actorEmail: item.metadata?.userEmail || 'owner@databeta.app',
+      action: item.action as AuditAction,
       entityType: item.metadata?.entityType || 'system',
       entityId: item.metadata?.entityId,
+      source: item.metadata?.source || 'system',
+      beforeSummary: item.metadata?.beforeSummary,
+      afterSummary: item.metadata?.afterSummary,
       details: item.metadata?.details || {},
+      metadata: item.metadata || {},
       createdAt: item.created_at,
+      timestamp: item.created_at,
     }));
   },
 };

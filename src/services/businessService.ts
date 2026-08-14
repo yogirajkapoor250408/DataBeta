@@ -8,6 +8,7 @@ export interface Business {
   country: string;
   currency: CurrencyCode;
   logoUrl?: string;
+  isDemo?: boolean;
   createdAt: string;
 }
 
@@ -19,6 +20,16 @@ export interface BusinessMembership {
   business: Business;
 }
 
+export const DEMO_BUSINESS: Business = {
+  id: 'demo-workspace-id',
+  name: 'Acme Growth Labs (Demo)',
+  type: 'B2B Software & Services',
+  country: 'United States',
+  currency: 'USD',
+  isDemo: true,
+  createdAt: '2026-01-01T00:00:00.000Z',
+};
+
 export const businessService = {
   async createBusiness(
     userId: string,
@@ -27,8 +38,34 @@ export const businessService = {
     country: string,
     currency: CurrencyCode
   ): Promise<{ business: Business | null; error: Error | null }> {
+    const newId = `biz-${Date.now()}`;
+    const createdBiz: Business = {
+      id: newId,
+      name,
+      type: type || 'General',
+      country: country || 'United States',
+      currency: currency || 'USD',
+      isDemo: false,
+      createdAt: new Date().toISOString(),
+    };
+
     if (!isSupabaseConfigured()) {
-      return { business: null, error: new Error('Supabase is not configured. Please connect a database to create a business.') };
+      try {
+        const localKey = `databeta_user_businesses_${userId}`;
+        const existingRaw = localStorage.getItem(localKey);
+        const existing: BusinessMembership[] = existingRaw ? JSON.parse(existingRaw) : [];
+        const newMembership: BusinessMembership = {
+          id: `bm-${Date.now()}`,
+          businessId: newId,
+          userId,
+          role: 'owner',
+          business: createdBiz,
+        };
+        localStorage.setItem(localKey, JSON.stringify([newMembership, ...existing]));
+        return { business: createdBiz, error: null };
+      } catch (err: any) {
+        return { business: createdBiz, error: null };
+      }
     }
 
     const { data: business, error: bizError } = await supabase
@@ -65,7 +102,7 @@ export const businessService = {
       max_expense_cap: 50000,
     });
 
-    const createdBiz: Business = {
+    const supabaseBiz: Business = {
       id: business.id,
       name: business.name,
       type: business.type,
@@ -74,11 +111,18 @@ export const businessService = {
       createdAt: business.created_at,
     };
 
-    return { business: createdBiz, error: null };
+    return { business: supabaseBiz, error: null };
   },
 
   async getUserBusinesses(userId: string): Promise<BusinessMembership[]> {
-    if (!isSupabaseConfigured()) return [];
+    if (!isSupabaseConfigured()) {
+      try {
+        const localKey = `databeta_user_businesses_${userId}`;
+        const existingRaw = localStorage.getItem(localKey);
+        if (existingRaw) return JSON.parse(existingRaw);
+      } catch {}
+      return [];
+    }
 
     const { data, error } = await supabase
       .from('business_members')

@@ -139,6 +139,12 @@ export const crmService = {
     return { error };
   },
 
+  async saveDeals(workspaceId: string, deals: Deal[]): Promise<void> {
+    try {
+      localStorage.setItem(`databeta_deals_${workspaceId}`, JSON.stringify(deals));
+    } catch {}
+  },
+
   // --------------------------------------------------------------------------
   // CONTACTS
   // --------------------------------------------------------------------------
@@ -151,9 +157,50 @@ export const crmService = {
     }
   },
 
+  async createContact(workspaceId: string, contact: Omit<Contact, 'id' | 'createdAt' | 'updatedAt'>): Promise<Contact> {
+    const newContact: Contact = {
+      ...contact,
+      id: `contact-${Date.now()}`,
+      workspaceId,
+      createdAt: new Date().toISOString().split('T')[0],
+      updatedAt: new Date().toISOString(),
+    };
+
+    try {
+      const list = await this.getContacts(workspaceId);
+      const updated = [newContact, ...list];
+      localStorage.setItem(`databeta_contacts_${workspaceId}`, JSON.stringify(updated));
+    } catch {}
+
+    if (isSupabaseConfigured()) {
+      try {
+        await supabase.from('crm_contacts').insert({
+          business_id: workspaceId,
+          name: contact.name,
+          email: contact.email,
+          phone: contact.phone,
+          company_name: contact.companyName,
+          role_title: contact.roleTitle,
+          tags: contact.tags,
+          notes: contact.notes,
+        });
+      } catch {}
+    }
+
+    return newContact;
+  },
+
   async saveContacts(workspaceId: string, contacts: Contact[]): Promise<void> {
     try {
       localStorage.setItem(`databeta_contacts_${workspaceId}`, JSON.stringify(contacts));
+    } catch {}
+  },
+
+  async deleteContact(workspaceId: string, contactId: string): Promise<void> {
+    try {
+      const list = await this.getContacts(workspaceId);
+      const updated = list.filter((c) => c.id !== contactId);
+      localStorage.setItem(`databeta_contacts_${workspaceId}`, JSON.stringify(updated));
     } catch {}
   },
 
@@ -169,9 +216,90 @@ export const crmService = {
     }
   },
 
+  async createTask(workspaceId: string, task: Omit<Task, 'id' | 'createdAt'>): Promise<Task> {
+    const newTask: Task = {
+      ...task,
+      id: `task-${Date.now()}`,
+      workspaceId,
+      createdAt: new Date().toISOString().split('T')[0],
+    };
+
+    try {
+      const list = await this.getTasks(workspaceId);
+      const updated = [newTask, ...list];
+      localStorage.setItem(`databeta_tasks_${workspaceId}`, JSON.stringify(updated));
+    } catch {}
+
+    return newTask;
+  },
+
   async saveTasks(workspaceId: string, tasks: Task[]): Promise<void> {
     try {
       localStorage.setItem(`databeta_tasks_${workspaceId}`, JSON.stringify(tasks));
+    } catch {}
+  },
+
+  async toggleTask(workspaceId: string, taskId: string): Promise<void> {
+    try {
+      const list = await this.getTasks(workspaceId);
+      const updated = list.map((t) =>
+        t.id === taskId ? { ...t, status: (t.status === 'completed' ? 'pending' : 'completed') as any } : t
+      );
+      localStorage.setItem(`databeta_tasks_${workspaceId}`, JSON.stringify(updated));
+    } catch {}
+  },
+
+  // --------------------------------------------------------------------------
+  // INVOICES & RECEIVABLES
+  // --------------------------------------------------------------------------
+  async getInvoices(workspaceId: string): Promise<Invoice[]> {
+    try {
+      const local = localStorage.getItem(`databeta_invoices_${workspaceId}`);
+      return local ? JSON.parse(local) : [];
+    } catch {
+      return [];
+    }
+  },
+
+  async saveInvoices(workspaceId: string, invoices: Invoice[]): Promise<void> {
+    try {
+      localStorage.setItem(`databeta_invoices_${workspaceId}`, JSON.stringify(invoices));
+    } catch {}
+  },
+
+  async createInvoice(workspaceId: string, invoice: Omit<Invoice, 'id' | 'createdAt' | 'updatedAt'>): Promise<Invoice> {
+    const newInvoice: Invoice = {
+      ...invoice,
+      id: `inv-${Date.now()}`,
+      workspaceId,
+      createdAt: new Date().toISOString().split('T')[0],
+      updatedAt: new Date().toISOString(),
+    };
+
+    try {
+      const list = await this.getInvoices(workspaceId);
+      const updated = [newInvoice, ...list];
+      localStorage.setItem(`databeta_invoices_${workspaceId}`, JSON.stringify(updated));
+    } catch {}
+
+    return newInvoice;
+  },
+
+  async markInvoicePaid(workspaceId: string, invoiceId: string): Promise<void> {
+    try {
+      const list = await this.getInvoices(workspaceId);
+      const updated = list.map((inv) =>
+        inv.id === invoiceId
+          ? {
+              ...inv,
+              status: 'paid' as any,
+              amountPaid: inv.amount,
+              balanceDue: 0,
+              updatedAt: new Date().toISOString(),
+            }
+          : inv
+      );
+      localStorage.setItem(`databeta_invoices_${workspaceId}`, JSON.stringify(updated));
     } catch {}
   },
 

@@ -37,6 +37,34 @@ export interface Workspace {
   updatedAt: string;
 }
 
+export interface WorkspaceSettings {
+  businessId: string;
+  baseCurrency: CurrencyCode;
+  displayCurrency: CurrencyCode;
+  locale: string;
+  timezone: string;
+  fiscalYearStartMonth: number;
+  updatedAt: string;
+}
+
+export interface MoneyAmount {
+  originalAmount: number;
+  originalCurrency: CurrencyCode;
+  baseAmount: number;
+  baseCurrency: CurrencyCode;
+  fxRate: number;
+  fxRateDate?: string;
+  conversionSource?: string;
+}
+
+export interface FXRateRecord {
+  fromCurrency: CurrencyCode;
+  toCurrency: CurrencyCode;
+  rate: number;
+  date: string;
+  source: string;
+}
+
 export interface WorkspaceMember {
   id: string;
   workspaceId: string;
@@ -423,28 +451,56 @@ export interface ReportPreflight {
 // ----------------------------------------------------------------------------
 // AUDIT LOG
 // ----------------------------------------------------------------------------
+export type AuditAction =
+  | 'workspace_created'
+  | 'base_currency_changed'
+  | 'workspace_settings_updated'
+  | 'member_invited'
+  | 'member_role_updated'
+  | 'member_removed'
+  | 'contact_created'
+  | 'contact_updated'
+  | 'contact_deleted'
+  | 'company_created'
+  | 'company_updated'
+  | 'company_deleted'
+  | 'deal_created'
+  | 'deal_stage_advanced'
+  | 'deal_updated'
+  | 'deal_deleted'
+  | 'task_created'
+  | 'task_completed'
+  | 'task_deleted'
+  | 'invoice_created'
+  | 'invoice_updated'
+  | 'invoice_paid'
+  | 'reminder_sent'
+  | 'import_started'
+  | 'import_completed'
+  | 'import_failed'
+  | 'report_generated'
+  | 'data_exported'
+  | 'data_deleted';
+
 export interface AuditLogEntry {
   id: string;
+  eventId?: string;
   workspaceId: string;
-  userId: string;
+  userId?: string;
+  actorId?: string;
   userEmail: string;
-  action:
-    | 'workspace_created'
-    | 'base_currency_changed'
-    | 'member_invited'
-    | 'member_role_updated'
-    | 'member_removed'
-    | 'data_imported'
-    | 'data_exported'
-    | 'data_deleted'
-    | 'report_generated'
-    | 'deal_stage_advanced'
-    | 'invoice_created'
-    | 'invoice_paid';
+  actorEmail?: string;
+  action: AuditAction;
   entityType: string;
   entityId?: string;
-  details: Record<string, any>;
+  requestId?: string;
+  source?: string;
+  beforeSummary?: string;
+  afterSummary?: string;
+  details?: Record<string, any>;
+  metadata?: Record<string, any>;
   createdAt: string;
+  timestamp?: string;
 }
 
 // ----------------------------------------------------------------------------

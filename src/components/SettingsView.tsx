@@ -87,14 +87,15 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
 
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [inviteEmail, setInviteEmail] = useState('');
-  const [inviteRole, setInviteRole] = useState<WorkspaceRole>('salesperson');
+  const [inviteRole, setInviteRole] = useState<'owner' | 'salesperson' | 'finance_viewer'>('salesperson');
+  const currentWsId = activeBusiness?.id || 'ws-main';
 
   // Audit Log State
   const [auditLogs, setAuditLogs] = useState<AuditLogEntry[]>([]);
 
   useEffect(() => {
-    auditService.getLogs('ws-main').then(setAuditLogs);
-  }, []);
+    auditService.getLogs(currentWsId).then(setAuditLogs);
+  }, [currentWsId]);
 
   const handleSaveBusiness = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -104,18 +105,27 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
     if (baseCurrency !== currency) {
       onCurrencyChange(baseCurrency);
       await auditService.logEvent(
-        'ws-main',
-        currentUser?.email || 'admin@databeta.app',
+        currentWsId,
+        currentUser?.email || 'owner@databeta.app',
         'base_currency_changed',
         'workspace',
-        'ws-main',
+        currentWsId,
         { previousCurrency: currency, newCurrency: baseCurrency }
+      );
+    } else {
+      await auditService.logEvent(
+        currentWsId,
+        currentUser?.email || 'owner@databeta.app',
+        'workspace_settings_updated',
+        'workspace',
+        currentWsId,
+        { workspaceName, baseCurrency, fiscalStartMonth }
       );
     }
 
     setSaveSuccess(true);
     setTimeout(() => setSaveSuccess(false), 3000);
-    const logs = await auditService.getLogs('ws-main');
+    const logs = await auditService.getLogs(currentWsId);
     setAuditLogs(logs);
   };
 
@@ -125,7 +135,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
 
     const newMember: WorkspaceMember = {
       id: `mem-${Date.now()}`,
-      workspaceId: 'ws-main',
+      workspaceId: currentWsId,
       userId: `usr-${Date.now()}`,
       userEmail: inviteEmail.trim(),
       userName: inviteEmail.split('@')[0],
@@ -138,20 +148,21 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
     setInviteEmail('');
 
     await auditService.logEvent(
-      'ws-main',
-      currentUser?.email || 'admin@databeta.app',
+      currentWsId,
+      currentUser?.email || 'owner@databeta.app',
       'member_invited',
       'workspace_member',
       newMember.id,
       { email: newMember.userEmail, role: newMember.role }
     );
-    const logs = await auditService.getLogs('ws-main');
+    const logs = await auditService.getLogs(currentWsId);
     setAuditLogs(logs);
   };
 
   const handleExportWorkspace = async () => {
     const data = {
       exportedAt: new Date().toISOString(),
+      workspaceId: currentWsId,
       workspaceName,
       baseCurrency,
       members,
@@ -170,14 +181,14 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
     URL.revokeObjectURL(url);
 
     await auditService.logEvent(
-      'ws-main',
-      currentUser?.email || 'admin@databeta.app',
+      currentWsId,
+      currentUser?.email || 'owner@databeta.app',
       'data_exported',
       'workspace',
-      'ws-main',
+      currentWsId,
       { recordsCount: records.length }
     );
-    const logs = await auditService.getLogs('ws-main');
+    const logs = await auditService.getLogs(currentWsId);
     setAuditLogs(logs);
   };
 

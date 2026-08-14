@@ -1,16 +1,13 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import { DashboardApp } from './DashboardApp';
-import { AuthProvider } from './context/AuthContext';
+import { AuthCallback } from './pages/AuthCallback';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import './index.css';
 
 ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
   <React.StrictMode>
     <ErrorBoundary>
-      <AuthProvider>
-        <DashboardApp />
-      </AuthProvider>
+      <AuthCallback />
     </ErrorBoundary>
   </React.StrictMode>
 );

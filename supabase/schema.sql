@@ -105,10 +105,17 @@ CREATE TABLE IF NOT EXISTS public.crm_deals (
   business_id UUID NOT NULL REFERENCES public.businesses(id) ON DELETE CASCADE,
   title TEXT NOT NULL,
   company_name TEXT NOT NULL,
+  contact_name TEXT,
   contact_email TEXT,
   contact_phone TEXT,
-  stage TEXT NOT NULL DEFAULT 'in_touch' CHECK (stage IN ('lead', 'qualified', 'proposal', 'negotiation', 'closed_won', 'closed_lost', 'in_touch', 'offer_sent', 'discussion')),
+  stage TEXT NOT NULL DEFAULT 'lead' CHECK (stage IN ('lead', 'qualified', 'discovery', 'proposal_sent', 'negotiation', 'won', 'lost', 'in_touch', 'offer_sent', 'discussion', 'closed_won', 'closed_lost')),
   deal_value NUMERIC(15, 4) DEFAULT 0,
+  currency TEXT DEFAULT 'USD',
+  expected_close_date DATE,
+  probability_pct NUMERIC(5, 2) DEFAULT 50,
+  source TEXT DEFAULT 'Direct',
+  owner_name TEXT DEFAULT 'Account Executive',
+  next_step TEXT,
   tags TEXT[] DEFAULT '{}',
   notes TEXT,
   assigned_user_id UUID REFERENCES auth.users(id),
@@ -116,7 +123,84 @@ CREATE TABLE IF NOT EXISTS public.crm_deals (
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 9. CRM Activities
+-- 9. CRM Contacts
+CREATE TABLE IF NOT EXISTS public.crm_contacts (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  business_id UUID NOT NULL REFERENCES public.businesses(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  email TEXT,
+  phone TEXT,
+  company_name TEXT,
+  role_title TEXT DEFAULT 'Decision Maker',
+  tags TEXT[] DEFAULT '{}',
+  notes TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 10. CRM Tasks
+CREATE TABLE IF NOT EXISTS public.crm_tasks (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  business_id UUID NOT NULL REFERENCES public.businesses(id) ON DELETE CASCADE,
+  deal_id UUID REFERENCES public.crm_deals(id) ON DELETE CASCADE,
+  title TEXT NOT NULL,
+  contact_name TEXT,
+  due_date DATE NOT NULL,
+  priority TEXT NOT NULL DEFAULT 'high' CHECK (priority IN ('urgent', 'high', 'normal')),
+  status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'completed')),
+  assigned_user_id UUID REFERENCES auth.users(id),
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 11. Invoices & Receivables
+CREATE TABLE IF NOT EXISTS public.invoices (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  business_id UUID NOT NULL REFERENCES public.businesses(id) ON DELETE CASCADE,
+  deal_id UUID REFERENCES public.crm_deals(id) ON DELETE SET NULL,
+  invoice_number TEXT NOT NULL,
+  customer_name TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'due_soon' CHECK (status IN ('draft', 'sent', 'due_soon', 'overdue', 'paid', 'disputed')),
+  issue_date DATE NOT NULL,
+  due_date DATE NOT NULL,
+  amount NUMERIC(15, 4) NOT NULL DEFAULT 0,
+  currency TEXT NOT NULL DEFAULT 'USD',
+  amount_paid NUMERIC(15, 4) NOT NULL DEFAULT 0,
+  balance_due NUMERIC(15, 4) NOT NULL DEFAULT 0,
+  notes TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+  CONSTRAINT unique_biz_invoice_number UNIQUE (business_id, invoice_number)
+);
+
+-- 12. Payments
+CREATE TABLE IF NOT EXISTS public.payments (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  business_id UUID NOT NULL REFERENCES public.businesses(id) ON DELETE CASCADE,
+  invoice_id UUID NOT NULL REFERENCES public.invoices(id) ON DELETE CASCADE,
+  amount NUMERIC(15, 4) NOT NULL DEFAULT 0,
+  currency TEXT NOT NULL DEFAULT 'USD',
+  payment_date DATE NOT NULL DEFAULT CURRENT_DATE,
+  payment_method TEXT DEFAULT 'Direct Bank Transfer',
+  reference_number TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 13. Import Jobs
+CREATE TABLE IF NOT EXISTS public.import_jobs (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  business_id UUID NOT NULL REFERENCES public.businesses(id) ON DELETE CASCADE,
+  entity_type TEXT NOT NULL,
+  file_name TEXT NOT NULL,
+  total_rows INT NOT NULL DEFAULT 0,
+  valid_rows INT NOT NULL DEFAULT 0,
+  error_rows INT NOT NULL DEFAULT 0,
+  reconciled_sum NUMERIC(15, 4) DEFAULT 0,
+  status TEXT NOT NULL DEFAULT 'completed' CHECK (status IN ('processing', 'completed', 'failed', 'rolled_back')),
+  error_details JSONB,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 14. CRM Activities
 CREATE TABLE IF NOT EXISTS public.crm_activities (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   business_id UUID NOT NULL REFERENCES public.businesses(id) ON DELETE CASCADE,
@@ -126,7 +210,7 @@ CREATE TABLE IF NOT EXISTS public.crm_activities (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 10. Business Goals (ONE per business)
+-- 15. Business Goals (ONE per business)
 CREATE TABLE IF NOT EXISTS public.business_goals (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   business_id UUID NOT NULL UNIQUE REFERENCES public.businesses(id) ON DELETE CASCADE,
@@ -136,7 +220,7 @@ CREATE TABLE IF NOT EXISTS public.business_goals (
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 11. Reports
+-- 16. Reports
 CREATE TABLE IF NOT EXISTS public.reports (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   business_id UUID NOT NULL REFERENCES public.businesses(id) ON DELETE CASCADE,
@@ -148,7 +232,7 @@ CREATE TABLE IF NOT EXISTS public.reports (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 12. Audit Logs
+-- 17. Audit Logs
 CREATE TABLE IF NOT EXISTS public.audit_logs (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   business_id UUID REFERENCES public.businesses(id) ON DELETE CASCADE,
@@ -165,6 +249,11 @@ CREATE TABLE IF NOT EXISTS public.audit_logs (
 CREATE INDEX IF NOT EXISTS idx_transactions_business_date ON public.transactions(business_id, date);
 CREATE INDEX IF NOT EXISTS idx_transactions_business_id ON public.transactions(business_id);
 CREATE INDEX IF NOT EXISTS idx_crm_deals_business_stage ON public.crm_deals(business_id, stage);
+CREATE INDEX IF NOT EXISTS idx_crm_contacts_biz ON public.crm_contacts(business_id);
+CREATE INDEX IF NOT EXISTS idx_crm_tasks_biz_due ON public.crm_tasks(business_id, due_date);
+CREATE INDEX IF NOT EXISTS idx_invoices_biz_due ON public.invoices(business_id, due_date);
+CREATE INDEX IF NOT EXISTS idx_payments_biz ON public.payments(business_id);
+CREATE INDEX IF NOT EXISTS idx_import_jobs_biz ON public.import_jobs(business_id);
 CREATE INDEX IF NOT EXISTS idx_business_members_user ON public.business_members(user_id);
 CREATE INDEX IF NOT EXISTS idx_business_members_business ON public.business_members(business_id);
 CREATE INDEX IF NOT EXISTS idx_audit_logs_business ON public.audit_logs(business_id);
@@ -181,6 +270,11 @@ ALTER TABLE public.transactions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.customers ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.products ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.crm_deals ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.crm_contacts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.crm_tasks ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.invoices ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.payments ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.import_jobs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.crm_activities ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.business_goals ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.reports ENABLE ROW LEVEL SECURITY;
@@ -213,38 +307,34 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER STABLE;
 
 -- Returns TRUE if the current user has is_admin = true in their profile
--- SECURITY DEFINER needed because profiles RLS only allows self-read
 CREATE OR REPLACE FUNCTION public.is_super_admin()
 RETURNS BOOLEAN AS $$
 BEGIN
   RETURN EXISTS (
     SELECT 1 FROM public.profiles
-    WHERE id = auth.uid() AND is_admin = true
+    WHERE id = auth.uid()
+      AND is_admin = true
   );
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER STABLE;
 
 -- =================================================================
--- RLS POLICIES
+-- POLICIES
 -- =================================================================
 
 -- Profiles
-DROP POLICY IF EXISTS "Users can view own profile" ON public.profiles;
-DROP POLICY IF EXISTS "Users can update own profile" ON public.profiles;
-DROP POLICY IF EXISTS "Users can insert own profile" ON public.profiles;
+DROP POLICY IF EXISTS "Users can view their own profile" ON public.profiles;
+DROP POLICY IF EXISTS "Users can update their own profile" ON public.profiles;
 DROP POLICY IF EXISTS "Admins can view all profiles" ON public.profiles;
 
-CREATE POLICY "Users can view own profile" ON public.profiles
+CREATE POLICY "Users can view their own profile" ON public.profiles
   FOR SELECT USING (auth.uid() = id);
-CREATE POLICY "Users can update own profile" ON public.profiles
+CREATE POLICY "Users can update their own profile" ON public.profiles
   FOR UPDATE USING (auth.uid() = id);
-CREATE POLICY "Users can insert own profile" ON public.profiles
-  FOR INSERT WITH CHECK (auth.uid() = id);
 CREATE POLICY "Admins can view all profiles" ON public.profiles
   FOR SELECT USING (public.is_super_admin());
 
 -- Businesses
--- FIXED: Removed the broken "created_by" column reference which doesn't exist
 DROP POLICY IF EXISTS "Members can view their business" ON public.businesses;
 DROP POLICY IF EXISTS "Owners and Admins can update business" ON public.businesses;
 DROP POLICY IF EXISTS "Authenticated users can create businesses" ON public.businesses;
@@ -277,6 +367,11 @@ DROP POLICY IF EXISTS "Multi-tenant datasets access" ON public.datasets;
 DROP POLICY IF EXISTS "Multi-tenant customers access" ON public.customers;
 DROP POLICY IF EXISTS "Multi-tenant products access" ON public.products;
 DROP POLICY IF EXISTS "Multi-tenant crm_deals access" ON public.crm_deals;
+DROP POLICY IF EXISTS "Multi-tenant crm_contacts access" ON public.crm_contacts;
+DROP POLICY IF EXISTS "Multi-tenant crm_tasks access" ON public.crm_tasks;
+DROP POLICY IF EXISTS "Multi-tenant invoices access" ON public.invoices;
+DROP POLICY IF EXISTS "Multi-tenant payments access" ON public.payments;
+DROP POLICY IF EXISTS "Multi-tenant import_jobs access" ON public.import_jobs;
 DROP POLICY IF EXISTS "Multi-tenant crm_activities access" ON public.crm_activities;
 DROP POLICY IF EXISTS "Multi-tenant business_goals access" ON public.business_goals;
 DROP POLICY IF EXISTS "Multi-tenant reports access" ON public.reports;
@@ -291,6 +386,16 @@ CREATE POLICY "Multi-tenant customers access" ON public.customers
 CREATE POLICY "Multi-tenant products access" ON public.products
   FOR ALL USING (business_id IN (SELECT get_user_business_ids()));
 CREATE POLICY "Multi-tenant crm_deals access" ON public.crm_deals
+  FOR ALL USING (business_id IN (SELECT get_user_business_ids()));
+CREATE POLICY "Multi-tenant crm_contacts access" ON public.crm_contacts
+  FOR ALL USING (business_id IN (SELECT get_user_business_ids()));
+CREATE POLICY "Multi-tenant crm_tasks access" ON public.crm_tasks
+  FOR ALL USING (business_id IN (SELECT get_user_business_ids()));
+CREATE POLICY "Multi-tenant invoices access" ON public.invoices
+  FOR ALL USING (business_id IN (SELECT get_user_business_ids()));
+CREATE POLICY "Multi-tenant payments access" ON public.payments
+  FOR ALL USING (business_id IN (SELECT get_user_business_ids()));
+CREATE POLICY "Multi-tenant import_jobs access" ON public.import_jobs
   FOR ALL USING (business_id IN (SELECT get_user_business_ids()));
 CREATE POLICY "Multi-tenant crm_activities access" ON public.crm_activities
   FOR ALL USING (business_id IN (SELECT get_user_business_ids()));

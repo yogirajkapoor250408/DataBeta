@@ -1,30 +1,22 @@
-# DEMO_MODE.md — DataBeta Isolated Demo Specification
+# DataBeta Demo Mode Architecture & Isolation
 
-This document defines how Demo Mode operates in DataBeta to guarantee compliance with the **Non-Negotiable Product-Trust Rules**.
-
----
-
-## 1. Core Principle: Zero Confusion Between Demo & Real Data
-
-- **Never present seed/demo data as customer data**: When a user creates or opens their workspace, if no real records have been created or imported, DataBeta renders a clean **First-Run Setup Checklist** and clear empty states indicating what data is needed to unlock each card.
-- **Explicit Demo Labeling**: Whenever Demo Mode is active, an unambiguous, high-contrast banner (`DemoBanner.tsx`) is rendered persistently at the top of the interface:
-  > **Demo Mode**: *Demo data — not your business data. Explore realistic sales pipeline, cash collections, and owner actions risk-free.*
-- **No Shared State**: Changes made in Demo Mode (such as completing demo tasks, advancing demo deals, or creating demo invoices) are isolated to the demo session and never pollute user database tables or audit logs.
+DataBeta provides an interactive, realistic exploration mode for prospective customers without ever polluting, overwriting, or confusing real business tenant data.
 
 ---
 
-## 2. Seed Data Persona & Scenario
+## 1. Core Principles
 
-The demo environment simulates **Apex Technical Solutions**, an illustrative 12-person B2B consulting & software platform business:
-- **Commercial Clients**: Nexus Dynamics (Enterprise SaaS), Vanguard Logistics (Supply Chain), Horizon Digital Media (Creative Agency), Cobalt BioTech (Healthcare Diagnostics).
-- **Pipeline Deals**: Active opportunities across `Proposal Sent`, `Negotiation`, and `Won` stages with real closing dates and stage win probabilities.
-- **Invoices & Receivables**: Real invoice numbers (`INV-2026-001`, `INV-2026-002`, `INV-2026-003`) demonstrating overdue, due soon, and paid states.
-- **Historical Ledger**: Real dual-entry revenue and operating expenses showing gross margins and customer profitability.
-
----
-
-## 3. Safe Switching Workflow
-
-- Users can switch into Demo Mode anytime via the **"Explore Demo"** button in the top navigation or empty-state checklists.
-- Users can exit Demo Mode with one click via **"Open My Workspace"** or by authenticating with their credentials.
-- A **"Reset Demo Data"** action allows resetting demo entities back to their initial state.
+1. **Strict Tenant Separation**:
+   - Demo mode operates under a fixed tenant identifier: `demo-workspace-id`.
+   - Real customer workspaces use secure UUIDs generated on signup.
+   - Demo data is immutable; changes made during demo sessions remain in temporary browser memory and are discarded on reload.
+2. **Explicit Route Semantics**:
+   - Demo Mode: `/dashboard.html?mode=demo` (or `/demo`).
+   - Real Authenticated Mode: `/dashboard.html?mode=live` or `/app/[workspaceSlug]`.
+3. **Persistent In-App Banner**:
+   - When viewing demo data, a persistent top banner clearly states:
+     > `"Demo workspace — changes are not saved to your business data."`
+   - Includes 1-click CTA: `[Exit Demo & Open Real Workspace]` to transition directly to signup/login.
+4. **Zero Sample Data in Real Accounts**:
+   - New user accounts start 100% clean with zero mock transactions or deals.
+   - An interactive 5-step checklist guides new owners through creating their first contact, deal, task, invoice, and ledger import.

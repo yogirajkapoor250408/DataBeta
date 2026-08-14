@@ -13,6 +13,7 @@ import {
 import { calculateWeightedPipeline, calculateCashOutlook } from '../utils/provenanceEngine';
 import { generateNextBestActions } from '../utils/actionEngine';
 import { formatCurrency } from '../utils/currencyFormatter';
+import { EmptyState } from './EmptyState';
 import {
   CheckCircle2,
   Clock,
@@ -149,6 +150,19 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   // Check if workspace is completely empty
   const isEmptyWorkspace =
     deals.length === 0 && contacts.length === 0 && invoices.length === 0 && records.length === 0;
+
+  if (isEmptyWorkspace && !isDemo) {
+    return (
+      <div className="space-y-6 max-w-7xl mx-auto">
+        <EmptyState
+          onOpenUpload={onOpenUpload}
+          onOpenAddDeal={onOpenAddDeal}
+          onOpenAddTask={onOpenAddTask}
+          onOpenAddInvoice={onOpenAddInvoice}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto">

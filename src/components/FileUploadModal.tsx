@@ -7,9 +7,11 @@ import {
   Contact,
   Invoice,
   NormalizedRecord,
+  CurrencyCode,
 } from '../types';
 import { IMPORT_TEMPLATES, downloadTemplate } from '../utils/importTemplates';
-import { parseAndValidateImport } from '../utils/importValidator';
+import { executeImportPipeline, reconcileImport, ImportPipelineOutput } from '../utils/importPipeline';
+import { formatCurrency } from '../utils/currencyFormatter';
 import {
   Upload,
   FileSpreadsheet,
@@ -26,6 +28,8 @@ import {
 
 interface FileUploadModalProps {
   isOpen: boolean;
+  currency?: CurrencyCode;
+  workspaceId?: string;
   onClose: () => void;
   onDatasetLoaded: (dataset: Dataset) => void;
   onImportDeals?: (deals: Deal[]) => void;
@@ -35,6 +39,8 @@ interface FileUploadModalProps {
 
 export const FileUploadModal: React.FC<FileUploadModalProps> = ({
   isOpen,
+  currency = 'USD',
+  workspaceId = 'workspace-current',
   onClose,
   onDatasetLoaded,
   onImportDeals,
@@ -44,7 +50,8 @@ export const FileUploadModal: React.FC<FileUploadModalProps> = ({
   const [selectedType, setSelectedType] = useState<ImportEntityType>('transactions');
   const [file, setFile] = useState<File | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [preview, setPreview] = useState<ImportPreviewResult | null>(null);
+  const [pipelineResult, setPipelineResult] = useState<ImportPipelineOutput | null>(null);
+  const [reconciliationError, setReconciliationError] = useState<string | null>(null);
   const [step, setStep] = useState<'select' | 'preview' | 'success'>('select');
 
   if (!isOpen) return null;
@@ -55,42 +62,51 @@ export const FileUploadModal: React.FC<FileUploadModalProps> = ({
 
     setFile(uploadedFile);
     setIsProcessing(true);
+    setReconciliationError(null);
 
     try {
-      const result = await parseAndValidateImport(uploadedFile, selectedType);
-      setPreview(result);
+      const output = await executeImportPipeline(uploadedFile, selectedType, workspaceId, currency);
+      setPipelineResult(output);
       setStep('preview');
-    } catch (err) {
-      alert('Failed to parse file. Please verify CSV or Excel formatting.');
+    } catch (err: any) {
+      alert(`Failed to parse file: ${err?.message || 'Please verify CSV or Excel formatting.'}`);
     } finally {
       setIsProcessing(false);
     }
   };
 
   const handleConfirmImport = () => {
-    if (!preview) return;
+    if (!pipelineResult) return;
 
-    // Build normalized records if transaction type
+    setReconciliationError(null);
+
+    // Reconcile and commit full normalized batch
     if (selectedType === 'transactions') {
-      const records: NormalizedRecord[] = preview.sampleRows.map((r, i) => ({
-        id: `rec-${Date.now()}-${i}`,
-        date: r.Date || r.date || new Date().toISOString().split('T')[0],
-        revenue: Number(r.Revenue || r.revenue || 0),
-        expense: Number(r.Expense || r.expense || 0),
-        profit: Number(r.Revenue || r.revenue || 0) - Number(r.Expense || r.expense || 0),
-        category: r.Category || r.category || 'General',
-        customer: r.Customer || r.customer || r['Customer Name'] || undefined,
-        product: r.Product || r.product || undefined,
-        paymentMethod: r['Payment Method'] || r.payment_method || 'Direct',
-      }));
+      const records = pipelineResult.normalizedTransactions;
+      const reconciliation = reconcileImport(records, {
+        validCount: pipelineResult.totals.validCount,
+        totalRevenue: pipelineResult.totals.totalRevenue,
+        totalExpense: pipelineResult.totals.totalExpense,
+      });
+
+      if (!reconciliation.isReconciled) {
+        setReconciliationError(reconciliation.discrepancyMessage || 'Reconciliation failed.');
+        return;
+      }
 
       onDatasetLoaded({
         id: `ds-${Date.now()}`,
-        fileName: preview.fileName,
+        fileName: pipelineResult.preview.fileName,
         uploadedAt: new Date().toISOString(),
-        recordCount: preview.validRowsCount,
+        recordCount: records.length,
         records,
       });
+    } else if (selectedType === 'deals' && onImportDeals) {
+      onImportDeals(pipelineResult.normalizedDeals);
+    } else if (selectedType === 'contacts' && onImportContacts) {
+      onImportContacts(pipelineResult.normalizedContacts);
+    } else if (selectedType === 'invoices' && onImportInvoices) {
+      onImportInvoices(pipelineResult.normalizedInvoices);
     }
 
     setStep('success');
@@ -98,7 +114,8 @@ export const FileUploadModal: React.FC<FileUploadModalProps> = ({
 
   const handleReset = () => {
     setFile(null);
-    setPreview(null);
+    setPipelineResult(null);
+    setReconciliationError(null);
     setStep('select');
   };
 
@@ -189,39 +206,74 @@ export const FileUploadModal: React.FC<FileUploadModalProps> = ({
         )}
 
         {/* Step 2: Pre-write Validation & Preview */}
-        {step === 'preview' && preview && (
+        {step === 'preview' && pipelineResult && (
           <div className="space-y-4">
+            {/* Reconciliation Error Banner */}
+            {reconciliationError && (
+              <div className="p-3 bg-rose-50 dark:bg-rose-950/80 border border-rose-300 dark:border-rose-800 rounded-xl text-xs text-rose-900 dark:text-rose-200 flex items-start gap-2">
+                <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+                <div>
+                  <span className="font-bold block">Pre-Write Reconciliation Blocked:</span>
+                  <span>{reconciliationError}</span>
+                </div>
+              </div>
+            )}
+
             {/* Summary Banner */}
             <div className="grid grid-cols-3 gap-3">
               <div className="p-3 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-900 rounded-xl text-xs">
                 <span className="text-emerald-700 dark:text-emerald-300 font-bold block uppercase text-[10px]">Valid Rows</span>
                 <span className="text-xl font-black text-emerald-800 dark:text-emerald-200 font-mono">
-                  {preview.validRowsCount}
+                  {pipelineResult.preview.validRowsCount}
                 </span>
               </div>
               <div className="p-3 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900 rounded-xl text-xs">
                 <span className="text-amber-800 dark:text-amber-300 font-bold block uppercase text-[10px]">Total Scanned</span>
                 <span className="text-xl font-black text-amber-900 dark:text-amber-200 font-mono">
-                  {preview.totalRows}
+                  {pipelineResult.preview.totalRows}
                 </span>
               </div>
               <div className="p-3 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900 rounded-xl text-xs">
                 <span className="text-rose-700 dark:text-rose-300 font-bold block uppercase text-[10px]">Errors / Skipped</span>
                 <span className="text-xl font-black text-rose-800 dark:text-rose-200 font-mono">
-                  {preview.errorRowsCount}
+                  {pipelineResult.preview.errorRowsCount}
                 </span>
               </div>
             </div>
 
+            {/* Financial Preflight Totals for Transactions */}
+            {selectedType === 'transactions' && (
+              <div className="p-3.5 bg-slate-50 dark:bg-zinc-900 rounded-xl border border-slate-200 dark:border-zinc-800 grid grid-cols-3 gap-2 text-xs">
+                <div>
+                  <span className="text-[10px] uppercase font-bold text-slate-400">Total Revenue</span>
+                  <div className="font-mono font-black text-emerald-600 dark:text-emerald-400 text-sm">
+                    {formatCurrency(pipelineResult.totals.totalRevenue, currency)}
+                  </div>
+                </div>
+                <div>
+                  <span className="text-[10px] uppercase font-bold text-slate-400">Total Expenses</span>
+                  <div className="font-mono font-black text-rose-600 dark:text-rose-400 text-sm">
+                    {formatCurrency(pipelineResult.totals.totalExpense, currency)}
+                  </div>
+                </div>
+                <div>
+                  <span className="text-[10px] uppercase font-bold text-slate-400">Net Profit</span>
+                  <div className="font-mono font-black text-slate-900 dark:text-white text-sm">
+                    {formatCurrency(pipelineResult.totals.netProfit, currency)}
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Errors List (if any) */}
-            {preview.errors.length > 0 && (
+            {pipelineResult.errors.length > 0 && (
               <div className="p-3 bg-rose-50/70 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-900 rounded-xl space-y-1.5 text-xs">
                 <span className="font-bold text-rose-800 dark:text-rose-300 flex items-center gap-1.5">
                   <AlertTriangle className="w-3.5 h-3.5" />
-                  Validation Warnings ({preview.errors.length})
+                  Validation Warnings ({pipelineResult.errors.length})
                 </span>
                 <div className="max-h-24 overflow-y-auto space-y-1 custom-scrollbar text-[11px] text-rose-700 dark:text-rose-400">
-                  {preview.errors.map((err, i) => (
+                  {pipelineResult.errors.map((err, i) => (
                     <div key={i}>
                       Row {err.rowIndex}: <strong>{err.field}</strong> — {err.reason}
                     </div>
@@ -242,9 +294,10 @@ export const FileUploadModal: React.FC<FileUploadModalProps> = ({
               <button
                 type="button"
                 onClick={handleConfirmImport}
-                className="px-5 py-2.5 bg-rose-600 hover:bg-rose-500 text-white rounded-xl text-xs font-extrabold shadow-md shadow-rose-600/30 transition-all flex items-center gap-2"
+                disabled={pipelineResult.preview.validRowsCount === 0}
+                className="px-5 py-2.5 bg-rose-600 hover:bg-rose-500 disabled:opacity-50 text-white rounded-xl text-xs font-extrabold shadow-md shadow-rose-600/30 transition-all flex items-center gap-2"
               >
-                <span>Confirm & Write {preview.validRowsCount} Records</span>
+                <span>Confirm & Write {pipelineResult.preview.validRowsCount} Records</span>
                 <ArrowRight className="w-3.5 h-3.5" />
               </button>
             </div>

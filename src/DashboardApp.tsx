@@ -30,19 +30,21 @@ import {
   DEMO_TRANSACTIONS,
 } from './utils/demoData';
 import { authService } from './services/authService';
-import { businessService, Business, BusinessMembership } from './services/businessService';
+import { businessService, Business, BusinessMembership, DEMO_BUSINESS } from './services/businessService';
 import { crmService } from './services/crmService';
 import { auditService } from './services/auditService';
 import { toggleThemeWithRipple } from './utils/themeRipple';
 import { X, Plus, Calendar, DollarSign, Users, Receipt } from 'lucide-react';
+import { useAuth } from './context/AuthContext';
+import { cleanAuthTokensFromUrl } from './utils/urlSanitizer';
 
 const THEME_KEY = 'databeta_theme';
 const ACTIVE_BIZ_KEY = 'databeta_active_biz_id';
 
 export const DashboardApp: React.FC = () => {
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const { currentUser, signOut: handleSignOut } = useAuth();
   const [activeTab, setActiveTab] = useState<CoreTab>('overview');
-  const [isDemoMode, setIsDemoMode] = useState<boolean>(true); // Defaults to safe labeled demo mode until user signs in/switches
+  const [isDemoMode, setIsDemoMode] = useState<boolean>(!currentUser);
 
   // Workspace Data State
   const [deals, setDeals] = useState<Deal[]>(DEMO_DEALS);
@@ -50,33 +52,33 @@ export const DashboardApp: React.FC = () => {
   const [tasks, setTasks] = useState<Task[]>(DEMO_TASKS);
   const [invoices, setInvoices] = useState<Invoice[]>(DEMO_INVOICES);
   const [records, setRecords] = useState<NormalizedRecord[]>(DEMO_TRANSACTIONS);
-  const [currency, setCurrency] = useState<CurrencyCode>('USD');
-  const [theme, setTheme] = useState<'dark' | 'light'>('dark');
 
-  // Business Multi-Tenancy
+  // Business & Multi-Tenancy State
   const [memberships, setMemberships] = useState<BusinessMembership[]>([]);
-  const [activeBusiness, setActiveBusiness] = useState<Business | null>(null);
+  const [activeBusiness, setActiveBusiness] = useState<Business | null>(DEMO_BUSINESS);
+  const [currency, setCurrency] = useState<CurrencyCode>('USD');
 
-  // Modals
+  // UI Modals
   const [isUploadOpen, setIsUploadOpen] = useState(false);
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [authMode, setAuthMode] = useState<'signin' | 'signup'>('signin');
+  const [theme, setTheme] = useState<'dark' | 'light'>('dark');
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
 
-  // Quick Creation Modals State
+  // Quick Action Dialogs
   const [showAddDealModal, setShowAddDealModal] = useState(false);
   const [dealTitle, setDealTitle] = useState('');
   const [dealCompany, setDealCompany] = useState('');
   const [dealContact, setDealContact] = useState('');
   const [dealAmount, setDealAmount] = useState('15000');
-  const [dealStage, setDealStage] = useState<DealStage>('lead');
+  const [dealStage, setDealStage] = useState<DealStage>('qualified');
   const [dealCloseDate, setDealCloseDate] = useState(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]);
   const [dealNextStep, setDealNextStep] = useState('');
 
   const [showAddTaskModal, setShowAddTaskModal] = useState(false);
   const [taskTitle, setTaskTitle] = useState('');
   const [taskContact, setTaskContact] = useState('');
-  const [taskDueDate, setTaskDueDate] = useState(new Date().toISOString().split('T')[0]);
+  const [taskDueDate, setTaskDueDate] = useState(new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0]);
   const [taskPriority, setTaskPriority] = useState<'urgent' | 'high' | 'normal'>('high');
 
   const [showAddInvoiceModal, setShowAddInvoiceModal] = useState(false);
@@ -99,21 +101,29 @@ export const DashboardApp: React.FC = () => {
       }
     } catch {}
 
-    authService.getCurrentSessionUser().then((user) => {
-      if (user) {
-        setCurrentUser(user);
-        setIsDemoMode(false);
-        loadUserWorkspace(user);
-      }
-    });
+    // Scrub any stray tokens immediately
+    cleanAuthTokensFromUrl();
 
-    const sub = authService.onAuthStateChange((user) => {
-      setCurrentUser(user);
-      if (user) {
-        setIsDemoMode(false);
-        loadUserWorkspace(user);
-      }
-    });
+    // Parse URL query parameters for explicit route modes
+    const urlParams = new URLSearchParams(window.location.search);
+    const modeParam = urlParams.get('mode');
+    const isExplicitDemo = modeParam === 'demo';
+
+    if (isExplicitDemo) {
+      setIsDemoMode(true);
+      setActiveBusiness(DEMO_BUSINESS);
+      setDeals(DEMO_DEALS);
+      setContacts(DEMO_CONTACTS);
+      setTasks(DEMO_TASKS);
+      setInvoices(DEMO_INVOICES);
+      setRecords(DEMO_TRANSACTIONS);
+    } else if (currentUser) {
+      setIsDemoMode(false);
+      loadUserWorkspace(currentUser);
+    } else if (modeParam === 'live') {
+      setIsAuthOpen(true);
+      setAuthMode('signup');
+    }
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
@@ -126,25 +136,43 @@ export const DashboardApp: React.FC = () => {
 
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
-      if (sub && typeof sub.unsubscribe === 'function') sub.unsubscribe();
     };
-  }, []);
+  }, [currentUser]);
 
   const loadUserWorkspace = async (user: User) => {
-    const bizs = await businessService.getUserBusinesses(user.id);
+    let bizs = await businessService.getUserBusinesses(user.id);
+    if (bizs.length === 0) {
+      // Auto-provision initial personal workspace for new authenticated user
+      const { business } = await businessService.createBusiness(
+        user.id,
+        user.name ? `${user.name}'s Workspace` : 'My Business Workspace',
+        'General',
+        'United States',
+        'USD'
+      );
+      if (business) {
+        bizs = await businessService.getUserBusinesses(user.id);
+      }
+    }
+
     setMemberships(bizs);
     if (bizs.length > 0) {
-      setActiveBusiness(bizs[0].business);
-      setCurrency(bizs[0].business.currency);
-      // Load user's live deals and tasks
-      const loadedDeals = await crmService.getDeals(bizs[0].business.id);
-      const loadedContacts = await crmService.getContacts(bizs[0].business.id);
-      const loadedTasks = await crmService.getTasks(bizs[0].business.id);
+      const active = bizs[0].business;
+      setActiveBusiness(active);
+      setCurrency(active.currency);
+
+      // Rehydrate user's canonical data from repository
+      const loadedDeals = await crmService.getDeals(active.id);
+      const loadedContacts = await crmService.getContacts(active.id);
+      const loadedTasks = await crmService.getTasks(active.id);
+      const loadedInvoices = await crmService.getInvoices(active.id);
+
       setDeals(loadedDeals);
       setContacts(loadedContacts);
       setTasks(loadedTasks);
+      setInvoices(loadedInvoices);
+      setRecords([]); // Real ledger starts clean until imported
     } else {
-      // Empty workspace
       setDeals([]);
       setContacts([]);
       setTasks([]);
@@ -155,11 +183,15 @@ export const DashboardApp: React.FC = () => {
 
   const handleSwitchToDemo = () => {
     setIsDemoMode(true);
+    setActiveBusiness(DEMO_BUSINESS);
     setDeals(DEMO_DEALS);
     setContacts(DEMO_CONTACTS);
     setTasks(DEMO_TASKS);
     setInvoices(DEMO_INVOICES);
     setRecords(DEMO_TRANSACTIONS);
+    try {
+      window.history.replaceState({}, '', '/dashboard.html?mode=demo');
+    } catch {}
   };
 
   const handleSwitchToReal = () => {
@@ -170,6 +202,9 @@ export const DashboardApp: React.FC = () => {
     }
     setIsDemoMode(false);
     loadUserWorkspace(currentUser);
+    try {
+      window.history.replaceState({}, '', '/dashboard.html?mode=live');
+    } catch {}
   };
 
   // Create Deal Handler
@@ -177,9 +212,10 @@ export const DashboardApp: React.FC = () => {
     e.preventDefault();
     if (!dealTitle.trim()) return;
 
+    const wsId = isDemoMode ? 'demo-workspace-id' : activeBusiness?.id || 'main-ws';
     const newDeal: Deal = {
       id: `deal-${Date.now()}`,
-      workspaceId: isDemoMode ? 'demo-ws' : activeBusiness?.id || 'main-ws',
+      workspaceId: wsId,
       title: dealTitle.trim(),
       companyName: dealCompany.trim() || dealTitle.trim(),
       contactName: dealContact.trim() || undefined,
@@ -196,8 +232,17 @@ export const DashboardApp: React.FC = () => {
 
     const updated = [newDeal, ...deals];
     setDeals(updated);
+
     if (!isDemoMode && activeBusiness) {
       await crmService.createDeal(activeBusiness.id, newDeal);
+      await auditService.logEvent(
+        activeBusiness.id,
+        currentUser?.email || 'owner@databeta.app',
+        'deal_created',
+        'crm_deal',
+        newDeal.id,
+        { title: newDeal.title, amount: newDeal.amount, stage: newDeal.stage }
+      );
     }
 
     setShowAddDealModal(false);
@@ -212,9 +257,10 @@ export const DashboardApp: React.FC = () => {
     e.preventDefault();
     if (!taskTitle.trim()) return;
 
+    const wsId = isDemoMode ? 'demo-workspace-id' : activeBusiness?.id || 'main-ws';
     const newTask: Task = {
       id: `task-${Date.now()}`,
-      workspaceId: isDemoMode ? 'demo-ws' : activeBusiness?.id || 'main-ws',
+      workspaceId: wsId,
       title: taskTitle.trim(),
       contactName: taskContact.trim() || undefined,
       dueDate: taskDueDate,
@@ -225,8 +271,17 @@ export const DashboardApp: React.FC = () => {
 
     const updated = [newTask, ...tasks];
     setTasks(updated);
+
     if (!isDemoMode && activeBusiness) {
-      await crmService.saveTasks(activeBusiness.id, updated);
+      await crmService.createTask(activeBusiness.id, newTask);
+      await auditService.logEvent(
+        activeBusiness.id,
+        currentUser?.email || 'owner@databeta.app',
+        'task_created',
+        'crm_task',
+        newTask.id,
+        { title: newTask.title, dueDate: newTask.dueDate, priority: newTask.priority }
+      );
     }
 
     setShowAddTaskModal(false);
@@ -235,13 +290,14 @@ export const DashboardApp: React.FC = () => {
   };
 
   // Create Invoice Handler
-  const handleCreateInvoiceSubmit = (e: React.FormEvent) => {
+  const handleCreateInvoiceSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!invoiceCustomer.trim()) return;
 
+    const wsId = isDemoMode ? 'demo-workspace-id' : activeBusiness?.id || 'main-ws';
     const newInvoice: Invoice = {
       id: `inv-${Date.now()}`,
-      workspaceId: isDemoMode ? 'demo-ws' : activeBusiness?.id || 'main-ws',
+      workspaceId: wsId,
       invoiceNumber: invoiceNumber.trim(),
       customerName: invoiceCustomer.trim(),
       status: 'due_soon',
@@ -255,24 +311,73 @@ export const DashboardApp: React.FC = () => {
       updatedAt: new Date().toISOString(),
     };
 
-    setInvoices([newInvoice, ...invoices]);
+    const updated = [newInvoice, ...invoices];
+    setInvoices(updated);
+
+    if (!isDemoMode && activeBusiness) {
+      await crmService.createInvoice(activeBusiness.id, newInvoice);
+      await auditService.logEvent(
+        activeBusiness.id,
+        currentUser?.email || 'owner@databeta.app',
+        'invoice_created',
+        'invoice',
+        newInvoice.id,
+        { invoiceNumber: newInvoice.invoiceNumber, customerName: newInvoice.customerName, amount: newInvoice.amount }
+      );
+    }
+
     setShowAddInvoiceModal(false);
     setInvoiceCustomer('');
   };
 
-  // Complete Task Handler
-  const handleCompleteTask = async (taskId: string) => {
-    const updated = tasks.map((t) => (t.id === taskId ? { ...t, status: 'completed' as Task['status'] } : t));
-    setTasks(updated);
+  // Bulk State Mutation Handlers with Auto-Persistence
+  const handleDealsChange = async (newDeals: Deal[]) => {
+    setDeals(newDeals);
     if (!isDemoMode && activeBusiness) {
-      await crmService.saveTasks(activeBusiness.id, updated);
+      await crmService.saveDeals(activeBusiness.id, newDeals);
     }
   };
 
-  // Snooze Task Handler
+  const handleContactsChange = async (newContacts: Contact[]) => {
+    setContacts(newContacts);
+    if (!isDemoMode && activeBusiness) {
+      await crmService.saveContacts(activeBusiness.id, newContacts);
+    }
+  };
+
+  const handleTasksChange = async (newTasks: Task[]) => {
+    setTasks(newTasks);
+    if (!isDemoMode && activeBusiness) {
+      await crmService.saveTasks(activeBusiness.id, newTasks);
+    }
+  };
+
+  const handleInvoicesChange = async (newInvoices: Invoice[]) => {
+    setInvoices(newInvoices);
+    if (!isDemoMode && activeBusiness) {
+      await crmService.saveInvoices(activeBusiness.id, newInvoices);
+    }
+  };
+
+  const handleCompleteTask = async (taskId: string) => {
+    const updated = tasks.map((t) => (t.id === taskId ? { ...t, status: 'completed' as const } : t));
+    setTasks(updated);
+    if (!isDemoMode && activeBusiness) {
+      await crmService.saveTasks(activeBusiness.id, updated);
+      await auditService.logEvent(
+        activeBusiness.id,
+        currentUser?.email || 'owner@databeta.app',
+        'task_completed',
+        'crm_task',
+        taskId,
+        { status: 'completed' }
+      );
+    }
+  };
+
   const handleSnoozeTask = async (taskId: string) => {
-    const tomorrowStr = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-    const updated = tasks.map((t) => (t.id === taskId ? { ...t, dueDate: tomorrowStr } : t));
+    const nextDay = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+    const updated = tasks.map((t) => (t.id === taskId ? { ...t, dueDate: nextDay } : t));
     setTasks(updated);
     if (!isDemoMode && activeBusiness) {
       await crmService.saveTasks(activeBusiness.id, updated);
@@ -329,7 +434,7 @@ export const DashboardApp: React.FC = () => {
           setAuthMode(mode);
           setIsAuthOpen(true);
         }}
-        onLogout={() => authService.signOut().then(() => setCurrentUser(null))}
+        onLogout={handleSignOut}
         businessMemberships={memberships}
         onOpenCommandPalette={() => setIsCommandPaletteOpen(true)}
         onOpenAddDeal={() => setShowAddDealModal(true)}
@@ -366,9 +471,9 @@ export const DashboardApp: React.FC = () => {
             tasks={tasks}
             currency={currency}
             workspaceId={activeBusiness?.id || 'ws-main'}
-            onDealsChange={setDeals}
-            onContactsChange={setContacts}
-            onTasksChange={setTasks}
+            onDealsChange={handleDealsChange}
+            onContactsChange={handleContactsChange}
+            onTasksChange={handleTasksChange}
             onOpenAddDeal={() => setShowAddDealModal(true)}
             onOpenAddTask={() => setShowAddTaskModal(true)}
           />
@@ -381,7 +486,7 @@ export const DashboardApp: React.FC = () => {
             records={records}
             currency={currency}
             workspaceId={activeBusiness?.id || 'ws-main'}
-            onInvoicesChange={setInvoices}
+            onInvoicesChange={handleInvoicesChange}
             onOpenAddInvoice={() => setShowAddInvoiceModal(true)}
             onOpenUpload={() => setIsUploadOpen(true)}
             onNavigateTab={setActiveTab}
@@ -433,8 +538,22 @@ export const DashboardApp: React.FC = () => {
       {/* Modals */}
       <FileUploadModal
         isOpen={isUploadOpen}
+        currency={currency}
+        workspaceId={activeBusiness?.id || 'ws-main'}
         onClose={() => setIsUploadOpen(false)}
         onDatasetLoaded={handleDatasetLoaded}
+        onImportDeals={async (impDeals) => {
+          const updated = [...impDeals, ...deals];
+          await handleDealsChange(updated);
+        }}
+        onImportContacts={async (impContacts) => {
+          const updated = [...impContacts, ...contacts];
+          await handleContactsChange(updated);
+        }}
+        onImportInvoices={async (impInvoices) => {
+          const updated = [...impInvoices, ...invoices];
+          await handleInvoicesChange(updated);
+        }}
       />
 
       <AuthModal

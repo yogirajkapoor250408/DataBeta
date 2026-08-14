@@ -20,9 +20,19 @@ export const LandingApp: React.FC = () => {
       }
     } catch {}
 
-    // Check if OAuth callback landed on the root page with access_token tokens
-    if (typeof window !== 'undefined' && window.location.hash && (window.location.hash.includes('access_token') || window.location.hash.includes('error='))) {
-      window.location.href = `/dashboard.html${window.location.hash}`;
+    // Handle incoming auth query param from redirects
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search);
+      const authParam = urlParams.get('auth');
+      if (authParam === 'signin' || authParam === 'signup') {
+        setAuthMode(authParam);
+        setIsAuthOpen(true);
+      }
+
+      // If OAuth callback or code landed at root, route to dedicated callback handler
+      if (urlParams.get('code') || (window.location.hash && (window.location.hash.includes('access_token') || window.location.hash.includes('error=')))) {
+        window.location.href = `/auth/callback${window.location.search}${window.location.hash}`;
+      }
     }
   }, []);
 
@@ -34,7 +44,7 @@ export const LandingApp: React.FC = () => {
           setIsAuthOpen(true);
         }}
         onExploreDemo={() => {
-          window.location.href = '/dashboard.html';
+          window.location.href = '/dashboard.html?mode=demo';
         }}
       />
 
@@ -43,7 +53,7 @@ export const LandingApp: React.FC = () => {
         initialMode={authMode}
         onClose={() => setIsAuthOpen(false)}
         onAuthSuccess={() => {
-          window.location.href = '/dashboard.html';
+          window.location.href = '/dashboard.html?mode=live';
         }}
       />
     </div>
