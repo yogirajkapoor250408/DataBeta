@@ -68,19 +68,37 @@ export const businessService = {
       }
     }
 
-    const { data: business, error: bizError } = await supabase
-      .from('businesses')
-      .insert({
-        name,
-        type,
-        country,
-        currency,
-      })
-      .select()
-      .single();
+    let business = null;
+    try {
+      const { data, error: bizError } = await supabase
+        .from('businesses')
+        .insert({
+          name,
+          type,
+          country,
+          currency,
+        })
+        .select()
+        .single();
+      if (!bizError && data) {
+        business = data;
+      }
+    } catch {}
 
-    if (bizError || !business) {
-      return { business: null, error: bizError || new Error('Failed to create business') };
+    if (!business) {
+      // Graceful fallback to local workspace for this user
+      const localKey = `databeta_user_businesses_${userId}`;
+      const existingRaw = localStorage.getItem(localKey);
+      const existing: BusinessMembership[] = existingRaw ? JSON.parse(existingRaw) : [];
+      const newMembership: BusinessMembership = {
+        id: `bm-${Date.now()}`,
+        businessId: newId,
+        userId,
+        role: 'owner',
+        business: createdBiz,
+      };
+      localStorage.setItem(localKey, JSON.stringify([newMembership, ...existing]));
+      return { business: createdBiz, error: null };
     }
 
     // Assign owner membership

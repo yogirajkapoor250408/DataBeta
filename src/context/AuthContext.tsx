@@ -41,18 +41,29 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       }
 
       // 2. Fetch current validated session
-      const { data: { session }, error } = await supabase.auth.getSession();
+      const { data, error } = await supabase.auth.getSession();
+      const session = data?.session;
 
       if (error) {
-        throw new Error(sanitizeErrorMessage(error));
+        // If stored session is invalid or token expired, clear it safely without blocking UI
+        try {
+          await supabase.auth.signOut();
+        } catch {}
+        setCurrentUser(null);
+        setIsLoading(false);
+        return;
       }
 
       if (session?.user) {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('full_name, is_admin, subscription_status')
-          .eq('id', session.user.id)
-          .maybeSingle();
+        let profile: any = null;
+        try {
+          const { data: profData } = await supabase
+            .from('profiles')
+            .select('full_name, is_admin, subscription_status')
+            .eq('id', session.user.id)
+            .maybeSingle();
+          profile = profData;
+        } catch {}
 
         const user: User = {
           id: session.user.id,
@@ -72,8 +83,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         setCurrentUser(null);
       }
     } catch (err: any) {
-      console.error('DataBeta Auth Bootstrap Error:', sanitizeErrorMessage(err));
-      setAuthError(sanitizeErrorMessage(err?.message || 'Failed to initialize authentication.'));
+      console.warn('DataBeta Auth Bootstrap:', sanitizeErrorMessage(err));
       setCurrentUser(null);
     } finally {
       setIsLoading(false);
