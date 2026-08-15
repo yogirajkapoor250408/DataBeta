@@ -1,4 +1,4 @@
-import { supabase, isSupabaseConfigured } from '../lib/supabase';
+import { apiClient } from '../lib/apiClient';
 import { KPIGoals } from '../types';
 
 export const goalService = {
@@ -9,39 +9,29 @@ export const goalService = {
       maxExpenseCap: 50000,
     };
 
-    if (!isSupabaseConfigured()) return defaultGoals;
+    const res = await apiClient.get<any>('/finance/goals', businessId);
+    if (res.data) {
+      return {
+        targetRevenue: Number(res.data.targetRevenue || defaultGoals.targetRevenue),
+        targetProfitMarginPct: Number(res.data.targetProfitMarginPct || defaultGoals.targetProfitMarginPct),
+        maxExpenseCap: Number(res.data.maxExpenseCap || defaultGoals.maxExpenseCap),
+      };
+    }
 
-    const { data, error } = await supabase
-      .from('business_goals')
-      .select('*')
-      .eq('business_id', businessId)
-      .maybeSingle();
-
-    if (error || !data) return defaultGoals;
-
-    return {
-      targetRevenue: Number(data.target_revenue || 100000),
-      targetProfitMarginPct: Number(data.target_profit_margin_pct || 25.0),
-      maxExpenseCap: Number(data.max_expense_cap || 50000),
-    };
+    return defaultGoals;
   },
 
   async updateBusinessGoals(businessId: string, goals: KPIGoals): Promise<{ error: Error | null }> {
-    if (!isSupabaseConfigured()) return { error: null };
+    const res = await apiClient.put(
+      '/finance/goals',
+      {
+        targetRevenue: goals.targetRevenue,
+        targetProfitMarginPct: goals.targetProfitMarginPct,
+        maxExpenseCap: goals.maxExpenseCap,
+      },
+      businessId
+    );
 
-    const { error } = await supabase
-      .from('business_goals')
-      .upsert(
-        {
-          business_id: businessId,
-          target_revenue: goals.targetRevenue,
-          target_profit_margin_pct: goals.targetProfitMarginPct,
-          max_expense_cap: goals.maxExpenseCap,
-          updated_at: new Date().toISOString(),
-        },
-        { onConflict: 'business_id' }
-      );
-
-    return { error };
+    return { error: res.error };
   },
 };

@@ -1,4 +1,4 @@
-import { supabase, isSupabaseConfigured } from '../lib/supabase';
+import { apiClient } from '../lib/apiClient';
 import { AuditLogEntry, AuditAction } from '../types';
 
 export const auditService = {
@@ -41,64 +41,54 @@ export const auditService = {
       localStorage.setItem(`databeta_audit_${workspaceId}`, JSON.stringify([entry, ...list].slice(0, 200)));
     } catch {}
 
-    if (isSupabaseConfigured()) {
-      try {
-        await supabase.from('audit_logs').insert({
-          business_id: workspaceId,
+    try {
+      await apiClient.post(
+        '/audit',
+        {
           action,
-          metadata: {
-            eventId,
-            entityType,
-            entityId,
-            details,
-            userEmail,
-            beforeSummary,
-            afterSummary,
-          },
-        });
-      } catch {}
-    }
+          entityType,
+          entityId,
+          metadata: { ...details, userEmail, beforeSummary, afterSummary },
+        },
+        workspaceId
+      );
+    } catch {}
 
     return entry;
   },
 
   async getLogs(workspaceId: string): Promise<AuditLogEntry[]> {
-    try {
-      const local = localStorage.getItem(`databeta_audit_${workspaceId}`);
-      if (local) return JSON.parse(local);
-    } catch {}
-
-    if (!isSupabaseConfigured()) {
-      return [];
+    const res = await apiClient.get<any[]>('/audit', workspaceId);
+    if (res.data && Array.isArray(res.data) && res.data.length > 0) {
+      return res.data.map((l) => ({
+        id: l.id,
+        eventId: l.id,
+        workspaceId,
+        userId: 'usr-active',
+        actorId: 'usr-active',
+        userEmail: l.actorEmail,
+        actorEmail: l.actorEmail,
+        action: l.action as AuditAction,
+        entityType: l.entityType,
+        entityId: l.entityId,
+        requestId: `req-${l.id}`,
+        source: 'mongodb',
+        details: l.metadata || {},
+        metadata: l.metadata || {},
+        createdAt: l.timestamp,
+        timestamp: l.timestamp,
+      }));
     }
 
-    const { data, error } = await supabase
-      .from('audit_logs')
-      .select('*')
-      .eq('business_id', workspaceId)
-      .order('created_at', { ascending: false })
-      .limit(100);
+    try {
+      const local = localStorage.getItem(`databeta_audit_${workspaceId}`);
+      return local ? JSON.parse(local) : [];
+    } catch {
+      return [];
+    }
+  },
 
-    if (error || !data) return [];
-
-    return data.map((item: any) => ({
-      id: item.id,
-      eventId: item.metadata?.eventId || item.id,
-      workspaceId: item.business_id,
-      userId: item.user_id || 'usr-anon',
-      actorId: item.user_id || 'usr-anon',
-      userEmail: item.metadata?.userEmail || 'owner@databeta.app',
-      actorEmail: item.metadata?.userEmail || 'owner@databeta.app',
-      action: item.action as AuditAction,
-      entityType: item.metadata?.entityType || 'system',
-      entityId: item.metadata?.entityId,
-      source: item.metadata?.source || 'system',
-      beforeSummary: item.metadata?.beforeSummary,
-      afterSummary: item.metadata?.afterSummary,
-      details: item.metadata?.details || {},
-      metadata: item.metadata || {},
-      createdAt: item.created_at,
-      timestamp: item.created_at,
-    }));
+  exportLogsAsJson(logs: AuditLogEntry[]): string {
+    return JSON.stringify(logs, null, 2);
   },
 };

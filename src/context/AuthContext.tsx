@@ -1,9 +1,9 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { supabase, isSupabaseConfigured } from '../lib/supabase';
+import { apiClient } from '../lib/apiClient';
 import { User } from '../types';
 import { authService } from '../services/authService';
 import { cleanAuthTokensFromUrl, generateSupportReferenceId, sanitizeErrorMessage } from '../utils/urlSanitizer';
-import { ShieldCheck, AlertCircle, RotateCcw, Home, LogIn } from 'lucide-react';
+import { ShieldCheck, AlertCircle, RotateCcw, LogIn } from 'lucide-react';
 
 interface AuthContextType {
   currentUser: User | null;
@@ -30,60 +30,44 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setReferenceId(generateSupportReferenceId());
 
     try {
-      // 1. Immediately scrub any stray tokens from legacy URL hash/params
       cleanAuthTokensFromUrl();
 
-      if (!isSupabaseConfigured()) {
-        // Offline / demo environment without Supabase credentials
+      const token = apiClient.getToken();
+      if (!token) {
         setCurrentUser(null);
         setIsLoading(false);
         return;
       }
 
-      // 2. Fetch current validated session
-      const { data, error } = await supabase.auth.getSession();
-      const session = data?.session;
+      const res = await apiClient.get<{ user: any; workspaces: any[] }>('/auth/me');
 
-      if (error) {
-        // If stored session is invalid or token expired, clear it safely without blocking UI
-        try {
-          await supabase.auth.signOut();
-        } catch {}
-        setCurrentUser(null);
-        setIsLoading(false);
-        return;
-      }
-
-      if (session?.user) {
-        let profile: any = null;
-        try {
-          const { data: profData } = await supabase
-            .from('profiles')
-            .select('full_name, is_admin, subscription_status')
-            .eq('id', session.user.id)
-            .maybeSingle();
-          profile = profData;
-        } catch {}
-
+      if (res.data && res.data.user) {
         const user: User = {
-          id: session.user.id,
-          name: profile?.full_name || session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || 'User',
-          email: session.user.email || '',
-          role: 'user',
-          authProvider: session.user.app_metadata?.provider || 'email',
-          createdAt: session.user.created_at || new Date().toISOString(),
+          id: res.data.user.id,
+          name: res.data.user.name,
+          email: res.data.user.email,
+          role: res.data.user.role || 'owner',
+          authProvider: 'email',
+          createdAt: res.data.user.createdAt || new Date().toISOString(),
           lastLogin: new Date().toLocaleString(),
           isFirstTimeUser: false,
-          isAdmin: profile?.is_admin || false,
-          subscriptionStatus: profile?.subscription_status || 'free',
+          isAdmin: res.data.user.isAdmin || false,
+          subscriptionStatus: res.data.user.subscriptionStatus || 'free',
         };
-
         setCurrentUser(user);
+
+        if (res.data.workspaces && res.data.workspaces.length > 0) {
+          const currentActive = apiClient.getActiveWorkspaceId();
+          if (!currentActive) {
+            apiClient.setActiveWorkspaceId(res.data.workspaces[0].id);
+          }
+        }
       } else {
+        apiClient.setToken(null);
         setCurrentUser(null);
       }
     } catch (err: any) {
-      console.warn('DataBeta Auth Bootstrap:', sanitizeErrorMessage(err));
+      console.warn('DataBeta Auth Bootstrap notice:', sanitizeErrorMessage(err));
       setCurrentUser(null);
     } finally {
       setIsLoading(false);
@@ -92,37 +76,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   useEffect(() => {
     initializeAuth();
-
-    if (!isSupabaseConfigured()) return;
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (session?.user) {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('full_name, is_admin, subscription_status')
-          .eq('id', session.user.id)
-          .maybeSingle();
-
-        setCurrentUser({
-          id: session.user.id,
-          name: profile?.full_name || session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || 'User',
-          email: session.user.email || '',
-          role: 'user',
-          authProvider: session.user.app_metadata?.provider || 'email',
-          createdAt: session.user.created_at || new Date().toISOString(),
-          lastLogin: new Date().toLocaleString(),
-          isFirstTimeUser: false,
-          isAdmin: profile?.is_admin || false,
-          subscriptionStatus: profile?.subscription_status || 'free',
-        });
-      } else if (event === 'SIGNED_OUT') {
-        setCurrentUser(null);
-      }
-    });
-
-    return () => {
-      subscription.unsubscribe();
-    };
   }, []);
 
   const handleSignOut = async () => {
@@ -135,32 +88,27 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     window.location.href = '/?auth=signin';
   };
 
-  // If a fatal auth initialization error occurred, render recoverable error screen
   if (authError) {
     return (
-      <div className="min-h-screen bg-slate-50 dark:bg-[#09090b] text-slate-900 dark:text-zinc-100 flex items-center justify-center p-4 font-sans">
-        <div className="bg-white dark:bg-zinc-950 border border-slate-200/80 dark:border-zinc-800 rounded-3xl max-w-md w-full p-8 shadow-2xl text-center space-y-6 animate-scaleUp">
-          <div className="w-14 h-14 rounded-2xl bg-rose-50 dark:bg-rose-950/60 text-rose-600 border border-rose-200 dark:border-rose-900 flex items-center justify-center mx-auto shadow-inner">
+      <div className="min-h-screen bg-[#09090b] text-zinc-100 flex items-center justify-center p-4 font-sans">
+        <div className="bg-zinc-950 border border-zinc-800 rounded-3xl max-w-md w-full p-8 shadow-2xl text-center space-y-6 animate-scaleUp">
+          <div className="w-14 h-14 rounded-2xl bg-rose-950/60 text-rose-500 border border-rose-900 flex items-center justify-center mx-auto shadow-inner">
             <AlertCircle className="w-7 h-7" />
           </div>
-
           <div className="space-y-2">
-            <h2 className="text-xl font-black text-slate-900 dark:text-white tracking-tight">
-              Authentication Gate Notice
+            <h2 className="text-xl font-black text-white tracking-tight">
+              Authentication Notice
             </h2>
-            <p className="text-xs text-slate-600 dark:text-zinc-400 leading-relaxed font-medium">
+            <p className="text-xs text-zinc-400 leading-relaxed font-medium">
               We couldn’t complete sign-in. Your account is safe. Please try again.
             </p>
           </div>
-
-          <div className="p-3 bg-slate-50 dark:bg-zinc-900 rounded-xl text-left border border-slate-200 dark:border-zinc-800 text-[11px] text-slate-600 dark:text-zinc-400 font-mono break-all max-h-24 overflow-y-auto">
+          <div className="p-3 bg-zinc-900 rounded-xl text-left border border-zinc-800 text-[11px] text-zinc-400 font-mono break-all max-h-24 overflow-y-auto">
             {authError}
           </div>
-
-          <div className="text-[11px] text-slate-400 font-mono">
-            Reference ID: <strong className="text-slate-700 dark:text-zinc-300">{referenceId}</strong>
+          <div className="text-[11px] text-zinc-500 font-mono">
+            Reference ID: <strong className="text-zinc-300">{referenceId}</strong>
           </div>
-
           <div className="flex flex-col sm:flex-row items-center gap-2.5 pt-2">
             <button
               onClick={initializeAuth}
@@ -169,10 +117,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
               <RotateCcw className="w-3.5 h-3.5" />
               <span>Retry Session</span>
             </button>
-
             <button
               onClick={handleOpenSignIn}
-              className="w-full py-2.5 px-4 bg-slate-100 dark:bg-zinc-800 hover:bg-slate-200 dark:hover:bg-zinc-700 text-slate-700 dark:text-zinc-300 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all"
+              className="w-full py-2.5 px-4 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all"
             >
               <LogIn className="w-3.5 h-3.5" />
               <span>Sign In</span>
@@ -183,21 +130,20 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     );
   }
 
-  // Branded Loading / Auth-Check Screen
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-slate-50 dark:bg-[#09090b] text-slate-900 dark:text-zinc-100 flex items-center justify-center p-4 font-sans">
+      <div className="min-h-screen bg-[#09090b] text-zinc-100 flex items-center justify-center p-4 font-sans">
         <div className="text-center space-y-4 animate-fadeIn">
           <div className="relative w-14 h-14 mx-auto flex items-center justify-center">
             <div className="w-14 h-14 rounded-full border-3 border-rose-500/20 border-t-rose-600 animate-spin" />
             <ShieldCheck className="w-6 h-6 text-rose-600 absolute" />
           </div>
           <div className="space-y-1">
-            <div className="text-lg font-black tracking-tight text-slate-900 dark:text-white">
+            <div className="text-lg font-black tracking-tight text-white">
               DataBeta
             </div>
-            <p className="text-xs text-slate-400 font-medium">
-              Verifying encrypted workspace session...
+            <p className="text-xs text-zinc-400 font-medium">
+              Verifying workspace session...
             </p>
           </div>
         </div>

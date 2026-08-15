@@ -1,142 +1,66 @@
-import { supabase, isSupabaseConfigured } from '../lib/supabase';
-import { Deal, Contact, Company, Task, Activity, DealStage, Invoice } from '../types';
+import { apiClient } from '../lib/apiClient';
+import { Deal, Contact, Task, Activity, Invoice } from '../types';
 
 export const crmService = {
   // --------------------------------------------------------------------------
   // DEALS
   // --------------------------------------------------------------------------
   async getDeals(workspaceId: string): Promise<Deal[]> {
-    if (!isSupabaseConfigured()) {
-      try {
-        const local = localStorage.getItem(`databeta_deals_${workspaceId}`);
-        return local ? JSON.parse(local) : [];
-      } catch {
-        return [];
-      }
+    const res = await apiClient.get<Deal[]>('/crm/deals', workspaceId);
+    if (res.data && Array.isArray(res.data)) {
+      return res.data;
     }
-
-    const { data, error } = await supabase
-      .from('crm_deals')
-      .select('*')
-      .eq('business_id', workspaceId)
-      .order('created_at', { ascending: false });
-
-    if (error || !data) return [];
-
-    return data.map((d: any) => ({
-      id: d.id,
-      workspaceId: d.business_id,
-      title: d.title || d.company_name,
-      companyName: d.company_name,
-      contactName: d.contact_name,
-      contactEmail: d.contact_email || '',
-      contactPhone: d.contact_phone || '',
-      stage: d.stage,
-      amount: Number(d.deal_value || 0),
-      currency: d.currency || 'USD',
-      expectedCloseDate: d.expected_close_date || new Date().toISOString().split('T')[0],
-      probabilityPct: Number(d.probability_pct || 50),
-      source: d.source || 'Direct',
-      ownerName: d.owner_name || 'Account Executive',
-      nextStep: d.next_step || '',
-      lastActivityAt: d.updated_at ? d.updated_at.split('T')[0] : 'Recent',
-      tags: d.tags || [],
-      notes: d.notes || '',
-      createdAt: d.created_at ? d.created_at.split('T')[0] : new Date().toISOString().split('T')[0],
-      updatedAt: d.updated_at || new Date().toISOString(),
-    }));
+    try {
+      const local = localStorage.getItem(`databeta_deals_${workspaceId}`);
+      return local ? JSON.parse(local) : [];
+    } catch {
+      return [];
+    }
   },
 
-  async createDeal(workspaceId: string, deal: Omit<Deal, 'id' | 'createdAt' | 'updatedAt'>): Promise<{ deal: Deal | null; error: Error | null }> {
-    const newId = `deal-${Date.now()}`;
+  async createDeal(
+    workspaceId: string,
+    deal: Omit<Deal, 'id' | 'createdAt' | 'updatedAt'>
+  ): Promise<{ deal: Deal | null; error: Error | null }> {
+    const res = await apiClient.post<Deal>('/crm/deals', deal, workspaceId);
+    if (res.data) {
+      return { deal: res.data, error: null };
+    }
+
+    // Local fallback
     const newDeal: Deal = {
       ...deal,
-      id: newId,
+      id: `deal-${Date.now()}`,
       workspaceId,
       createdAt: new Date().toISOString().split('T')[0],
       updatedAt: new Date().toISOString(),
     };
-
-    if (!isSupabaseConfigured()) {
-      try {
-        const local = localStorage.getItem(`databeta_deals_${workspaceId}`);
-        const list: Deal[] = local ? JSON.parse(local) : [];
-        localStorage.setItem(`databeta_deals_${workspaceId}`, JSON.stringify([newDeal, ...list]));
-        return { deal: newDeal, error: null };
-      } catch (err: any) {
-        return { deal: newDeal, error: err };
-      }
-    }
-
-    const { data, error } = await supabase
-      .from('crm_deals')
-      .insert({
-        business_id: workspaceId,
-        title: deal.title,
-        company_name: deal.companyName,
-        contact_email: deal.contactEmail,
-        contact_phone: deal.contactPhone,
-        stage: deal.stage,
-        deal_value: deal.amount,
-        tags: deal.tags,
-        notes: deal.notes,
-      })
-      .select()
-      .single();
-
-    if (error || !data) return { deal: null, error: error || new Error('Failed to create deal') };
-
-    return {
-      deal: {
-        ...newDeal,
-        id: data.id,
-      },
-      error: null,
-    };
+    try {
+      const list = await this.getDeals(workspaceId);
+      localStorage.setItem(`databeta_deals_${workspaceId}`, JSON.stringify([newDeal, ...list]));
+    } catch {}
+    return { deal: newDeal, error: null };
   },
 
-  async updateDealStage(workspaceId: string, dealId: string, newStage: DealStage): Promise<{ error: Error | null }> {
-    if (!isSupabaseConfigured()) {
-      try {
-        const local = localStorage.getItem(`databeta_deals_${workspaceId}`);
-        if (local) {
-          const list: Deal[] = JSON.parse(local);
-          const updated = list.map((d) => (d.id === dealId ? { ...d, stage: newStage, updatedAt: new Date().toISOString() } : d));
-          localStorage.setItem(`databeta_deals_${workspaceId}`, JSON.stringify(updated));
-        }
-      } catch {}
-      return { error: null };
+  async updateDeal(
+    workspaceId: string,
+    dealId: string,
+    updates: Partial<Deal>
+  ): Promise<{ deal: Deal | null; error: Error | null }> {
+    const res = await apiClient.put<Deal>(`/crm/deals/${dealId}`, updates, workspaceId);
+    if (res.data) {
+      return { deal: res.data, error: null };
     }
 
-    const { error } = await supabase
-      .from('crm_deals')
-      .update({ stage: newStage, updated_at: new Date().toISOString() })
-      .eq('id', dealId)
-      .eq('business_id', workspaceId);
-
-    return { error };
-  },
-
-  async deleteDeal(workspaceId: string, dealId: string): Promise<{ error: Error | null }> {
-    if (!isSupabaseConfigured()) {
-      try {
-        const local = localStorage.getItem(`databeta_deals_${workspaceId}`);
-        if (local) {
-          const list: Deal[] = JSON.parse(local);
-          const updated = list.filter((d) => d.id !== dealId);
-          localStorage.setItem(`databeta_deals_${workspaceId}`, JSON.stringify(updated));
-        }
-      } catch {}
-      return { error: null };
+    try {
+      const list = await this.getDeals(workspaceId);
+      const updated = list.map((d) => (d.id === dealId ? { ...d, ...updates, updatedAt: new Date().toISOString() } : d));
+      localStorage.setItem(`databeta_deals_${workspaceId}`, JSON.stringify(updated));
+      const found = updated.find((d) => d.id === dealId) || null;
+      return { deal: found, error: null };
+    } catch {
+      return { deal: null, error: res.error };
     }
-
-    const { error } = await supabase
-      .from('crm_deals')
-      .delete()
-      .eq('id', dealId)
-      .eq('business_id', workspaceId);
-
-    return { error };
   },
 
   async saveDeals(workspaceId: string, deals: Deal[]): Promise<void> {
@@ -149,6 +73,10 @@ export const crmService = {
   // CONTACTS
   // --------------------------------------------------------------------------
   async getContacts(workspaceId: string): Promise<Contact[]> {
+    const res = await apiClient.get<Contact[]>('/crm/contacts', workspaceId);
+    if (res.data && Array.isArray(res.data)) {
+      return res.data;
+    }
     try {
       const local = localStorage.getItem(`databeta_contacts_${workspaceId}`);
       return local ? JSON.parse(local) : [];
@@ -157,37 +85,27 @@ export const crmService = {
     }
   },
 
-  async createContact(workspaceId: string, contact: Omit<Contact, 'id' | 'createdAt' | 'updatedAt'>): Promise<Contact> {
+  async createContact(
+    workspaceId: string,
+    contact: Omit<Contact, 'id' | 'createdAt' | 'updatedAt'>
+  ): Promise<{ contact: Contact | null; error: Error | null }> {
+    const res = await apiClient.post<Contact>('/crm/contacts', contact, workspaceId);
+    if (res.data) {
+      return { contact: res.data, error: null };
+    }
+
     const newContact: Contact = {
       ...contact,
-      id: `contact-${Date.now()}`,
+      id: `cont-${Date.now()}`,
       workspaceId,
       createdAt: new Date().toISOString().split('T')[0],
       updatedAt: new Date().toISOString(),
     };
-
     try {
       const list = await this.getContacts(workspaceId);
-      const updated = [newContact, ...list];
-      localStorage.setItem(`databeta_contacts_${workspaceId}`, JSON.stringify(updated));
+      localStorage.setItem(`databeta_contacts_${workspaceId}`, JSON.stringify([newContact, ...list]));
     } catch {}
-
-    if (isSupabaseConfigured()) {
-      try {
-        await supabase.from('crm_contacts').insert({
-          business_id: workspaceId,
-          name: contact.name,
-          email: contact.email,
-          phone: contact.phone,
-          company_name: contact.companyName,
-          role_title: contact.roleTitle,
-          tags: contact.tags,
-          notes: contact.notes,
-        });
-      } catch {}
-    }
-
-    return newContact;
+    return { contact: newContact, error: null };
   },
 
   async saveContacts(workspaceId: string, contacts: Contact[]): Promise<void> {
@@ -196,18 +114,14 @@ export const crmService = {
     } catch {}
   },
 
-  async deleteContact(workspaceId: string, contactId: string): Promise<void> {
-    try {
-      const list = await this.getContacts(workspaceId);
-      const updated = list.filter((c) => c.id !== contactId);
-      localStorage.setItem(`databeta_contacts_${workspaceId}`, JSON.stringify(updated));
-    } catch {}
-  },
-
   // --------------------------------------------------------------------------
   // TASKS
   // --------------------------------------------------------------------------
   async getTasks(workspaceId: string): Promise<Task[]> {
+    const res = await apiClient.get<Task[]>('/crm/tasks', workspaceId);
+    if (res.data && Array.isArray(res.data)) {
+      return res.data;
+    }
     try {
       const local = localStorage.getItem(`databeta_tasks_${workspaceId}`);
       return local ? JSON.parse(local) : [];
@@ -216,21 +130,26 @@ export const crmService = {
     }
   },
 
-  async createTask(workspaceId: string, task: Omit<Task, 'id' | 'createdAt'>): Promise<Task> {
+  async createTask(
+    workspaceId: string,
+    task: Omit<Task, 'id' | 'createdAt'>
+  ): Promise<{ task: Task | null; error: Error | null }> {
+    const res = await apiClient.post<Task>('/crm/tasks', task, workspaceId);
+    if (res.data) {
+      return { task: res.data, error: null };
+    }
+
     const newTask: Task = {
       ...task,
       id: `task-${Date.now()}`,
       workspaceId,
       createdAt: new Date().toISOString().split('T')[0],
     };
-
     try {
       const list = await this.getTasks(workspaceId);
-      const updated = [newTask, ...list];
-      localStorage.setItem(`databeta_tasks_${workspaceId}`, JSON.stringify(updated));
+      localStorage.setItem(`databeta_tasks_${workspaceId}`, JSON.stringify([newTask, ...list]));
     } catch {}
-
-    return newTask;
+    return { task: newTask, error: null };
   },
 
   async saveTasks(workspaceId: string, tasks: Task[]): Promise<void> {
@@ -239,20 +158,14 @@ export const crmService = {
     } catch {}
   },
 
-  async toggleTask(workspaceId: string, taskId: string): Promise<void> {
-    try {
-      const list = await this.getTasks(workspaceId);
-      const updated = list.map((t) =>
-        t.id === taskId ? { ...t, status: (t.status === 'completed' ? 'pending' : 'completed') as any } : t
-      );
-      localStorage.setItem(`databeta_tasks_${workspaceId}`, JSON.stringify(updated));
-    } catch {}
-  },
-
   // --------------------------------------------------------------------------
   // INVOICES & RECEIVABLES
   // --------------------------------------------------------------------------
   async getInvoices(workspaceId: string): Promise<Invoice[]> {
+    const res = await apiClient.get<Invoice[]>('/finance/invoices', workspaceId);
+    if (res.data && Array.isArray(res.data)) {
+      return res.data;
+    }
     try {
       const local = localStorage.getItem(`databeta_invoices_${workspaceId}`);
       return local ? JSON.parse(local) : [];
@@ -261,13 +174,15 @@ export const crmService = {
     }
   },
 
-  async saveInvoices(workspaceId: string, invoices: Invoice[]): Promise<void> {
-    try {
-      localStorage.setItem(`databeta_invoices_${workspaceId}`, JSON.stringify(invoices));
-    } catch {}
-  },
+  async createInvoice(
+    workspaceId: string,
+    invoice: Omit<Invoice, 'id' | 'createdAt' | 'updatedAt'>
+  ): Promise<Invoice> {
+    const res = await apiClient.post<Invoice>('/finance/invoices', invoice, workspaceId);
+    if (res.data) {
+      return res.data;
+    }
 
-  async createInvoice(workspaceId: string, invoice: Omit<Invoice, 'id' | 'createdAt' | 'updatedAt'>): Promise<Invoice> {
     const newInvoice: Invoice = {
       ...invoice,
       id: `inv-${Date.now()}`,
@@ -275,60 +190,16 @@ export const crmService = {
       createdAt: new Date().toISOString().split('T')[0],
       updatedAt: new Date().toISOString(),
     };
-
     try {
       const list = await this.getInvoices(workspaceId);
-      const updated = [newInvoice, ...list];
-      localStorage.setItem(`databeta_invoices_${workspaceId}`, JSON.stringify(updated));
+      localStorage.setItem(`databeta_invoices_${workspaceId}`, JSON.stringify([newInvoice, ...list]));
     } catch {}
-
     return newInvoice;
   },
 
-  async markInvoicePaid(workspaceId: string, invoiceId: string): Promise<void> {
+  async saveInvoices(workspaceId: string, invoices: Invoice[]): Promise<void> {
     try {
-      const list = await this.getInvoices(workspaceId);
-      const updated = list.map((inv) =>
-        inv.id === invoiceId
-          ? {
-              ...inv,
-              status: 'paid' as any,
-              amountPaid: inv.amount,
-              balanceDue: 0,
-              updatedAt: new Date().toISOString(),
-            }
-          : inv
-      );
-      localStorage.setItem(`databeta_invoices_${workspaceId}`, JSON.stringify(updated));
+      localStorage.setItem(`databeta_invoices_${workspaceId}`, JSON.stringify(invoices));
     } catch {}
-  },
-
-  // --------------------------------------------------------------------------
-  // ACTIVITIES (Timeline Log)
-  // --------------------------------------------------------------------------
-  async getActivities(workspaceId: string): Promise<Activity[]> {
-    try {
-      const local = localStorage.getItem(`databeta_activities_${workspaceId}`);
-      return local ? JSON.parse(local) : [];
-    } catch {
-      return [];
-    }
-  },
-
-  async logActivity(workspaceId: string, activity: Omit<Activity, 'id' | 'timestamp'>): Promise<Activity> {
-    const newActivity: Activity = {
-      ...activity,
-      id: `act-${Date.now()}`,
-      workspaceId,
-      timestamp: new Date().toISOString(),
-    };
-
-    try {
-      const local = localStorage.getItem(`databeta_activities_${workspaceId}`);
-      const list: Activity[] = local ? JSON.parse(local) : [];
-      localStorage.setItem(`databeta_activities_${workspaceId}`, JSON.stringify([newActivity, ...list]));
-    } catch {}
-
-    return newActivity;
   },
 };

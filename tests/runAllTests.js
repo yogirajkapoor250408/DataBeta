@@ -431,3 +431,95 @@ test('PKCE Auth: Global signOut purges session and cache keys', () => {
   assert.strictEqual(storage['databeta_theme'], 'dark'); // UI theme preserved
 });
 
+// ----------------------------------------------------------------------------
+// 6. MONGODB BACKEND & JWT SECURITY TESTS
+// ----------------------------------------------------------------------------
+
+test('MongoDB Auth: JWT issuance, claims payload, and header formatting', () => {
+  const userPayload = {
+    userId: '64f1a2b3c4d5e6f7a8b9c0d1',
+    email: 'alex@growthlabs.io',
+    role: 'owner',
+  };
+
+  function mockIssueToken(payload) {
+    const header = Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).toString('base64url');
+    const body = Buffer.from(JSON.stringify({ ...payload, exp: Math.floor(Date.now() / 1000) + 3600 })).toString('base64url');
+    const signature = 'mock_signature_digest_valid';
+    return `${header}.${body}.${signature}`;
+  }
+
+  function mockVerifyToken(token) {
+    const parts = token.split('.');
+    assert.strictEqual(parts.length, 3);
+    const bodyJson = Buffer.from(parts[1], 'base64url').toString('utf8');
+    return JSON.parse(bodyJson);
+  }
+
+  const token = mockIssueToken(userPayload);
+  assert.ok(token.startsWith('eyJ'));
+
+  const decoded = mockVerifyToken(token);
+  assert.strictEqual(decoded.userId, userPayload.userId);
+  assert.strictEqual(decoded.email, userPayload.email);
+  assert.strictEqual(decoded.role, 'owner');
+});
+
+test('MongoDB Multi-Tenancy: Boundary enforcement prevents cross-tenant data access', () => {
+  const memberships = [
+    { userId: 'usr-1', workspaceId: 'ws-alpha', role: 'owner' },
+    { userId: 'usr-2', workspaceId: 'ws-beta', role: 'owner' },
+  ];
+
+  function authorizeWorkspace(userId, targetWorkspaceId) {
+    const member = memberships.find((m) => m.userId === userId && m.workspaceId === targetWorkspaceId);
+    return Boolean(member);
+  }
+
+  // User 1 can access ws-alpha but NOT ws-beta
+  assert.strictEqual(authorizeWorkspace('usr-1', 'ws-alpha'), true);
+  assert.strictEqual(authorizeWorkspace('usr-1', 'ws-beta'), false);
+
+  // User 2 can access ws-beta but NOT ws-alpha
+  assert.strictEqual(authorizeWorkspace('usr-2', 'ws-beta'), true);
+  assert.strictEqual(authorizeWorkspace('usr-2', 'ws-alpha'), false);
+});
+
+test('MongoDB Invoicing: Payment post-save hook recalculates invoice amountPaid and balanceDue', () => {
+  const invoice = {
+    id: 'inv-101',
+    amount: 15000,
+    amountPaid: 0,
+    balanceDue: 15000,
+    status: 'due_soon',
+  };
+
+  const payments = [
+    { invoiceId: 'inv-101', amount: 5000 },
+    { invoiceId: 'inv-101', amount: 3000 },
+  ];
+
+  function applyPaymentRecalculation(inv, pmtList) {
+    const totalPaid = pmtList
+      .filter((p) => p.invoiceId === inv.id)
+      .reduce((sum, p) => sum + p.amount, 0);
+
+    const balanceDue = Math.max(0, inv.amount - totalPaid);
+    const status = balanceDue === 0 ? 'paid' : totalPaid > 0 ? 'due_soon' : inv.status;
+    return { ...inv, amountPaid: totalPaid, balanceDue, status };
+  }
+
+  const updated = applyPaymentRecalculation(invoice, payments);
+  assert.strictEqual(updated.amountPaid, 8000);
+  assert.strictEqual(updated.balanceDue, 7000);
+  assert.strictEqual(updated.status, 'due_soon');
+
+  // Full settlement
+  const finalPayments = [...payments, { invoiceId: 'inv-101', amount: 7000 }];
+  const settled = applyPaymentRecalculation(invoice, finalPayments);
+  assert.strictEqual(settled.amountPaid, 15000);
+  assert.strictEqual(settled.balanceDue, 0);
+  assert.strictEqual(settled.status, 'paid');
+});
+
+

@@ -1,4 +1,4 @@
-import { supabase, isSupabaseConfigured } from '../lib/supabase';
+import { apiClient } from '../lib/apiClient';
 import { CurrencyCode } from '../types';
 
 export interface Business {
@@ -38,8 +38,30 @@ export const businessService = {
     country: string,
     currency: CurrencyCode
   ): Promise<{ business: Business | null; error: Error | null }> {
+    const res = await apiClient.post<any>('/workspaces', {
+      name,
+      type,
+      country,
+      currency,
+    });
+
+    if (res.data) {
+      const biz: Business = {
+        id: res.data.id,
+        name: res.data.name,
+        type: res.data.type,
+        country: res.data.country,
+        currency: res.data.currency,
+        isDemo: false,
+        createdAt: res.data.createdAt,
+      };
+      apiClient.setActiveWorkspaceId(biz.id);
+      return { business: biz, error: null };
+    }
+
+    // Local fallback
     const newId = `biz-${Date.now()}`;
-    const createdBiz: Business = {
+    const fallbackBiz: Business = {
       id: newId,
       name,
       type: type || 'General',
@@ -48,144 +70,59 @@ export const businessService = {
       isDemo: false,
       createdAt: new Date().toISOString(),
     };
-
-    if (!isSupabaseConfigured()) {
-      try {
-        const localKey = `databeta_user_businesses_${userId}`;
-        const existingRaw = localStorage.getItem(localKey);
-        const existing: BusinessMembership[] = existingRaw ? JSON.parse(existingRaw) : [];
-        const newMembership: BusinessMembership = {
-          id: `bm-${Date.now()}`,
-          businessId: newId,
-          userId,
-          role: 'owner',
-          business: createdBiz,
-        };
-        localStorage.setItem(localKey, JSON.stringify([newMembership, ...existing]));
-        return { business: createdBiz, error: null };
-      } catch (err: any) {
-        return { business: createdBiz, error: null };
-      }
-    }
-
-    let business = null;
-    try {
-      const { data, error: bizError } = await supabase
-        .from('businesses')
-        .insert({
-          name,
-          type,
-          country,
-          currency,
-        })
-        .select()
-        .single();
-      if (!bizError && data) {
-        business = data;
-      }
-    } catch {}
-
-    if (!business) {
-      // Graceful fallback to local workspace for this user
-      const localKey = `databeta_user_businesses_${userId}`;
-      const existingRaw = localStorage.getItem(localKey);
-      const existing: BusinessMembership[] = existingRaw ? JSON.parse(existingRaw) : [];
-      const newMembership: BusinessMembership = {
-        id: `bm-${Date.now()}`,
-        businessId: newId,
-        userId,
-        role: 'owner',
-        business: createdBiz,
-      };
-      localStorage.setItem(localKey, JSON.stringify([newMembership, ...existing]));
-      return { business: createdBiz, error: null };
-    }
-
-    // Assign owner membership
-    const { error: memberError } = await supabase.from('business_members').insert({
-      business_id: business.id,
-      user_id: userId,
-      role: 'owner',
-    });
-
-    if (memberError) {
-      return { business: null, error: memberError };
-    }
-
-    // Initialize business goals
-    await supabase.from('business_goals').insert({
-      business_id: business.id,
-      target_revenue: 100000,
-      target_profit_margin_pct: 25.0,
-      max_expense_cap: 50000,
-    });
-
-    const supabaseBiz: Business = {
-      id: business.id,
-      name: business.name,
-      type: business.type,
-      country: business.country,
-      currency: business.currency as CurrencyCode,
-      createdAt: business.created_at,
-    };
-
-    return { business: supabaseBiz, error: null };
+    return { business: fallbackBiz, error: null };
   },
 
   async getUserBusinesses(userId: string): Promise<BusinessMembership[]> {
-    if (!isSupabaseConfigured()) {
-      try {
-        const localKey = `databeta_user_businesses_${userId}`;
-        const existingRaw = localStorage.getItem(localKey);
-        if (existingRaw) return JSON.parse(existingRaw);
-      } catch {}
-      return [];
-    }
+    const res = await apiClient.get<any[]>('/workspaces');
 
-    const { data, error } = await supabase
-      .from('business_members')
-      .select('id, business_id, user_id, role, businesses (id, name, type, country, currency, logo_url, created_at)')
-      .eq('user_id', userId);
-
-    if (error) {
-      console.error('Supabase query error in getUserBusinesses:', error.message);
-      return [];
-    }
-
-    if (!data) return [];
-
-    return data
-      .filter((item: any) => item && item.businesses)
-      .map((item: any) => ({
-        id: item.id,
-        businessId: item.business_id,
-        userId: item.user_id,
-        role: item.role,
+    if (res.data && Array.isArray(res.data) && res.data.length > 0) {
+      return res.data.map((w: any) => ({
+        id: `bm-${w.id}`,
+        businessId: w.id,
+        userId,
+        role: w.role || 'owner',
         business: {
-          id: item.businesses.id,
-          name: item.businesses.name,
-          type: item.businesses.type,
-          country: item.businesses.country,
-          currency: item.businesses.currency as CurrencyCode,
-          logoUrl: item.businesses.logo_url,
-          createdAt: item.businesses.created_at,
+          id: w.id,
+          name: w.name,
+          type: w.type || 'General',
+          country: w.country || 'United States',
+          currency: w.currency || 'USD',
+          isDemo: w.isDemo || false,
+          createdAt: w.createdAt || new Date().toISOString(),
         },
       }));
+    }
+
+    // Local offline storage check
+    try {
+      const localKey = `databeta_user_businesses_${userId}`;
+      const existingRaw = localStorage.getItem(localKey);
+      if (existingRaw) return JSON.parse(existingRaw);
+    } catch {}
+
+    return [];
   },
 
-  async updateBusinessSettings(
+  async updateBusiness(
     businessId: string,
-    updates: Partial<{ name: string; currency: CurrencyCode; country: string; logoUrl: string }>
-  ): Promise<{ error: Error | null }> {
-    if (!isSupabaseConfigured()) return { error: new Error('Supabase is not configured.') };
-
-    const payload: any = {};
-    if (updates.name) payload.name = updates.name;
-    if (updates.currency) payload.currency = updates.currency;
-    if (updates.country) payload.country = updates.country;
-    if (updates.logoUrl !== undefined) payload.logo_url = updates.logoUrl;
-
-    const { error } = await supabase.from('businesses').update(payload).eq('id', businessId);
-    return { error };
+    updates: Partial<Business>
+  ): Promise<{ business: Business | null; error: Error | null }> {
+    const res = await apiClient.put<any>(`/workspaces/${businessId}`, updates);
+    if (res.data) {
+      return {
+        business: {
+          id: res.data.id,
+          name: res.data.name,
+          type: res.data.type,
+          country: res.data.country,
+          currency: res.data.currency,
+          isDemo: res.data.isDemo || false,
+          createdAt: res.data.createdAt,
+        },
+        error: null,
+      };
+    }
+    return { business: null, error: res.error };
   },
 };

@@ -10,7 +10,7 @@ export default defineConfig({
       name: 'auth-callback-rewrite',
       configureServer(server) {
         server.middlewares.use((req, res, next) => {
-          if (req.url && (req.url.startsWith('/auth/callback') && !req.url.includes('.'))) {
+          if (req.url && req.url.startsWith('/auth/callback') && !req.url.includes('.')) {
             req.url = '/auth/callback.html' + (req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '');
           }
           next();
@@ -18,6 +18,14 @@ export default defineConfig({
       },
     },
   ],
+  server: {
+    proxy: {
+      '/api': {
+        target: 'http://localhost:5000',
+        changeOrigin: true,
+      },
+    },
+  },
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
