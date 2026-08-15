@@ -87,7 +87,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
 
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [inviteEmail, setInviteEmail] = useState('');
-  const [inviteRole, setInviteRole] = useState<'owner' | 'salesperson' | 'finance_viewer'>('salesperson');
+  const [inviteRole, setInviteRole] = useState<WorkspaceRole>('salesperson');
   const currentWsId = activeBusiness?.id || 'ws-main';
 
   // Audit Log State

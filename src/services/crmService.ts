@@ -1,5 +1,5 @@
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
-import { Deal, Contact, Company, Task, Activity, DealStage } from '../types';
+import { Deal, Contact, Company, Task, Activity, DealStage, Invoice } from '../types';
 
 export const crmService = {
   // --------------------------------------------------------------------------
