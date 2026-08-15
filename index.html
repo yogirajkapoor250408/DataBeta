@@ -10,8 +10,19 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <script>
+      (function() {
+        try {
+          var t = localStorage.getItem('databeta_theme');
+          if (t === 'light') document.documentElement.classList.remove('dark');
+          else document.documentElement.classList.add('dark');
+        } catch(e) {
+          document.documentElement.classList.add('dark');
+        }
+      })();
+    </script>
   </head>
-  <body class="bg-slate-50 text-slate-900 font-sans antialiased min-h-screen">
+  <body class="bg-slate-50 dark:bg-[#09090b] text-slate-900 dark:text-zinc-100 font-sans antialiased min-h-screen">
     <div id="root"></div>
     <script type="module" src="/src/main-landing.tsx"></script>
   </body>

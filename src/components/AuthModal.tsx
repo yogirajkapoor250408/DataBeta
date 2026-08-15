@@ -49,9 +49,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         if (!user) throw new Error('Authentication failed.');
         onAuthSuccess(user);
       }
-      onClose();
     } catch (err: any) {
-      setErrorMsg(err?.message || 'Authentication failed. Please check your credentials and Supabase configuration.');
+      const msg = err?.message || '';
+      if (msg.includes('Invalid login credentials')) {
+        setErrorMsg('Invalid email or password. If you have not created an account yet, switch to "Sign Up" above.');
+      } else {
+        setErrorMsg(msg || 'Authentication failed. Please check your credentials and try again.');
+      }
     } finally {
       setIsLoading(false);
     }

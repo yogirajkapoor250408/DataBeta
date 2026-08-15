@@ -560,7 +560,11 @@ export const DashboardApp: React.FC = () => {
         isOpen={isAuthOpen}
         initialMode={authMode}
         onClose={() => setIsAuthOpen(false)}
-        onAuthSuccess={() => setIsAuthOpen(false)}
+        onAuthSuccess={(user) => {
+          setIsAuthOpen(false);
+          setIsDemoMode(false);
+          loadUserWorkspace(user);
+        }}
       />
 
       <CommandPaletteModal
