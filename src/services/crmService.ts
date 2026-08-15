@@ -63,6 +63,24 @@ export const crmService = {
     }
   },
 
+  async updateDealStage(
+    workspaceId: string,
+    dealId: string,
+    stage: any
+  ): Promise<{ deal: Deal | null; error: Error | null }> {
+    return this.updateDeal(workspaceId, dealId, { stage });
+  },
+
+  async deleteDeal(workspaceId: string, dealId: string): Promise<{ success: boolean; error: Error | null }> {
+    const res = await apiClient.delete(`/crm/deals/${dealId}`, workspaceId);
+    try {
+      const list = await this.getDeals(workspaceId);
+      const filtered = list.filter((d) => d.id !== dealId);
+      localStorage.setItem(`databeta_deals_${workspaceId}`, JSON.stringify(filtered));
+    } catch {}
+    return { success: !res.error, error: res.error };
+  },
+
   async saveDeals(workspaceId: string, deals: Deal[]): Promise<void> {
     try {
       localStorage.setItem(`databeta_deals_${workspaceId}`, JSON.stringify(deals));

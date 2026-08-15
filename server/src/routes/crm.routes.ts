@@ -78,6 +78,15 @@ router.put('/deals/:id', async (req: AuthenticatedRequest, res: Response): Promi
   }
 });
 
+router.delete('/deals/:id', async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+  try {
+    await Deal.findOneAndDelete({ _id: req.params.id, workspaceId: req.workspaceId });
+    res.json({ success: true });
+  } catch (err: any) {
+    res.status(500).json({ error: 'Failed to delete deal.' });
+  }
+});
+
 // ----------------------------------------------------------------------------
 // CONTACTS
 // ----------------------------------------------------------------------------
